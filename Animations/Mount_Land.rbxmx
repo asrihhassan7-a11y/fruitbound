@@ -1,0 +1,745 @@
+<roblox version="4">
+  <Item class="KeyframeSequence" referent="0">
+    <Properties>
+      <string name="Name">Mount_Land</string>
+      <bool name="Loop">false</bool>
+      <token name="Priority">2</token>
+    </Properties>
+    <Item class="Keyframe" referent="1">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0</float>
+      </Properties>
+      <Item class="Pose" referent="2">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="3">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="4">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.033333335</float>
+      </Properties>
+      <Item class="Pose" referent="5">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="6">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.16191101</Y>
+              <Z>0.03479004</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.999588</R11>
+              <R12>0.028778076</R12>
+              <R20>0</R20>
+              <R21>-0.028778076</R21>
+              <R22>0.999588</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="7">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.06666667</float>
+      </Properties>
+      <Item class="Pose" referent="8">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="9">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.23825073</Y>
+              <Z>0.051437378</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.99909973</R11>
+              <R12>0.042404175</R12>
+              <R20>0</R20>
+              <R21>-0.042404175</R21>
+              <R22>0.99909973</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="10">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.1</float>
+      </Properties>
+      <Item class="Pose" referent="11">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="12">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.23049927</Y>
+              <Z>0.049209595</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.999176</R11>
+              <R12>0.040603638</R12>
+              <R20>0</R20>
+              <R21>-0.040603638</R21>
+              <R22>0.999176</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="13">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.13333334</float>
+      </Properties>
+      <Item class="Pose" referent="14">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="15">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.15168762</Y>
+              <Z>0.029266357</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.9997101</R11>
+              <R12>0.024246216</R12>
+              <R20>0</R20>
+              <R21>-0.024246216</R21>
+              <R22>0.9997101</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="16">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.16666667</float>
+      </Properties>
+      <Item class="Pose" referent="17">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="18">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.043655396</Y>
+              <Z>0.002319336</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0.0019378662</R12>
+              <R20>0</R20>
+              <R21>-0.0019378662</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="19">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.2</float>
+      </Properties>
+      <Item class="Pose" referent="20">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="21">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>0.03590393</Y>
+              <Z>-0.01725769</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.9998932</R11>
+              <R12>-0.014434814</R12>
+              <R20>0</R20>
+              <R21>0.014434814</R21>
+              <R22>0.9998932</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="22">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.23333333</float>
+      </Properties>
+      <Item class="Pose" referent="23">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="24">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>0.048568726</Y>
+              <Z>-0.020324707</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.9998627</R11>
+              <R12>-0.016998291</R12>
+              <R20>0</R20>
+              <R21>0.016998291</R21>
+              <R22>0.9998627</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="25">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.26666668</float>
+      </Properties>
+      <Item class="Pose" referent="26">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="27">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>0.027572632</Y>
+              <Z>-0.014907837</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.9999237</R11>
+              <R12>-0.012466431</R12>
+              <R20>0</R20>
+              <R21>0.012466431</R21>
+              <R22>0.9999237</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="28">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.3</float>
+      </Properties>
+      <Item class="Pose" referent="29">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="30">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.0040130615</Y>
+              <Z>-0.0067443848</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>0.99998474</R11>
+              <R12>-0.005630493</R12>
+              <R20>0</R20>
+              <R21>0.005630493</R21>
+              <R22>0.99998474</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="31">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.33333334</float>
+      </Properties>
+      <Item class="Pose" referent="32">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="33">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.026779175</Y>
+              <Z>-0.0008392334</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>-0.0007019043</R12>
+              <R20>0</R20>
+              <R21>0.0007019043</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="34">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.36666667</float>
+      </Properties>
+      <Item class="Pose" referent="35">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="36">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.02909851</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="37">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.4</float>
+      </Properties>
+      <Item class="Pose" referent="38">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="39">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.022506714</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="40">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.43333334</float>
+      </Properties>
+      <Item class="Pose" referent="41">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="42">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.012390137</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="43">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.46666667</float>
+      </Properties>
+      <Item class="Pose" referent="44">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="45">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>-0.0035095215</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+    <Item class="Keyframe" referent="46">
+      <Properties>
+        <string name="Name">Keyframe</string>
+        <float name="Time">0.5</float>
+      </Properties>
+      <Item class="Pose" referent="47">
+        <Properties>
+          <string name="Name">Root</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+        <Item class="Pose" referent="48">
+          <Properties>
+            <string name="Name">Body</string>
+            <CoordinateFrame name="CFrame">
+              <X>0</X>
+              <Y>0</Y>
+              <Z>0</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <token name="EasingDirection">0</token>
+            <token name="EasingStyle">0</token>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+</roblox>

@@ -65,3 +65,14 @@ Night music: add a looping Sound named `MusicNight` to SoundService (or `Music_N
 | ServerScriptService.Server.Modules.Controllers.Harvest | Seed crops are harvested only by a tap on that crop (clicked point within 4.5 studs); never by Auto Collect / auto punch |
 | ServerScriptService.Server.Modules.Controllers.Player | `_power_click` forwards the clicked position to `Harvest.tryHarvest` |
 | ServerScriptService.Server.Modules.Controllers.FarmingV2 | NaN guard in `placeCrop`; `pcall` around `mature()` in the growth heartbeat |
+
+## Animation Pack (Fruits + Mounts)
+New `StarterPlayer.StarterPlayerScripts.Client.Modules.Classes.AnimationPack` (20 keyframe clips + sampler / one-shot blending). Instance count 23,715 → 23,716; nothing else added or removed.
+| Path | Change |
+|---|---|
+| …Client.Modules.Classes.FruitGroup | Followers play Fruit_Idle / Walk / Run / Sleep (blended), Fruit_Surprised on waking, Fruit_Happy on new / levelled / evolved fruit |
+| …Client.Modules.Classes.FruitAnimator | `setSleeping` (eyes stay closed while asleep) |
+| …Client.Modules.Controllers.FruitPen | Pen fruit turns to you and plays Fruit_Interact when its "Feed / Stats" prompt is used |
+| …Client.Modules.Controllers.Mounts | Mount body plays <set>_Idle / Walk / Run + Start / Stop / Jump / Land / Celebrate (leg / neck / tail joint code unchanged) |
+| ReplicatedStorage.Common.Modules.Databases.Mounts | Forest Deer: `anim_set = "Deer"`, gallop from 20 studs/s (riding speed is 22) |
+Exports: `Animations/*.rbxmx` (one KeyframeSequence per clip) — see `Animations/README.md`.
