@@ -79,3 +79,31 @@ Exports: `Animations/*.rbxmx` (one KeyframeSequence per clip) — see `Animation
 
 ### Animation QA pass (AnimationPack keys only)
 Headless run of the real Mounts / FruitGroup animation code found: deer hooves sinking up to 0.33 studs into the ground (rigid body pitching / negative keys), Fruit_Happy and Fruit_Sleep dipping 0.12 / 0.09 studs into the ground, Fruit_Run hopping ~7x/s at mount speed. Fixed by retuning clip keys only (lifts, smaller pitch, Fruit_Run 0.4 s → 0.56 s and 0.8 → 0.6 studs, Mount_Celebrate 9° → 5.5°). No logic changes.
+
+## Final release pass: economy, empty farm plots, free planting
+Only script `Source` changed (25 scripts). Instance count (23,716), hierarchy, names, IDs, save keys and Robux Product IDs are unchanged.
+
+### Economy
+- Harvest value no longer uses the Coins-based power tier (income was growing with income). Each harvested unit has a fixed base: the Seed's `sell_value` (Clover 8, Mint 14, Carrot 24, Sunflower 42, Glow Mushroom 75), or 1 for decor patches. It is then multiplied by farm bonuses and the player's coin boosts. Fruits speed up growth and no longer also multiply sell value.
+- Each Seed crop gives 6 harvest units (one tap each, exact target).
+- Seed Packs (3 Seeds each; odds unchanged): Starter 120, Garden 300, Flower 330, Woodland 560, Golden Grove 600, Enchanted 800 Coins.
+- Farm upgrades: 1.5K → 45M Coins (same order and IDs). Helpers earn a fixed 1 Coin per 2 s each (× bonuses).
+- Eggs: Farm 750, Desert 3,000, Jungle 10,000 Gems (both `Eggs` and `FruitEggRewards`).
+- Gem sources scaled: playtime gifts, 7-day daily gifts, codes (÷40), hidden rank reward (150 × rank). Combat boosts (x2 Damage, Protection) are replaced or removed.
+- Garden Spins: 5K Gems 1%, 150 Gems 25%, 1,500 Coins 20%, Starter Seed Pack 18%, Rare Seed (Glow Mushroom) 12%, x2 Coins potion 10%, Growth Potion 8%, Farm Egg 6%. Restricted accounts never roll the Egg slice. The popup shows what was really given.
+- New Growth Potion (x1.25 crop growth, 30 min; starts immediately, timer shown in the Boosts HUD).
+- Sprinklers now make crops grow 40% faster.
+- Tutorial: the first sale always covers the Starter Pack, and the tutorial harvest grants the Farm Egg price, so neither step can softlock.
+- `Settings.data.mock = false`.
+
+### Farm plots
+Land expansions build EMPTY soil (no Strawberry, Mango or other bushes) with neutral names: Starter, Meadow, Orchard, Riverside, Tropical, Blossom, Greenhouse, Mystic and Golden Plot. Internal IDs are unchanged.
+
+### Free planting
+Equip a Seed Tool, then click or tap your own soil. A green or red preview disc shows whether the spot is valid. The server validates seed ownership, owned and unlocked soil, edge margin, surface height, a 30-stud reach, 4.5-stud spacing, a 250-crop cap and a rate limit before spending exactly 1 Seed.
+- **Saves:** new crops save `{seed_id, planted_at, x, z}` in plot-local coordinates under a unique key. Legacy slot crops "1"–"6" keep their keys and gain their old slot position in place.
+- **UI:** the Seed Shop slot picker is removed (PLANT → EQUIP). Tutorial step 4: "Equip a Seed and tap the soil on your farm!"
+
+### Other
+- Egg stand price signs now show the real price.
+- Fruit descriptions now say Fruits make crops grow faster.
