@@ -131,3 +131,10 @@ Equip a Seed Tool, then click or tap your own soil. A green or red preview disc 
 | Enchanted | 1,040 | 12.7% |
 
 Profit per Seed still rises with every tier. Break-even (expected value of 3 Seeds × 6 units) is 295 / 502 / 538 / 868 / 945 / 1,172. Farm coin bonuses (Market Stand / Golden Fountain / Paradise Gate) raise real profit above these figures for late players.
+
+## Starter Seed Pack safety fix (price only)
+- Starter Seed Pack: **235 → 180 Coins**. Nothing else changed (other packs, crops, odds, growth, tutorial untouched).
+- Expected value 295.2 → expected profit **64.0%**. Worst roll (3 Clovers) returns 144 Coins (−36); every other roll returns ≥ 180, so only 6.4% of packs lose Coins (was 31.6% at 235, 20.8% at 185–200).
+- Chance a farming-only new player cannot afford a 2nd pack from the 1st one: 7.7% (was 44.4%); the tutorial leftover Clover units, the 100-Coin playtime gift and free Garden Spins cover that gap.
+- The tutorial top-up (`Player:_tutorial_cover_costs`) reads `SeedPacks.getPack("starter").price`, so it follows the new price automatically.
+- Note: at 180 the Starter pack's profit per Seed (38.4) is above Garden / Flower / Woodland per Seed; higher packs still give far more Coins per harvest tap and per planting spot (Starter 16.4 per unit vs Garden 27.9 … Enchanted 65.1).
