@@ -58,3 +58,10 @@ Night music: add a looping Sound named `MusicNight` to SoundService (or `Music_N
 | ServerScriptService.Server.Modules.Controllers.SeedTools | Restored to the pre-hold version (pass 2: un-anchored handle) — no hold tables, tokens, timeouts or hidden counts. Added only `S_SeedTools_Refresh` (one normal rebuild, max 1/s per player) |
 | ServerScriptService.Server.Modules.Controllers.FarmingV2 | `buyPack` back to `return true, results` (no hold call / token). Harvest Seed drop (0.5%) kept |
 | StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedShop | Hides the Roblox Backpack hotbar (CoreGui) only while the reveal is on screen; one `finishReveal()` re-shows it and requests a refresh on last card / early close / shop close / overlay destroyed; respawn always re-shows it |
+
+## Seed crop harvest fix
+| Path | Change |
+|---|---|
+| ServerScriptService.Server.Modules.Controllers.Harvest | Seed crops are harvested only by a tap on that crop (clicked point within 4.5 studs); never by Auto Collect / auto punch |
+| ServerScriptService.Server.Modules.Controllers.Player | `_power_click` forwards the clicked position to `Harvest.tryHarvest` |
+| ServerScriptService.Server.Modules.Controllers.FarmingV2 | NaN guard in `placeCrop`; `pcall` around `mature()` in the growth heartbeat |
