@@ -31,3 +31,13 @@ Mount clips rotate around the saddle and the rider is welded to `Root`; each key
 | Deer_Idle / Walk / Run / Jump / Land | ✔✔✔ / | 4.5 / 1.0 / 0.8 / 0.65 / 0.5 s | Forest Deer (`anim_set = "Deer"`); Start / Stop / Celebrate fall back to `Mount_*` |
 
 Tuning lives in the clip keys in `AnimationPack` (studs / degrees); the files here can be regenerated from it.
+
+## Using your own uploaded animations
+Paste published Animation IDs in **`ReplicatedStorage.Common.Modules.Databases.AnimationIds`**, for example `DeerWalkAnimationId = "rbxassetid://1234567890"`. A plain number also works.
+
+- **ID set and loaded:** that action plays your `AnimationTrack`.
+- **Empty, or the ID fails to load:** the built-in AnimationPack clip plays. This is decided per action.
+- **Ownership:** the animation must be published by the game's owner (you or your group), or Roblox won't load it.
+- **Deer rig:** `Root` › `Body` (existing Motor6D `BodyJoint`). The rider stays welded to `Root`.
+- **Fruit rig:** `Root` › `Handle` (Motor6D `RootJoint`). It is added automatically to every Fruit follower only when at least one Fruit ID is set. The files above (`Fruit_*.rbxmx`) already use these names, so you can open them in the Animation Editor on a rigged fruit, publish, and paste the ID.
+- **Single meshes:** Fruits and the Forest Deer can only move as a whole body. There are no separate limbs.

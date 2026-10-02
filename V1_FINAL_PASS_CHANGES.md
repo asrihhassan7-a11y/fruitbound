@@ -112,3 +112,10 @@ Equip a Seed Tool, then click or tap your own soil. A green or red preview disc 
 | Path | Change |
 |---|---|
 | StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedTools | The planting preview now uses the same plantable size as the server (`FarmUpgrades.soil`). The Greenhouse floor (30×20) is larger than its plantable soil (28×18), so the preview showed green in a 1-stud band the server rejects. |
+
+## Custom Roblox animations (optional, AnimationPack fallback)
+- **Instances:** new ModuleScript `ReplicatedStorage.Common.Modules.Databases.AnimationIds` (23,716 → 23,717 instances), holding the Deer / Mount / Fruit Animation IDs. Empty IDs keep the built-in animation.
+- **AnimationPack:** a track layer (`trackSet`, `trackLoop`, `trackShot`, `trackBusy`, `trackStop`). It loads tracks once per model on one AnimationController + Animator and crossfades loops only when the action changes. A track is used only once it has loaded; otherwise that action falls back to the procedural clip. Everything stops and is destroyed on despawn or dismount.
+- **Mounts:** the Deer uses its Root → Body rig. While an uploaded track drives the Body joint, the procedural Body layer stays off. Leg, neck and tail code is unchanged.
+- **FruitGroup:** when a Fruit ID is set, each follower gets a Root → Handle Motor6D rig (invisible anchored Root as PrimaryPart at the mesh's exact CFrame; stage decorations welded to the Handle). Idle / Walk / Run / Sleep / Happy / Surprised use the tracks.
+- **FruitAnimator:** finds the mesh as `Handle` first, so lids and sparkles stay on the fruit when rigged.
