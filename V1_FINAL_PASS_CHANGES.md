@@ -27,3 +27,12 @@ MaxDistance INF → 80, Size 200×50 → 150×34 px, StudsOffset Y 4.05 → 5.6,
 
 ## Optional asset hook
 Night music: add a looping Sound named `MusicNight` to SoundService (or `Music_Night` under ReplicatedStorage.Assets.Sounds). Until then, the day track plays softer at night.
+
+## Follow-up: mobile + seed tool fixes
+| Path | Change |
+|---|---|
+| ServerScriptService.Server.Modules.Controllers.SeedTools | Seed Tool Handle (cloned from an Anchored display mesh) is now un-anchored, massless, non-colliding, joint-free |
+| ServerScriptService.MapAnchorScript | Never anchors parts inside a Tool |
+| ServerScriptService.Server.Modules.Controllers.FarmingV2 | Publishes tutorial fallback positions (`GuideSell`, `GuideSeedShop`, `GuideEgg` on Workspace; `GuideFarm` on each Player) |
+| StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.Guide | Points at the fallback position while the real target is not streamed in; Fruits-button pointer uses the HUD's safe-area screen space and stays on screen; marker draw distance 2000 |
+| StarterPlayer.StarterPlayerScripts.Client.Modules.UI.UpgradeTree | Panel sized from the safe-area ScreenGui instead of the full viewport (fixes the clipped top-right Coins chip on phones) |
