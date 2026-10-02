@@ -107,3 +107,8 @@ Equip a Seed Tool, then click or tap your own soil. A green or red preview disc 
 ### Other
 - Egg stand price signs now show the real price.
 - Fruit descriptions now say Fruits make crops grow faster.
+
+### Release QA fix
+| Path | Change |
+|---|---|
+| StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedTools | The planting preview now uses the same plantable size as the server (`FarmUpgrades.soil`). The Greenhouse floor (30×20) is larger than its plantable soil (28×18), so the preview showed green in a 1-stud band the server rejects. |
