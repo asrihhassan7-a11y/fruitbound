@@ -51,3 +51,10 @@ Night music: add a looping Sound named `MusicNight` to SoundService (or `Music_N
 | ServerScriptService.Server.Modules.Controllers.Harvest | `tryHarvest` returns the harvested crop's saved `seed_id` (mature, owned, completed seed crop only) |
 | ServerScriptService.Server.Modules.Controllers.Player | After a manual harvest pays its normal reward, rolls the bonus Seed and shows "🌱 Lucky Harvest! You found a <Seed>!" |
 | StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedShop | Passes the pack's token to the reveal; single release path (last card / closed / destroyed) with confirmation + retry, then refreshes the shop list |
+
+## Follow-up: Seed hold removed, reveal hides the hotbar instead
+| Path | Change |
+|---|---|
+| ServerScriptService.Server.Modules.Controllers.SeedTools | Restored to the pre-hold version (pass 2: un-anchored handle) — no hold tables, tokens, timeouts or hidden counts. Added only `S_SeedTools_Refresh` (one normal rebuild, max 1/s per player) |
+| ServerScriptService.Server.Modules.Controllers.FarmingV2 | `buyPack` back to `return true, results` (no hold call / token). Harvest Seed drop (0.5%) kept |
+| StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedShop | Hides the Roblox Backpack hotbar (CoreGui) only while the reveal is on screen; one `finishReveal()` re-shows it and requests a refresh on last card / early close / shop close / overlay destroyed; respawn always re-shows it |
