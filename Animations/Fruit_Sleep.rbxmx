@@ -33,7 +33,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13951111</X>
-              <Y>-0.09579468</Y>
+              <Y>-0.015808105</Y>
               <Z>0.20854187</Z>
               <R00>0.9975586</R00>
               <R01>-0.06976318</R01>
@@ -79,7 +79,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13949585</X>
-              <Y>-0.0957489</Y>
+              <Y>-0.01576233</Y>
               <Z>0.20851135</Z>
               <R00>0.9975586</R00>
               <R01>-0.069747925</R01>
@@ -125,7 +125,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13946533</X>
-              <Y>-0.09561157</Y>
+              <Y>-0.015640259</Y>
               <Z>0.20840454</Z>
               <R00>0.9975586</R00>
               <R01>-0.069732666</R01>
@@ -171,7 +171,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1394043</X>
-              <Y>-0.09539795</Y>
+              <Y>-0.015457153</Y>
               <Z>0.20822144</Z>
               <R00>0.99757385</R00>
               <R01>-0.06970215</R01>
@@ -217,7 +217,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.139328</X>
-              <Y>-0.095077515</Y>
+              <Y>-0.015182495</Y>
               <Z>0.2079773</Z>
               <R00>0.99757385</R00>
               <R01>-0.06965637</R01>
@@ -263,7 +263,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13922119</X>
-              <Y>-0.09466553</Y>
+              <Y>-0.014831543</Y>
               <Z>0.20767212</Z>
               <R00>0.99757385</R00>
               <R01>-0.069610596</R01>
@@ -309,7 +309,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13908386</X>
-              <Y>-0.094177246</Y>
+              <Y>-0.014419556</Y>
               <Z>0.20727539</Z>
               <R00>0.99757385</R00>
               <R01>-0.06954956</R01>
@@ -355,7 +355,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13893127</X>
-              <Y>-0.09358215</Y>
+              <Y>-0.013916016</Y>
               <Z>0.20683289</Z>
               <R00>0.9975891</R00>
               <R01>-0.06947327</R01>
@@ -401,7 +401,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13876343</X>
-              <Y>-0.092926025</Y>
+              <Y>-0.01335144</Y>
               <Z>0.20631409</Z>
               <R00>0.9975891</R00>
               <R01>-0.069381714</R01>
@@ -447,7 +447,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13856506</X>
-              <Y>-0.092163086</Y>
+              <Y>-0.012710571</Y>
               <Z>0.205719</Z>
               <R00>0.99760437</R00>
               <R01>-0.0692749</R01>
@@ -493,7 +493,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13835144</X>
-              <Y>-0.09133911</Y>
+              <Y>-0.012008667</Y>
               <Z>0.20507813</Z>
               <R00>0.99760437</R00>
               <R01>-0.06916809</R01>
@@ -539,7 +539,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1381073</X>
-              <Y>-0.090423584</Y>
+              <Y>-0.011230469</Y>
               <Z>0.20436096</Z>
               <R00>0.9976196</R00>
               <R01>-0.06906128</R01>
@@ -585,7 +585,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1378479</X>
-              <Y>-0.08944702</Y>
+              <Y>-0.010391235</Y>
               <Z>0.20359802</Z>
               <R00>0.9976196</R00>
               <R01>-0.06892395</R01>
@@ -631,7 +631,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13757324</X>
-              <Y>-0.088378906</Y>
+              <Y>-0.009490967</Y>
               <Z>0.20277405</Z>
               <R00>0.9976349</R00>
               <R01>-0.06878662</R01>
@@ -677,7 +677,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13728333</X>
-              <Y>-0.087249756</Y>
+              <Y>-0.008529663</Y>
               <Z>0.20188904</Z>
               <R00>0.9976349</R00>
               <R01>-0.06863403</R01>
@@ -723,7 +723,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13696289</X>
-              <Y>-0.08605957</Y>
+              <Y>-0.007522583</Y>
               <Z>0.20095825</Z>
               <R00>0.99765015</R00>
               <R01>-0.068481445</R01>
@@ -769,7 +769,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1366272</X>
-              <Y>-0.08479309</Y>
+              <Y>-0.006439209</Y>
               <Z>0.19996643</Z>
               <R00>0.9976654</R00>
               <R01>-0.0683136</R01>
@@ -815,7 +815,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1362915</X>
-              <Y>-0.083465576</Y>
+              <Y>-0.0053253174</Y>
               <Z>0.19894409</Z>
               <R00>0.99768066</R00>
               <R01>-0.06814575</R01>
@@ -861,7 +861,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1359253</X>
-              <Y>-0.082092285</Y>
+              <Y>-0.0041503906</Y>
               <Z>0.19786072</Z>
               <R00>0.99768066</R00>
               <R01>-0.06796265</R01>
@@ -907,7 +907,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13554382</X>
-              <Y>-0.08065796</Y>
+              <Y>-0.0029449463</Y>
               <Z>0.19674683</Z>
               <R00>0.9976959</R00>
               <R01>-0.06777954</R01>
@@ -953,7 +953,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13516235</X>
-              <Y>-0.07917786</Y>
+              <Y>-0.0016784668</Y>
               <Z>0.19558716</Z>
               <R00>0.9977112</R00>
               <R01>-0.06758118</R01>
@@ -999,7 +999,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13476563</X>
-              <Y>-0.07765198</Y>
+              <Y>-0.00038146973</Y>
               <Z>0.19439697</Z>
               <R00>0.99772644</R00>
               <R01>-0.06738281</R01>
@@ -1045,7 +1045,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13435364</X>
-              <Y>-0.07609558</Y>
+              <Y>0.0009460449</Y>
               <Z>0.19316101</Z>
               <R00>0.9977417</R00>
               <R01>-0.06716919</R01>
@@ -1091,7 +1091,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13392639</X>
-              <Y>-0.07449341</Y>
+              <Y>0.0023040771</Y>
               <Z>0.19190979</Z>
               <R00>0.99775696</R00>
               <R01>-0.066970825</R01>
@@ -1137,7 +1137,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13349915</X>
-              <Y>-0.07286072</Y>
+              <Y>0.003692627</Y>
               <Z>0.19062805</Z>
               <R00>0.9977722</R00>
               <R01>-0.06674194</R01>
@@ -1183,7 +1183,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13305664</X>
-              <Y>-0.07119751</Y>
+              <Y>0.0050964355</Y>
               <Z>0.18933105</Z>
               <R00>0.9977875</R00>
               <R01>-0.06652832</R01>
@@ -1229,7 +1229,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13261414</X>
-              <Y>-0.06951904</Y>
+              <Y>0.0065307617</Y>
               <Z>0.18800354</Z>
               <R00>0.99780273</R00>
               <R01>-0.0663147</R01>
@@ -1275,7 +1275,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13217163</X>
-              <Y>-0.06781006</Y>
+              <Y>0.007965088</Y>
               <Z>0.18667603</Z>
               <R00>0.997818</R00>
               <R01>-0.066085815</R01>
@@ -1321,7 +1321,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13171387</X>
-              <Y>-0.066101074</Y>
+              <Y>0.009414673</Y>
               <Z>0.185318</Z>
               <R00>0.99783325</R00>
               <R01>-0.06585693</R01>
@@ -1367,7 +1367,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1312561</X>
-              <Y>-0.06437683</Y>
+              <Y>0.010879517</Y>
               <Z>0.18397522</Z>
               <R00>0.9978485</R00>
               <R01>-0.06562805</R01>
@@ -1413,7 +1413,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1308136</X>
-              <Y>-0.06265259</Y>
+              <Y>0.01234436</Y>
               <Z>0.18261719</Z>
               <R00>0.99786377</R00>
               <R01>-0.06539917</R01>
@@ -1459,7 +1459,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13035583</X>
-              <Y>-0.060928345</Y>
+              <Y>0.013809204</Y>
               <Z>0.18125916</Z>
               <R00>0.997879</R00>
               <R01>-0.06517029</R01>
@@ -1505,7 +1505,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12989807</X>
-              <Y>-0.0592041</Y>
+              <Y>0.015258789</Y>
               <Z>0.17990112</Z>
               <R00>0.9978943</R00>
               <R01>-0.064941406</R01>
@@ -1551,7 +1551,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12944031</X>
-              <Y>-0.057510376</Y>
+              <Y>0.016708374</Y>
               <Z>0.17854309</Z>
               <R00>0.99790955</R00>
               <R01>-0.06472778</R01>
@@ -1597,7 +1597,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1289978</X>
-              <Y>-0.05581665</Y>
+              <Y>0.018157959</Y>
               <Z>0.17721558</Z>
               <R00>0.9979248</R00>
               <R01>-0.0644989</R01>
@@ -1643,7 +1643,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1285553</X>
-              <Y>-0.054138184</Y>
+              <Y>0.019561768</Y>
               <Z>0.17588806</Z>
               <R00>0.9979248</R00>
               <R01>-0.06427002</R01>
@@ -1689,7 +1689,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1281128</X>
-              <Y>-0.052490234</Y>
+              <Y>0.020965576</Y>
               <Z>0.17459106</Z>
               <R00>0.99794006</R00>
               <R01>-0.0640564</R01>
@@ -1735,7 +1735,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12768555</X>
-              <Y>-0.050872803</Y>
+              <Y>0.022338867</Y>
               <Z>0.17330933</Z>
               <R00>0.9979553</R00>
               <R01>-0.06384277</R01>
@@ -1781,7 +1781,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1272583</X>
-              <Y>-0.04928589</Y>
+              <Y>0.02368164</Y>
               <Z>0.17204285</Z>
               <R00>0.9979706</R00>
               <R01>-0.06362915</R01>
@@ -1827,7 +1827,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12684631</X>
-              <Y>-0.047729492</Y>
+              <Y>0.024993896</Y>
               <Z>0.17082214</Z>
               <R00>0.99798584</R00>
               <R01>-0.063430786</R01>
@@ -1873,7 +1873,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12644958</X>
-              <Y>-0.046218872</Y>
+              <Y>0.026275635</Y>
               <Z>0.1696167</Z>
               <R00>0.9980011</R00>
               <R01>-0.06323242</R01>
@@ -1919,7 +1919,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12606812</X>
-              <Y>-0.04475403</Y>
+              <Y>0.027511597</Y>
               <Z>0.16845703</Z>
               <R00>0.99801636</R00>
               <R01>-0.06303406</R01>
@@ -1965,7 +1965,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12568665</X>
-              <Y>-0.04335022</Y>
+              <Y>0.028717041</Y>
               <Z>0.16734314</Z>
               <R00>0.99801636</R00>
               <R01>-0.06285095</R01>
@@ -2011,7 +2011,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12532043</X>
-              <Y>-0.041992188</Y>
+              <Y>0.02986145</Y>
               <Z>0.16625977</Z>
               <R00>0.9980316</R00>
               <R01>-0.06266785</R01>
@@ -2057,7 +2057,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12498474</X>
-              <Y>-0.04067993</Y>
+              <Y>0.030975342</Y>
               <Z>0.16522217</Z>
               <R00>0.9980469</R00>
               <R01>-0.06248474</R01>
@@ -2103,7 +2103,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12464905</X>
-              <Y>-0.03944397</Y>
+              <Y>0.0320282</Y>
               <Z>0.1642456</Z>
               <R00>0.99806213</R00>
               <R01>-0.062316895</R01>
@@ -2149,7 +2149,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12432861</X>
-              <Y>-0.038269043</Y>
+              <Y>0.03302002</Y>
               <Z>0.16329956</Z>
               <R00>0.99806213</R00>
               <R01>-0.062164307</R01>
@@ -2195,7 +2195,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1240387</X>
-              <Y>-0.03715515</Y>
+              <Y>0.033966064</Y>
               <Z>0.16241455</Z>
               <R00>0.9980774</R00>
               <R01>-0.06201172</R01>
@@ -2241,7 +2241,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12376404</X>
-              <Y>-0.036117554</Y>
+              <Y>0.034835815</Y>
               <Z>0.16159058</Z>
               <R00>0.9980774</R00>
               <R01>-0.06187439</R01>
@@ -2287,7 +2287,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12350464</X>
-              <Y>-0.03514099</Y>
+              <Y>0.03565979</Y>
               <Z>0.16082764</Z>
               <R00>0.99809265</R00>
               <R01>-0.06175232</R01>
@@ -2333,7 +2333,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1232605</X>
-              <Y>-0.03425598</Y>
+              <Y>0.03642273</Y>
               <Z>0.16011047</Z>
               <R00>0.99809265</R00>
               <R01>-0.06163025</R01>
@@ -2379,7 +2379,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.123046875</X>
-              <Y>-0.033432007</Y>
+              <Y>0.037109375</Y>
               <Z>0.15945435</Z>
               <R00>0.9981079</R00>
               <R01>-0.061523438</R01>
@@ -2425,7 +2425,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12284851</X>
-              <Y>-0.032699585</Y>
+              <Y>0.037734985</Y>
               <Z>0.15887451</Z>
               <R00>0.9981079</R00>
               <R01>-0.061431885</R01>
@@ -2471,7 +2471,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122680664</X>
-              <Y>-0.032043457</Y>
+              <Y>0.0382843</Y>
               <Z>0.15835571</Z>
               <R00>0.99812317</R00>
               <R01>-0.061340332</R01>
@@ -2517,7 +2517,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122528076</X>
-              <Y>-0.03147888</Y>
+              <Y>0.038772583</Y>
               <Z>0.15789795</Z>
               <R00>0.99812317</R00>
               <R01>-0.061264038</R01>
@@ -2563,7 +2563,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12239075</X>
-              <Y>-0.0309906</Y>
+              <Y>0.03916931</Y>
               <Z>0.15751648</Z>
               <R00>0.99812317</R00>
               <R01>-0.061203003</R01>
@@ -2609,7 +2609,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122283936</X>
-              <Y>-0.030593872</Y>
+              <Y>0.039520264</Y>
               <Z>0.15719604</Z>
               <R00>0.99812317</R00>
               <R01>-0.061141968</R01>
@@ -2655,7 +2655,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12220764</X>
-              <Y>-0.030288696</Y>
+              <Y>0.039779663</Y>
               <Z>0.1569519</Z>
               <R00>0.9981384</R00>
               <R01>-0.06109619</R01>
@@ -2701,7 +2701,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12214661</X>
-              <Y>-0.030059814</Y>
+              <Y>0.03996277</Y>
               <Z>0.1567688</Z>
               <R00>0.9981384</R00>
               <R01>-0.061065674</R01>
@@ -2747,7 +2747,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12211609</X>
-              <Y>-0.029922485</Y>
+              <Y>0.04008484</Y>
               <Z>0.15666199</Z>
               <R00>0.9981384</R00>
               <R01>-0.061050415</R01>
@@ -2793,7 +2793,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12210083</X>
-              <Y>-0.029891968</Y>
+              <Y>0.040115356</Y>
               <Z>0.15663147</Z>
               <R00>0.9981384</R00>
               <R01>-0.061050415</R01>
@@ -2839,7 +2839,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12211609</X>
-              <Y>-0.029922485</Y>
+              <Y>0.04008484</Y>
               <Z>0.15666199</Z>
               <R00>0.9981384</R00>
               <R01>-0.061050415</R01>
@@ -2885,7 +2885,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12214661</X>
-              <Y>-0.030059814</Y>
+              <Y>0.03996277</Y>
               <Z>0.1567688</Z>
               <R00>0.9981384</R00>
               <R01>-0.061065674</R01>
@@ -2931,7 +2931,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12220764</X>
-              <Y>-0.030288696</Y>
+              <Y>0.039779663</Y>
               <Z>0.1569519</Z>
               <R00>0.9981384</R00>
               <R01>-0.06109619</R01>
@@ -2977,7 +2977,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122283936</X>
-              <Y>-0.030593872</Y>
+              <Y>0.039520264</Y>
               <Z>0.15719604</Z>
               <R00>0.99812317</R00>
               <R01>-0.061141968</R01>
@@ -3023,7 +3023,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12239075</X>
-              <Y>-0.0309906</Y>
+              <Y>0.03916931</Y>
               <Z>0.15751648</Z>
               <R00>0.99812317</R00>
               <R01>-0.061203003</R01>
@@ -3069,7 +3069,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122528076</X>
-              <Y>-0.03147888</Y>
+              <Y>0.038772583</Y>
               <Z>0.15789795</Z>
               <R00>0.99812317</R00>
               <R01>-0.061264038</R01>
@@ -3115,7 +3115,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.122680664</X>
-              <Y>-0.032043457</Y>
+              <Y>0.0382843</Y>
               <Z>0.15835571</Z>
               <R00>0.99812317</R00>
               <R01>-0.061340332</R01>
@@ -3161,7 +3161,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12284851</X>
-              <Y>-0.032699585</Y>
+              <Y>0.037734985</Y>
               <Z>0.15887451</Z>
               <R00>0.9981079</R00>
               <R01>-0.061431885</R01>
@@ -3207,7 +3207,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.123046875</X>
-              <Y>-0.033432007</Y>
+              <Y>0.037109375</Y>
               <Z>0.15945435</Z>
               <R00>0.9981079</R00>
               <R01>-0.061523438</R01>
@@ -3253,7 +3253,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1232605</X>
-              <Y>-0.03425598</Y>
+              <Y>0.03642273</Y>
               <Z>0.16011047</Z>
               <R00>0.99809265</R00>
               <R01>-0.06163025</R01>
@@ -3299,7 +3299,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12350464</X>
-              <Y>-0.03514099</Y>
+              <Y>0.03565979</Y>
               <Z>0.16082764</Z>
               <R00>0.99809265</R00>
               <R01>-0.06175232</R01>
@@ -3345,7 +3345,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12376404</X>
-              <Y>-0.036117554</Y>
+              <Y>0.034835815</Y>
               <Z>0.16159058</Z>
               <R00>0.9980774</R00>
               <R01>-0.06187439</R01>
@@ -3391,7 +3391,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1240387</X>
-              <Y>-0.03715515</Y>
+              <Y>0.033966064</Y>
               <Z>0.16241455</Z>
               <R00>0.9980774</R00>
               <R01>-0.06201172</R01>
@@ -3437,7 +3437,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12432861</X>
-              <Y>-0.038269043</Y>
+              <Y>0.03302002</Y>
               <Z>0.16329956</Z>
               <R00>0.99806213</R00>
               <R01>-0.062164307</R01>
@@ -3483,7 +3483,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12464905</X>
-              <Y>-0.03944397</Y>
+              <Y>0.0320282</Y>
               <Z>0.1642456</Z>
               <R00>0.99806213</R00>
               <R01>-0.062316895</R01>
@@ -3529,7 +3529,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12498474</X>
-              <Y>-0.04067993</Y>
+              <Y>0.030975342</Y>
               <Z>0.16522217</Z>
               <R00>0.9980469</R00>
               <R01>-0.06248474</R01>
@@ -3575,7 +3575,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12532043</X>
-              <Y>-0.041992188</Y>
+              <Y>0.02986145</Y>
               <Z>0.16625977</Z>
               <R00>0.9980316</R00>
               <R01>-0.06266785</R01>
@@ -3621,7 +3621,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12568665</X>
-              <Y>-0.04335022</Y>
+              <Y>0.028717041</Y>
               <Z>0.16734314</Z>
               <R00>0.99801636</R00>
               <R01>-0.06285095</R01>
@@ -3667,7 +3667,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12606812</X>
-              <Y>-0.04475403</Y>
+              <Y>0.027511597</Y>
               <Z>0.16845703</Z>
               <R00>0.99801636</R00>
               <R01>-0.06303406</R01>
@@ -3713,7 +3713,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12644958</X>
-              <Y>-0.046218872</Y>
+              <Y>0.026275635</Y>
               <Z>0.1696167</Z>
               <R00>0.9980011</R00>
               <R01>-0.06323242</R01>
@@ -3759,7 +3759,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12684631</X>
-              <Y>-0.047729492</Y>
+              <Y>0.024993896</Y>
               <Z>0.17082214</Z>
               <R00>0.99798584</R00>
               <R01>-0.063430786</R01>
@@ -3805,7 +3805,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1272583</X>
-              <Y>-0.04928589</Y>
+              <Y>0.02368164</Y>
               <Z>0.17204285</Z>
               <R00>0.9979706</R00>
               <R01>-0.06362915</R01>
@@ -3851,7 +3851,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12768555</X>
-              <Y>-0.050872803</Y>
+              <Y>0.022338867</Y>
               <Z>0.17330933</Z>
               <R00>0.9979553</R00>
               <R01>-0.06384277</R01>
@@ -3897,7 +3897,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1281128</X>
-              <Y>-0.052490234</Y>
+              <Y>0.020965576</Y>
               <Z>0.17459106</Z>
               <R00>0.99794006</R00>
               <R01>-0.0640564</R01>
@@ -3943,7 +3943,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1285553</X>
-              <Y>-0.054138184</Y>
+              <Y>0.019561768</Y>
               <Z>0.17588806</Z>
               <R00>0.9979248</R00>
               <R01>-0.06427002</R01>
@@ -3989,7 +3989,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1289978</X>
-              <Y>-0.05581665</Y>
+              <Y>0.018157959</Y>
               <Z>0.17721558</Z>
               <R00>0.9979248</R00>
               <R01>-0.0644989</R01>
@@ -4035,7 +4035,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12944031</X>
-              <Y>-0.057510376</Y>
+              <Y>0.016708374</Y>
               <Z>0.17854309</Z>
               <R00>0.99790955</R00>
               <R01>-0.06472778</R01>
@@ -4081,7 +4081,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.12989807</X>
-              <Y>-0.0592041</Y>
+              <Y>0.015258789</Y>
               <Z>0.17990112</Z>
               <R00>0.9978943</R00>
               <R01>-0.064941406</R01>
@@ -4127,7 +4127,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13035583</X>
-              <Y>-0.060928345</Y>
+              <Y>0.013809204</Y>
               <Z>0.18125916</Z>
               <R00>0.997879</R00>
               <R01>-0.06517029</R01>
@@ -4173,7 +4173,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1308136</X>
-              <Y>-0.06265259</Y>
+              <Y>0.01234436</Y>
               <Z>0.18261719</Z>
               <R00>0.99786377</R00>
               <R01>-0.06539917</R01>
@@ -4219,7 +4219,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1312561</X>
-              <Y>-0.06437683</Y>
+              <Y>0.010879517</Y>
               <Z>0.18397522</Z>
               <R00>0.9978485</R00>
               <R01>-0.06562805</R01>
@@ -4265,7 +4265,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13171387</X>
-              <Y>-0.066101074</Y>
+              <Y>0.009414673</Y>
               <Z>0.185318</Z>
               <R00>0.99783325</R00>
               <R01>-0.06585693</R01>
@@ -4311,7 +4311,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13217163</X>
-              <Y>-0.06781006</Y>
+              <Y>0.007965088</Y>
               <Z>0.18667603</Z>
               <R00>0.997818</R00>
               <R01>-0.066085815</R01>
@@ -4357,7 +4357,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13261414</X>
-              <Y>-0.06951904</Y>
+              <Y>0.0065307617</Y>
               <Z>0.18800354</Z>
               <R00>0.99780273</R00>
               <R01>-0.0663147</R01>
@@ -4403,7 +4403,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13305664</X>
-              <Y>-0.07119751</Y>
+              <Y>0.0050964355</Y>
               <Z>0.18933105</Z>
               <R00>0.9977875</R00>
               <R01>-0.06652832</R01>
@@ -4449,7 +4449,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13349915</X>
-              <Y>-0.07286072</Y>
+              <Y>0.003692627</Y>
               <Z>0.19062805</Z>
               <R00>0.9977722</R00>
               <R01>-0.06674194</R01>
@@ -4495,7 +4495,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13392639</X>
-              <Y>-0.07449341</Y>
+              <Y>0.0023040771</Y>
               <Z>0.19190979</Z>
               <R00>0.99775696</R00>
               <R01>-0.066970825</R01>
@@ -4541,7 +4541,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13435364</X>
-              <Y>-0.07609558</Y>
+              <Y>0.0009460449</Y>
               <Z>0.19316101</Z>
               <R00>0.9977417</R00>
               <R01>-0.06716919</R01>
@@ -4587,7 +4587,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13476563</X>
-              <Y>-0.07765198</Y>
+              <Y>-0.00038146973</Y>
               <Z>0.19439697</Z>
               <R00>0.99772644</R00>
               <R01>-0.06738281</R01>
@@ -4633,7 +4633,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13516235</X>
-              <Y>-0.07917786</Y>
+              <Y>-0.0016784668</Y>
               <Z>0.19558716</Z>
               <R00>0.9977112</R00>
               <R01>-0.06758118</R01>
@@ -4679,7 +4679,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13554382</X>
-              <Y>-0.08065796</Y>
+              <Y>-0.0029449463</Y>
               <Z>0.19674683</Z>
               <R00>0.9976959</R00>
               <R01>-0.06777954</R01>
@@ -4725,7 +4725,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1359253</X>
-              <Y>-0.082092285</Y>
+              <Y>-0.0041503906</Y>
               <Z>0.19786072</Z>
               <R00>0.99768066</R00>
               <R01>-0.06796265</R01>
@@ -4771,7 +4771,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1362915</X>
-              <Y>-0.083465576</Y>
+              <Y>-0.0053253174</Y>
               <Z>0.19894409</Z>
               <R00>0.99768066</R00>
               <R01>-0.06814575</R01>
@@ -4817,7 +4817,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1366272</X>
-              <Y>-0.08479309</Y>
+              <Y>-0.006439209</Y>
               <Z>0.19996643</Z>
               <R00>0.9976654</R00>
               <R01>-0.0683136</R01>
@@ -4863,7 +4863,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13696289</X>
-              <Y>-0.08605957</Y>
+              <Y>-0.007522583</Y>
               <Z>0.20095825</Z>
               <R00>0.99765015</R00>
               <R01>-0.068481445</R01>
@@ -4909,7 +4909,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13728333</X>
-              <Y>-0.087249756</Y>
+              <Y>-0.008529663</Y>
               <Z>0.20188904</Z>
               <R00>0.9976349</R00>
               <R01>-0.06863403</R01>
@@ -4955,7 +4955,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13757324</X>
-              <Y>-0.088378906</Y>
+              <Y>-0.009490967</Y>
               <Z>0.20277405</Z>
               <R00>0.9976349</R00>
               <R01>-0.06878662</R01>
@@ -5001,7 +5001,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1378479</X>
-              <Y>-0.08944702</Y>
+              <Y>-0.010391235</Y>
               <Z>0.20359802</Z>
               <R00>0.9976196</R00>
               <R01>-0.06892395</R01>
@@ -5047,7 +5047,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1381073</X>
-              <Y>-0.090423584</Y>
+              <Y>-0.011230469</Y>
               <Z>0.20436096</Z>
               <R00>0.9976196</R00>
               <R01>-0.06906128</R01>
@@ -5093,7 +5093,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13835144</X>
-              <Y>-0.09133911</Y>
+              <Y>-0.012008667</Y>
               <Z>0.20507813</Z>
               <R00>0.99760437</R00>
               <R01>-0.06916809</R01>
@@ -5139,7 +5139,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13856506</X>
-              <Y>-0.092163086</Y>
+              <Y>-0.012710571</Y>
               <Z>0.205719</Z>
               <R00>0.99760437</R00>
               <R01>-0.0692749</R01>
@@ -5185,7 +5185,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13876343</X>
-              <Y>-0.092926025</Y>
+              <Y>-0.01335144</Y>
               <Z>0.20631409</Z>
               <R00>0.9975891</R00>
               <R01>-0.069381714</R01>
@@ -5231,7 +5231,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13893127</X>
-              <Y>-0.09358215</Y>
+              <Y>-0.013916016</Y>
               <Z>0.20683289</Z>
               <R00>0.9975891</R00>
               <R01>-0.06947327</R01>
@@ -5277,7 +5277,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13908386</X>
-              <Y>-0.094177246</Y>
+              <Y>-0.014419556</Y>
               <Z>0.20727539</Z>
               <R00>0.99757385</R00>
               <R01>-0.06954956</R01>
@@ -5323,7 +5323,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13922119</X>
-              <Y>-0.09466553</Y>
+              <Y>-0.014831543</Y>
               <Z>0.20767212</Z>
               <R00>0.99757385</R00>
               <R01>-0.069610596</R01>
@@ -5369,7 +5369,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.139328</X>
-              <Y>-0.095077515</Y>
+              <Y>-0.015182495</Y>
               <Z>0.2079773</Z>
               <R00>0.99757385</R00>
               <R01>-0.06965637</R01>
@@ -5415,7 +5415,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.1394043</X>
-              <Y>-0.09539795</Y>
+              <Y>-0.015457153</Y>
               <Z>0.20822144</Z>
               <R00>0.99757385</R00>
               <R01>-0.06970215</R01>
@@ -5461,7 +5461,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13946533</X>
-              <Y>-0.09561157</Y>
+              <Y>-0.015640259</Y>
               <Z>0.20840454</Z>
               <R00>0.9975586</R00>
               <R01>-0.069732666</R01>
@@ -5507,7 +5507,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13949585</X>
-              <Y>-0.0957489</Y>
+              <Y>-0.01576233</Y>
               <Z>0.20851135</Z>
               <R00>0.9975586</R00>
               <R01>-0.069747925</R01>
@@ -5553,7 +5553,7 @@
             <string name="Name">Handle</string>
             <CoordinateFrame name="CFrame">
               <X>-0.13951111</X>
-              <Y>-0.09579468</Y>
+              <Y>-0.015808105</Y>
               <Z>0.20854187</Z>
               <R00>0.9975586</R00>
               <R01>-0.06976318</R01>

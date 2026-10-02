@@ -76,3 +76,6 @@ New `StarterPlayer.StarterPlayerScripts.Client.Modules.Classes.AnimationPack` (2
 | …Client.Modules.Controllers.Mounts | Mount body plays <set>_Idle / Walk / Run + Start / Stop / Jump / Land / Celebrate (leg / neck / tail joint code unchanged) |
 | ReplicatedStorage.Common.Modules.Databases.Mounts | Forest Deer: `anim_set = "Deer"`, gallop from 20 studs/s (riding speed is 22) |
 Exports: `Animations/*.rbxmx` (one KeyframeSequence per clip) — see `Animations/README.md`.
+
+### Animation QA pass (AnimationPack keys only)
+Headless run of the real Mounts / FruitGroup animation code found: deer hooves sinking up to 0.33 studs into the ground (rigid body pitching / negative keys), Fruit_Happy and Fruit_Sleep dipping 0.12 / 0.09 studs into the ground, Fruit_Run hopping ~7x/s at mount speed. Fixed by retuning clip keys only (lifts, smaller pitch, Fruit_Run 0.4 s → 0.56 s and 0.8 → 0.6 studs, Mount_Celebrate 9° → 5.5°). No logic changes.

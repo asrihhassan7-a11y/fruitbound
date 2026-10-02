@@ -12,14 +12,14 @@ FruitBound's fruits and the Forest Deer are **rigid single meshes**: nothing is 
 | `Fruit_*` | a fruit `Handle` (in-game: offset on the fruit's CFrame, pivot at its base) | `Root` › `Handle` — only for a fruit rigged with a `Root` part + Motor6D (Root → Handle); exported for a 4-stud fruit (Apple) |
 
 No root motion: Roblox / the follow code moves the character, the clips only add the body offset.
-Mount clips rotate around the saddle and the rider is welded to `Root`, so the rider's seat moves at most 0.06 studs walking and 0.14 studs running.
+Mount clips rotate around the saddle and the rider is welded to `Root`; each key is lifted just enough that the rigid body never pushes a hoof below the ground. The seat moves at most 0.07 studs walking and 0.20 studs galloping.
 
 ## Clips
 | Clip | Loop | Length | Plays when |
 |---|---|---|---|
 | Fruit_Idle | ✔ | 2.4 s | following fruit stands still |
 | Fruit_Walk | ✔ | 0.6 s | player walks (step speed follows player speed) |
-| Fruit_Run | ✔ | 0.4 s | player faster than 20 studs/s (riding, boosts) or fruits rushing to a harvest |
+| Fruit_Run | ✔ | 0.56 s | player faster than 20 studs/s (riding, boosts) or fruits rushing to a harvest |
 | Fruit_Happy | | 1.3 s | fruit hatched / equipped, levels up or evolves |
 | Fruit_Interact | | 1.2 s | "Feed / Stats" prompt on a pen fruit (it turns to you first) |
 | Fruit_Sleep | ✔ | 4.0 s | player still for 45 s (eyes close) |

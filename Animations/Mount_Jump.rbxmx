@@ -79,17 +79,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>-0.12945557</Y>
-              <Z>0.020126343</Z>
+              <Y>-0.046417236</Y>
+              <Z>0.0138549805</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9998627</R11>
-              <R12>0.016693115</R12>
+              <R11>0.99993896</R11>
+              <R12>0.011520386</R12>
               <R20>0</R20>
-              <R21>-0.016693115</R21>
-              <R22>0.9998627</R22>
+              <R21>-0.011520386</R21>
+              <R22>0.99993896</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -125,17 +125,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>-0.21694946</Y>
-              <Z>0.033843994</Z>
+              <Y>-0.068344116</Y>
+              <Z>0.020446777</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9996033</R11>
-              <R12>0.028015137</R12>
+              <R11>0.9998627</R11>
+              <R12>0.016967773</R12>
               <R20>0</R20>
-              <R21>-0.028015137</R21>
-              <R22>0.9996033</R22>
+              <R21>-0.016967773</R21>
+              <R22>0.9998627</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -171,17 +171,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>-0.26272583</Y>
-              <Z>0.0410614</Z>
+              <Y>-0.012924194</Y>
+              <Z>-0.0029296875</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.99942017</R11>
-              <R12>0.033935547</R12>
+              <R11>1</R11>
+              <R12>-0.0024414063</R12>
               <R20>0</R20>
-              <R21>-0.033935547</R21>
-              <R22>0.99942017</R22>
+              <R21>0.0024414063</R21>
+              <R22>1</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -217,17 +217,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>-0.19041443</Y>
-              <Z>0.018539429</Z>
+              <Y>0.07006836</Y>
+              <Z>-0.036849976</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9998779</R11>
-              <R12>0.015396118</R12>
+              <R11>0.999527</R11>
+              <R12>-0.030944824</R12>
               <R20>0</R20>
-              <R21>-0.015396118</R21>
-              <R22>0.9998779</R22>
+              <R21>0.030944824</R21>
+              <R22>0.999527</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -263,17 +263,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>-0.019760132</Y>
-              <Z>-0.030960083</Z>
+              <Y>0.13682556</Y>
+              <Z>-0.06347656</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9996643</R11>
-              <R12>-0.025970459</R12>
+              <R11>0.9985657</R11>
+              <R12>-0.053619385</R12>
               <R20>0</R20>
-              <R21>0.025970459</R21>
-              <R22>0.9996643</R22>
+              <R21>0.053619385</R21>
+              <R22>0.9985657</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -309,17 +309,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.108444214</Y>
-              <Z>-0.06706238</Z>
+              <Y>0.18685913</Y>
+              <Z>-0.08305359</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9983978</R11>
-              <R12>-0.0566864</R12>
+              <R11>0.9975128</R11>
+              <R12>-0.07044983</R12>
               <R20>0</R20>
-              <R21>0.0566864</R21>
-              <R22>0.9983978</R22>
+              <R21>0.07044983</R21>
+              <R22>0.9975128</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -355,17 +355,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.19303894</Y>
-              <Z>-0.09037781</Z>
+              <Y>0.21980286</Y>
+              <Z>-0.09577942</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9970398</R11>
-              <R12>-0.076797485</R12>
+              <R11>0.9966736</R11>
+              <R12>-0.08148193</R12>
               <R20>0</R20>
-              <R21>0.076797485</R21>
-              <R22>0.9970398</R22>
+              <R21>0.08148193</R21>
+              <R22>0.9966736</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -401,17 +401,17 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.23327637</Y>
-              <Z>-0.10133362</Z>
+              <Y>0.23547363</Y>
+              <Z>-0.10177612</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
               <R10>0</R10>
-              <R11>0.9962616</R11>
-              <R12>-0.08630371</R12>
+              <R11>0.9962311</R11>
+              <R12>-0.08668518</R12>
               <R20>0</R20>
-              <R21>0.08630371</R21>
-              <R22>0.9962616</R22>
+              <R21>0.08668518</R21>
+              <R22>0.9962311</R22>
             </CoordinateFrame>
             <token name="EasingDirection">0</token>
             <token name="EasingStyle">0</token>
@@ -677,7 +677,7 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.11885071</Y>
+              <Y>0.1194458</Y>
               <Z>-0.039657593</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -723,7 +723,7 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.09837341</Y>
+              <Y>0.103378296</Y>
               <Z>-0.026031494</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -769,7 +769,7 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.06730652</Y>
+              <Y>0.07904053</Y>
               <Z>-0.005004883</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -815,7 +815,7 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.040298462</Y>
+              <Y>0.05795288</Y>
               <Z>0.013626099</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -861,7 +861,7 @@
             <string name="Name">Body</string>
             <CoordinateFrame name="CFrame">
               <X>0</X>
-              <Y>0.029708862</Y>
+              <Y>0.049713135</Y>
               <Z>0.02104187</Z>
               <R00>1</R00>
               <R01>0</R01>
