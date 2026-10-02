@@ -138,3 +138,16 @@ Profit per Seed still rises with every tier. Break-even (expected value of 3 See
 - Chance a farming-only new player cannot afford a 2nd pack from the 1st one: 7.7% (was 44.4%); the tutorial leftover Clover units, the 100-Coin playtime gift and free Garden Spins cover that gap.
 - The tutorial top-up (`Player:_tutorial_cover_costs`) reads `SeedPacks.getPack("starter").price`, so it follows the new price automatically.
 - Note: at 180 the Starter pack's profit per Seed (38.4) is above Garden / Flower / Woodland per Seed; higher packs still give far more Coins per harvest tap and per planting spot (Starter 16.4 per unit vs Garden 27.9 … Enchanted 65.1).
+
+## Final release polish pass
+**Hotbar during loading**
+- New `ReplicatedFirst.BackpackVisibility`: the one place that hides/shows the Roblox Backpack hotbar, using hide reasons (`Loading`, `SeedPackReveal`). The hotbar is shown only when no reason is left; repeated hide/show calls do nothing.
+- `ReplicatedFirst.LoadingScreen` hides the hotbar on its first line and shows it again when loading finishes or Skip is pressed (60 s safety net). Only CoreGui visibility changes: Tools, the Backpack and data are untouched.
+- `SeedShop._setHotbarHidden` uses the same module, so a Seed Pack reveal and the loading screen can no longer re-enable each other's hidden hotbar.
+
+**Map fixes (decoration only; no interaction point, soil, plot or NPC moved)**
+- Orchard fence: all 10 rails were rotated 90°, so they cut straight through the orchard (Heart Tree, entrance path, sign, Farm and Toxic Egg stands) with collision on. They now run along their posts.
+- Orchard: 4 fruit trees that grew through the Farm / Desert / Void / Toxic Egg stands moved to a row just outside the front fence. 4 trees and 2 planter crates were nudged 1–4 studs clear of the stands. The Heart Tree (with its benches) moved 1.5 studs back so a bench no longer clips the Jungle Egg stand.
+- Plaza: the two lamp posts standing in the middle of the north (to the Orchard) and south paths were moved to the path edge.
+- Fruit Pen: the 4 decorative Fruit statues were 9–15 studs tall (2–4× a real Fruit). They are now half size (4.4–7.3 studs), with eyes and eyelids scaled to match.
+- Seed Seller / Crop Seller: their two name labels were drawn on top of each other. They are now stacked (name/role on top of the hat, shop title above it).
