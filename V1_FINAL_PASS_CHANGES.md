@@ -36,3 +36,9 @@ Night music: add a looping Sound named `MusicNight` to SoundService (or `Music_N
 | ServerScriptService.Server.Modules.Controllers.FarmingV2 | Publishes tutorial fallback positions (`GuideSell`, `GuideSeedShop`, `GuideEgg` on Workspace; `GuideFarm` on each Player) |
 | StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.Guide | Points at the fallback position while the real target is not streamed in; Fruits-button pointer uses the HUD's safe-area screen space and stays on screen; marker draw distance 2000 |
 | StarterPlayer.StarterPlayerScripts.Client.Modules.UI.UpgradeTree | Panel sized from the safe-area ScreenGui instead of the full viewport (fixes the clipped top-right Coins chip on phones) |
+
+## Follow-up: Seed Pack reveal spoiler
+| Path | Change |
+|---|---|
+| ServerScriptService.Server.Modules.Controllers.SeedTools | Seeds gained from a pack are saved immediately but their Backpack Tools are held (shown count = saved − held) until the client reports the reveal finished (`S_SeedTools_Reveal`) or 60 s pass. Holds cleared on leave; join/rejoin never hides seeds |
+| StarterPlayer.StarterPlayerScripts.Client.Modules.Controllers.SeedShop | Releases the hold and refreshes the shop's seed list once all cards are revealed, or when the reveal is closed/destroyed |
