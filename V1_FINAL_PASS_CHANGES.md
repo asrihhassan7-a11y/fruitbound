@@ -119,3 +119,15 @@ Equip a Seed Tool, then click or tap your own soil. A green or red preview disc 
 - **Mounts:** the Deer uses its Root → Body rig. While an uploaded track drives the Body joint, the procedural Body layer stays off. Leg, neck and tail code is unchanged.
 - **FruitGroup:** when a Fruit ID is set, each follower gets a Root → Handle Motor6D rig (invisible anchored Root as PrimaryPart at the mesh's exact CFrame; stage decorations welded to the Handle). Idle / Walk / Run / Sleep / Happy / Surprised use the tracks.
 - **FruitAnimator:** finds the mesh as `Handle` first, so lids and sparkles stay on the fruit when rigged.
+
+## Seed Pack price pass (prices only)
+| Pack | Price | Expected profit (base crop values) |
+|---|---|---|
+| Starter | 235 | 25.6% |
+| Garden | 425 | 18.1% |
+| Flower | 455 | 18.3% |
+| Woodland | 755 | 14.9% |
+| Golden Grove | 830 | 13.9% |
+| Enchanted | 1,040 | 12.7% |
+
+Profit per Seed still rises with every tier. Break-even (expected value of 3 Seeds × 6 units) is 295 / 502 / 538 / 868 / 945 / 1,172. Farm coin bonuses (Market Stand / Golden Fountain / Paradise Gate) raise real profit above these figures for late players.
