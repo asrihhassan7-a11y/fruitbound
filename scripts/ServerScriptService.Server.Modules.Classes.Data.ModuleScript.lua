@@ -123,10 +123,10 @@ function Data:_construct()
 	
 	if profile then
 		profile:Reconcile()
-		-- one-time crop progression migration (old 6-item Kills -> Crops_Harvested), before any reader
+		-- crop progression migration (old 6-item Kills -> Crops_Harvested; once, plus old-server catch-up), before any reader
 		local okMigrate, migrateErr = pcall(function()
 			local ProgressUtility = _L.Get {"Common", "Modules", "Utilities", "ProgressUtility"}
-			ProgressUtility.migrateCropProgress(profile.Data, _L.Get {"Common", "Modules", "Databases", "Ranks"}, _L.Get {"Common", "Modules", "Databases", "Achievements"})
+			ProgressUtility.migrateCropProgress(profile.Data, _L.Get {"Common", "Modules", "Databases", "Ranks"}, _L.Get {"Common", "Modules", "Databases", "Achievements"}, _L.Get {"Common", "Modules", "Databases", "Quests"})
 		end)
 		if not okMigrate then
 			warn("[Data] crop progression migration failed (will retry next join):", migrateErr)

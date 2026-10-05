@@ -112,8 +112,9 @@ return {
 			heaviest_crop = {weight = 0},
 			-- crop progression migration (ProgressUtility.migrateCropProgress): 0 = old save not migrated yet
 			crop_progression_version = 0,
-			-- written once by that migration: {rank = rank index from the old Kills thresholds (a rank never
-			-- drops below it), achievements = {[id] = true} harvest achievements already completed with old Kills}
+			-- written by that migration: {rank = rank index from the old Kills thresholds (a rank never drops
+			-- below it), achievements = {[id] = true} harvest achievements already completed with old Kills,
+			-- kills_seen = Kills value already converted to Crops_Harvested}
 			crop_legacy = {},
 			daycare = {slots = {}}, -- RETIRED V1 Daycare (kept as-is for old saves, never read for V1.1)
 			-- V1.1 Daycare (Fruit Pen): entries[fruitUid] = {fruit_uid, fruit_id, deposited_at, last_collected_at}

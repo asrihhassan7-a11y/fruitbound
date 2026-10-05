@@ -53,5 +53,11 @@ Quest "1" daily 100–400 → 17–67, weekly 600–1500 → 100–250; Clan que
   loads: `Crops_Harvested += floor(Kills / 6)`, `crop_legacy.rank` keeps the old rank,
   `crop_legacy.achievements` keeps unclaimed harvest achievements already completed with the old
   goal, and active "Harvest N Fruits" quests get `required` and `progress` / 6.
-- Clans migrate on load: `crops_harvested = floor(kills / 6)` (marker `crop_progression_version`).
+- Clan crop counter lives in its own DataStore `ClanCropsHarvested_V1` (key = clan uid), never in the
+  clan document (old servers rewrite that document whole). Seeded once with `floor(kills / 6)` by an
+  UpdateAsync that never overwrites; harvests are added with IncrementAsync; other servers get them in
+  message packet field [7], which old servers ignore.
+- Rolling updates (players): Kills growth after migration can only come from an old-version server;
+  each load credits `floor(growth / 6)` crops (`crop_legacy.kills_seen`), and harvest quests whose
+  target is above the current range (old x6 ranges) are rescaled / 6.
 - Rank thresholds are now in crops: `required = ceil(legacy_required / 6)`.

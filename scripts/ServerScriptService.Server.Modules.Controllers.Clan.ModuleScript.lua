@@ -18,6 +18,37 @@ local CLANS_DATA_STORE
 local MESSAGES_SORTED_MAP
 local JOIN_CODES_DATA_STORE
 
+-- CLAN CROP COUNTER (real crops harvested by members, clan quest "1"). It lives in its OWN DataStore
+-- key, never in the clan document: Clan:_write rewrites the whole clan document from memory, so a
+-- server still running an older version would erase any new field there. Rules:
+--   * seeded ONCE per clan with floor(legacy kills / 6) by an atomic UpdateAsync that only writes
+--     when the key is empty (crop progression migration; the legacy "kills" field is never changed)
+--   * every harvest is ADDED with IncrementAsync (never overwritten), so servers can't erase each
+--     other's crops, and flushing is retried until it succeeds
+--   * other servers learn about this server's harvests from packet field [7] of Clan:_message, which
+--     older servers ignore (they only read fields 1-6)
+local CROPS_STORE_NAME = "ClanCropsHarvested_V1"
+local CROPS_PER_LEGACY_KILL = 6
+local cropsStore = nil
+
+local function getCropsStore()
+	if cropsStore == nil then
+		local ok, store = pcall(function()
+			return game:GetService("DataStoreService"):GetDataStore(CROPS_STORE_NAME)
+		end)
+		cropsStore = if ok then store else false
+	end
+	return cropsStore or nil
+end
+
+local function cropCount(n)
+	n = tonumber(n)
+	if not n or n ~= n or math.abs(n) == math.huge then
+		return 0
+	end
+	return math.max(0, math.floor(n))
+end
+
 ------------->
 local Clan = {_objects = {}}
 Clan.__index = Clan
@@ -41,8 +72,10 @@ end
 
 function Clan:_message()
 	local messageId = Services.HttpService:GenerateGUID(false)
+	local cropsSent = 0
 	
 	local success, result = pcall(function()
+		cropsSent = self._crops_broadcast
 		local packet = {self._uid, self._incremented, game.JobId, {
 			name = self._data:Get("name"),
 			emblem = self._data:Get("emblem"),
@@ -51,7 +84,7 @@ function Clan:_message()
 			quests = self._data:Get("quests"),
 			deleted = self._data:Get("deleted"),
 		--	description = self._data:Get("description")
-		}, self._enter, self._leave}
+		}, self._enter, self._leave, cropsSent}
 
 		return MESSAGES_SORTED_MAP:SetAsync(messageId, packet, 60)
 	end)
@@ -65,6 +98,7 @@ function Clan:_message()
 			table.clear(self._incremented)
 			table.clear(self._enter)
 			table.clear(self._leave)
+			self._crops_broadcast -= cropsSent
 		else
 			warn(result)
 		end
@@ -88,6 +122,12 @@ function Clan:_receive(value)
 
 		for k, v in pairs(clanIncremented) do
 			self:increment(k, v, true)
+		end
+
+		-- crops harvested on that server (field 7: only newer servers send it, older ones ignore it)
+		local cropsReceived = cropCount(data[7])
+		if cropsReceived > 0 then
+			self:increment("crops_harvested", cropsReceived, true)
 		end
 
 		local otherClanData = data[4]
@@ -173,6 +213,9 @@ function Clan.new(props)
 	self._incremented = {}
 	self._leave = {}
 	self._enter = {}
+	self._crops_pending = 0 -- this server's harvests not yet added to the crop store
+	self._crops_broadcast = 0 -- this server's harvests not yet sent to the other servers
+	self._crops_ready = false -- the crop store key is seeded (only then may increments be flushed)
 	
 	self._data = nil
 	
@@ -204,12 +247,8 @@ function Clan:_construct()
 			players = fetched.players,
 			max_players = fetched.max_players or 10,
 			kills = fetched.kills or 0, -- LEGACY clan harvest counter (old 6-item harvests), frozen
-			-- real crops harvested by members (clan quest "1"). One-time migration for clans saved before
-			-- it existed: floor(kills / 6), marked by crop_progression_version (kills itself is kept)
-			crops_harvested = if fetched.crop_progression_version == 1 and typeof(fetched.crops_harvested) == "number"
-				then fetched.crops_harvested
-				else math.max(0, math.floor(tonumber(fetched.crops_harvested) or 0)) + math.max(0, math.floor((tonumber(fetched.kills) or 0) / 6)),
-			crop_progression_version = 1,
+			-- real crops harvested by members (clan quest "1"), from the crop store (see CROPS_STORE_NAME)
+			crops_harvested = self:_crops_seed(fetched),
 			deaths = fetched.deaths or 0,
 			eggs_opened = fetched.eggs_opened or 0,
 			strength = fetched.strength or 0,
@@ -292,6 +331,7 @@ function Clan:_construct()
 	end)):await()
 	
 	self._trove:Add(Timer.Simple(60, function()
+		self:_crops_flush()
 		self:_message()
 	end))
 end
@@ -472,7 +512,63 @@ function Clan:_store(name)
 	end
 end
 
+-- Seeds the crop store key once (atomic; never overwrites an existing value) and returns the
+-- clan's crop count. On failure returns the legacy estimate and stays not-ready (retried by flush).
+function Clan:_crops_seed(fetched)
+	local legacy = cropCount((fetched and fetched.kills) or (self._data and self._data:Get("kills"))) // CROPS_PER_LEGACY_KILL
+	local store = getCropsStore()
+	if not store then
+		return legacy
+	end
+	local ok, value = pcall(function()
+		return store:UpdateAsync(self._uid, function(old)
+			if typeof(old) == "number" and old == old and old >= 0 then
+				return old -- already seeded (by this or another server): keep it
+			end
+			return legacy
+		end)
+	end)
+	if ok and typeof(value) == "number" then
+		self._crops_ready = true
+		return value
+	end
+	if not self._crops_warned then
+		self._crops_warned = true -- once per clan (Studio without DataStore access retries every minute)
+		warn("[Clan] crop counter seed failed (retried later):", value)
+	end
+	return legacy
+end
+
+-- Adds this server's unsaved harvests to the crop store (additive, retried until it succeeds).
+function Clan:_crops_flush()
+	if not self._crops_ready then
+		local value = self:_crops_seed(nil)
+		if not self._crops_ready then
+			return
+		end
+		-- seeded late: the stored value is authoritative, plus this server's unsaved harvests
+		if self._data then
+			self._data:Set("crops_harvested", value + self._crops_pending)
+		end
+	end
+	local amount = self._crops_pending
+	local store = getCropsStore()
+	if amount <= 0 or not store then
+		return
+	end
+	local ok, err = pcall(function()
+		return store:IncrementAsync(self._uid, amount)
+	end)
+	if ok then
+		self._crops_pending -= amount
+	elseif not self._crops_warned then
+		self._crops_warned = true
+		warn("[Clan] crop counter save failed (retried later):", err)
+	end
+end
+
 function Clan:_write()
+	self:_crops_flush()
 	return pcall(function()
 		local store = self:_store()
 		return store:UpdateAsync(self._uid, function(oldData)
@@ -488,8 +584,6 @@ function Clan:_write()
 				players = newPlayers,
 				max_players = self._data:Get("max_players"),
 				kills = self._data:Get("kills"),
-				crops_harvested = self._data:Get("crops_harvested"),
-				crop_progression_version = self._data:Get("crop_progression_version"),
 				deaths = self._data:Get("deaths"),
 				eggs_opened = self._data:Get("eggs_opened"),
 				strength = self._data:Get("strength"),
@@ -537,6 +631,17 @@ function Clan:get_quests()
 end
 
 function Clan:increment(name, value, ignoreCache)
+	if self._data and name == "crops_harvested" then
+		-- own harvests are saved additively (_crops_flush) and sent in packet field [7] (_message);
+		-- ignoreCache = a harvest made on another server (already saved by that server)
+		value = cropCount(value)
+		if not ignoreCache then
+			self._crops_pending += value
+			self._crops_broadcast += value
+		end
+		self._data:Set(name, cropCount(self._data:Get(name)) + value)
+		return
+	end
 	if self._data then
 		if not ignoreCache then
 			self._incremented[name] = (self._incremented[name] or 0) + value
