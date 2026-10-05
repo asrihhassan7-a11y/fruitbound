@@ -4,6 +4,9 @@
 -- FarmingV2). This display mirrors it using the server clock (S_Server_Now)
 -- and the replicated Fruit data, so the countdown and the shown Growth Speed
 -- always match the real growth result -- and update live when Fruits change.
+-- Mature crops keep growing (FarmingV2 overgrowth): their billboard shows the crop's live
+-- weight (server attribute "Weight"). Other players' mature crops show their weight too, so
+-- everyone can compare whose crop is the biggest.
 
 local _L = _G._L
 
@@ -132,11 +135,18 @@ local function watchCrop(model)
 	if not model:IsA("Model") or timers[model] then
 		return
 	end
-	-- only the local player's crops carry a timer; empty slots have no model at all
-	if model:GetAttribute("Owner") ~= _L.Player.UserId then
-		return
-	end
+	-- the local player's crops carry a timer, other players' crops only their weight once mature
 	timers[model] = buildBillboard(model)
+end
+
+-- "⚖️ Giant · 2.45 kg" for a mature crop
+local function weightText(model)
+	local weight = model:GetAttribute("Weight")
+	if typeof(weight) ~= "number" then
+		return nil
+	end
+	local label = model:GetAttribute("SizeLabel")
+	return "\u{2696}\u{FE0F} " .. (if label then label .. " \u{00B7} " else "") .. SeedPacks.formatWeight(weight)
 end
 
 local function unwatchCrop(model)
@@ -203,9 +213,11 @@ function CropTimer._start()
 					continue
 				end
 
-				-- only show when the player is near their crop (no clutter, mobile friendly)
+				-- only show when the player is near the crop (no clutter, mobile friendly)
 				local position = model:GetPivot().Position
-				if (position - root.Position).Magnitude > NEAR_STUDS then
+				local own = model:GetAttribute("Owner") == _L.Player.UserId
+				local mature = model:GetAttribute("Mature") == true
+				if (position - root.Position).Magnitude > NEAR_STUDS or (not own and not mature) then
 					billboard.Enabled = false
 					continue
 				end
@@ -218,6 +230,16 @@ function CropTimer._start()
 
 				local main = billboard.Frame.Main
 				local speed = billboard.Frame.Speed
+
+				if mature then
+					-- ready, and still growing: its weight (and Coins value) goes up until it is harvested
+					main.Text = if own then "READY! Tap to Harvest" else (weightText(model) or "")
+					main.TextColor3 = if own then Color3.fromRGB(46, 125, 50) else Color3.fromRGB(94, 63, 36)
+					speed.Text = if own then (weightText(model) or "") .. "  \u{1F4C8} growing" else "\u{1F4C8} still growing"
+					speed.TextColor3 = Color3.fromRGB(94, 63, 36)
+					continue
+				end
+
 				speed.Text = speedText
 				speed.TextColor3 = if boost > 1 then Color3.fromRGB(46, 125, 50) else Color3.fromRGB(94, 63, 36)
 
@@ -233,10 +255,7 @@ function CropTimer._start()
 					quick = model:GetAttribute("QuickGrow"),
 				}, {growth_time = growthTime}, boost)
 
-				if model:GetAttribute("Mature") then
-					main.Text = "READY! Tap to Harvest"
-					main.TextColor3 = Color3.fromRGB(46, 125, 50)
-				elseif readyAt and typeof(growthTime) == "number" and serverNow then
+				if readyAt and typeof(growthTime) == "number" and serverNow then
 					local remaining = readyAt - serverNow
 					if remaining <= 0 then
 						main.Text = "READY! Tap to Harvest"

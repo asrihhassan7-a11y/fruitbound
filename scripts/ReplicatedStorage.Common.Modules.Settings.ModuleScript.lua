@@ -107,6 +107,8 @@ return {
 			seed_inventory = {},
 			seed_crops = {},
 			seed_planted_count = 0,
+			-- heaviest crop this player ever grew (growing or harvested): the "Heaviest Crop" leaderboard
+			heaviest_crop = {weight = 0},
 			daycare = {slots = {}}, -- RETIRED V1 Daycare (kept as-is for old saves, never read for V1.1)
 			-- V1.1 Daycare (Fruit Pen): entries[fruitUid] = {fruit_uid, fruit_id, deposited_at, last_collected_at}
 			-- The Fruit record itself stays in `fruits` (same UID / level / stage / tier) with daycare = true.

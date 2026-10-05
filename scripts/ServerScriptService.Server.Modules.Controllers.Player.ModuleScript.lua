@@ -1149,7 +1149,7 @@ function Player:_power_click(position, range, auto)
 			return false, reason or "no_bush"
 		end
 		
-		position = bush.position
+		position = if bush.model.PrimaryPart then bush.model.PrimaryPart.Position else bush.position
 		if not auto then
 			self._last_cooldown = tick()
 		end
@@ -1242,6 +1242,19 @@ function Player:_power_click(position, range, auto)
 							local canHatch = EggUtility.isContentApproved()
 							self._data:Set("tutorial_marker", if canHatch then 6 else 7)
 							PlayerRewardUtility.give(self._client, {{name = "Stat", props = {name = "Gems", value = self:_tutorial_egg_price()}}})
+						end
+						-- crop weight (FarmingV2 overgrowth): show how heavy the crop was and if it is a record
+						local cropWeight = harvestedSeedId and bush.model:GetAttribute("Weight")
+						if typeof(cropWeight) == "number" and not bush.model:GetAttribute("TutorialCrop") then
+							local SeedPacksDB = _L.Get {"Common", "Modules", "Databases", "SeedPacks"}
+							local best = self._data:Get("heaviest_crop")
+							local isBest = typeof(best) == "table" and tonumber(best.weight) ~= nil and cropWeight >= best.weight
+							local sizeLabel = bush.model:GetAttribute("SizeLabel")
+							self:_notify({
+								text = "⚖️ " .. SeedPacksDB.formatWeight(cropWeight) .. " " .. (if sizeLabel then sizeLabel .. " " else "") .. tostring(pickedPlant)
+									.. (if isBest then " - 🏆 your heaviest crop ever!" else ""),
+								color = if isBest then Color3.fromRGB(255, 215, 90) else Color3.fromRGB(235, 225, 200),
+							})
 						end
 						-- rare bonus Seed: only for a manual harvest (no range = a player click, not
 						-- Auto Collect) that completed a mature seed crop and paid its normal reward

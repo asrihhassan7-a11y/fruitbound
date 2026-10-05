@@ -122,16 +122,28 @@ local function isGardenOpen(data, gardenId)
 	return ok and result
 end
 
+-- Where a plant is now: Seed crops keep growing after they are mature (FarmingV2 overgrowth
+-- rescales them), so their position is read live from the hitbox instead of the registered one.
+local function bushPosition(bush)
+	local root = bush.model:GetAttribute("SeedCropSlot") and bush.model.PrimaryPart
+	return if root then root.Position else bush.position
+end
+
 -- Seed crop the player tapped (closest to the tapped point), or nil.
 local function tappedSeedCrop(player, clickPosition)
 	if typeof(clickPosition) ~= "Vector3" then
 		return nil
 	end
-	local best, bestDist = nil, SEED_CROP_TAP_RADIUS
+	local best, bestDist = nil, math.huge
 	for _, bush in pairs(Harvest._bushes) do
 		if bush.model.Parent and bush.model:GetAttribute("SeedCropSlot") and bush.model:GetAttribute("Owner") == player.UserId then
-			local flat = Vector3.new(bush.position.X - clickPosition.X, 0, bush.position.Z - clickPosition.Z).Magnitude
-			if flat <= bestDist and math.abs(bush.position.Y - clickPosition.Y) <= SEED_CROP_TAP_HEIGHT then
+			local position = bushPosition(bush)
+			-- a bigger (overgrown) crop is a bigger tap target
+			local hitbox = bush.model.PrimaryPart
+			local radius = math.max(SEED_CROP_TAP_RADIUS, if hitbox then hitbox.Size.X / 2 + 0.5 else 0)
+			local height = math.max(SEED_CROP_TAP_HEIGHT, if hitbox then hitbox.Size.Y / 2 + 1 else 0)
+			local flat = Vector3.new(position.X - clickPosition.X, 0, position.Z - clickPosition.Z).Magnitude
+			if flat <= radius and flat < bestDist and math.abs(position.Y - clickPosition.Y) <= height then
 				best, bestDist = bush, flat
 			end
 		end
@@ -171,8 +183,9 @@ function Harvest.findNearest(player, position, data, range, clickPosition, auto)
 					continue
 				end
 			end
-			local flat = Vector3.new(bush.position.X - position.X, 0, bush.position.Z - position.Z).Magnitude
-			local dy = math.abs(bush.position.Y - position.Y)
+			local at = bushPosition(bush)
+			local flat = Vector3.new(at.X - position.X, 0, at.Z - position.Z).Magnitude
+			local dy = math.abs(at.Y - position.Y)
 			-- farm plants can only be harvested by their owner
 			local owner = bush.model:GetAttribute("Owner")
 			if owner and owner ~= player.UserId then

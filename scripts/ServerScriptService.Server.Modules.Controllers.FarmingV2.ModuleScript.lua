@@ -31,6 +31,9 @@ local LEGACY_SLOTS = 6 -- old saves: seed_crops["1".."6"] were the 6 starter slo
 -- chance per successful manual harvest of a mature crop to also find +1 Seed of that crop
 local HARVEST_SEED_DROP_CHANCE = 0.005
 local harvestRandom = Random.new()
+local sizeRandom = Random.new()
+-- seconds between overgrowth updates of mature crops (size / weight / value)
+local OVERGROW_TICK = 5
 local FarmingV2 = {}
 local lastRequest = {}
 local models = {}
@@ -425,13 +428,12 @@ local function mature(player, key)
     if not readyAt or os.time() < readyAt then
         return
     end
-    if model:GetAttribute("Stage") ~= "Mature" and assetModel(seed, "Mature") then
-        -- authored models: swap to the mature model (buildCrop builds it mature now)
+    if model:GetAttribute("Stage") ~= "Mature" then
+        -- swap to the mature model (buildCrop builds it mature now and calls mature again)
         FarmingV2._rebuild(player, key)
         return
     end
-    -- full size, re-seated on the soil so it never floats or sinks after growing
-    placeCrop(model, cropSurface(state, entry), 1)
+    entry = FarmingV2._saveMaturity(player, key, readyAt) or entry
     model:SetAttribute("Stage", "Mature")
     model:SetAttribute("Mature", true)
     -- a mature Glow Mushroom softly glows (one small light, nicest at night)
@@ -444,6 +446,8 @@ local function mature(player, key)
         glow.Shadows = false
         glow.Parent = model.PrimaryPart
     end
+    -- size / weight / value right now, re-seated on the soil so it never floats or sinks
+    FarmingV2._overgrow(player, key, model, entry, seed, os.time(), true)
     CollectionService:AddTag(model, "HarvestBush")
 end
 
@@ -474,15 +478,21 @@ local function buildCrop(player, key, entry)
     local model = assetModel(seed, stage)
     local authored = model ~= nil
     if not model then
-        model = PlantBuilder.build(seed.style, seed.fruit, seed.leaf)
+        -- one single plant per crop, with its own model for every growth stage
+        model = PlantBuilder.buildCrop(seed, stage)
     end
+    local roll = SeedPacks.getSizeRoll(entry)
     model.Name = "SeedCrop_" .. key
     model:SetAttribute("Owner", player.UserId)
     model:SetAttribute("Garden", 0)
     -- 1 Seed = 1 Plant = 1 Harvest: one pick empties the crop and gives Yield crop items
     model:SetAttribute("Fruits", 1)
     model:SetAttribute("Yield", SeedPacks.HARVEST_UNITS)
-    model:SetAttribute("SellValue", seed.sell_value)
+    -- size / weight / value of THIS crop (overgrowth keeps them growing once it is mature)
+    model:SetAttribute("SizeRoll", roll)
+    model:SetAttribute("SizeLabel", SeedPacks.getSizeLabel(roll))
+    model:SetAttribute("Weight", SeedPacks.getWeight(seed, roll))
+    model:SetAttribute("SellValue", SeedPacks.getSellValue(seed, SeedPacks.getWeight(seed, roll)))
     model:SetAttribute("FoodRarity", "Common")
     model:SetAttribute("FixedFood", seed.plant_name)
     -- farm bonuses (Market Stand, Golden Fountain...): Farm.applyEffects keeps this current
@@ -490,6 +500,8 @@ local function buildCrop(player, key, entry)
     model:SetAttribute("SeedCropSlot", key)
     model:SetAttribute("SeedId", seed.id)
     model:SetAttribute("Authored", authored or nil)
+    -- every crop model changes with its growth stage (the heartbeat rebuilds it)
+    model:SetAttribute("Staged", true)
     model:SetAttribute("Stage", stage)
     -- the free starter Clover: tutorial step 5 waits for the player's OWN planted crop instead
     model:SetAttribute("TutorialCrop", entry.tutorial == true or nil)
@@ -508,18 +520,107 @@ local function buildCrop(player, key, entry)
     -- Live growth: Fruits / potion / Sprinklers / Watering Can speed crops up. The shared
     -- heartbeat in _start matures them when SeedPacks.getReadyAt passes -- online, after Fruit
     -- swaps, or across rejoin (offline time is credited by os.time).
-    if entry.state == "regrowing" and not authored and now < readyAt then
-        -- procedural regrowing crop: plant stays, its fruit is gone until it regrows
-        for _, part in ipairs(model:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name == "Bloom" then
-                part.Transparency = 1
-            end
-        end
-    end
     if now >= readyAt then
         mature(player, key)
     else
-        placeCrop(model, cropSurface(state, entry), if authored then 1 else (if entry.state == "regrowing" then 0.6 else 0.28))
+        -- growing: the stage model shows how far it is, the size roll how big it will be
+        placeCrop(model, cropSurface(state, entry), roll)
+    end
+end
+
+--[[
+Saves when a crop became mature (the start of its overgrowth), once per growth cycle. Saved
+instead of recomputed, so swapping Fruits (growth speed) later never shrinks a mature crop.
+Old saves (crops planted before sizes existed, the tutorial Clover) start at normal size and
+overgrow from now, so nobody gets a giant crop just from an old save.
+@param player Player -- Crop owner.
+@param key string -- seed_crops key.
+@param readyAt number -- Ready timestamp.
+@return table? -- The saved entry.
+]]
+function FarmingV2._saveMaturity(player, key, readyAt)
+    local controller = getController(player)
+    if not controller then
+        return nil
+    end
+    local data = controller._data
+    local crops = cloneTableOrEmpty(data:Get("seed_crops"))
+    local entry = crops[key]
+    if typeof(entry) ~= "table" then
+        return nil
+    end
+    local now = os.time()
+    local changed = false
+    local legacy = entry.size == nil or entry.tutorial == true
+    if entry.size == nil then
+        entry.size = 1
+        changed = true
+    end
+    local matured = entry.matured_at
+    if typeof(matured) ~= "number" or matured ~= matured or math.abs(matured) == math.huge or matured > now then
+        entry.matured_at = if legacy then now else math.clamp(math.floor(readyAt), 0, now)
+        changed = true
+    end
+    if changed then
+        crops[key] = entry
+        data:Set("seed_crops", crops)
+    end
+    return entry
+end
+
+--[[
+Records a crop weight as the player's heaviest crop if it beats it ("Heaviest Crop" leaderboard).
+@param player Player -- Crop owner.
+@param weight number -- Crop weight in kg.
+@param seedId string -- Seed of that crop.
+@return boolean -- Whether it is a new record.
+]]
+function FarmingV2.recordWeight(player, weight, seedId)
+    local controller = getController(player)
+    if not controller or typeof(weight) ~= "number" or weight ~= weight or weight <= 0 or weight > 1e6 then
+        return false
+    end
+    local data = controller._data
+    local best = data:Get("heaviest_crop")
+    local bestWeight = typeof(best) == "table" and tonumber(best.weight) or 0
+    if weight <= bestWeight then
+        return false
+    end
+    data:Set("heaviest_crop", {weight = weight, seed_id = seedId, at = os.time()})
+    return true
+end
+
+--[[
+Overgrowth of a mature crop: updates its size, weight and sell value from the server clock and
+rescales the model (up to VISUAL_SCALE_MAX). Mature crops keep growing until they are harvested.
+@param player Player -- Crop owner.
+@param key string -- seed_crops key.
+@param model Model -- Crop model.
+@param entry table -- Saved crop.
+@param seed table -- Seed configuration.
+@param now number -- os.time().
+@param force boolean? -- Re-seat the model even when its scale did not change.
+]]
+function FarmingV2._overgrow(player, key, model, entry, seed, now, force)
+    local state = Farm._farms[player]
+    if not state or not model.Parent then
+        return
+    end
+    local roll = SeedPacks.getSizeRoll(entry)
+    local size = SeedPacks.getSize(roll, entry.matured_at, now)
+    local weight = SeedPacks.getWeight(seed, size)
+    if model:GetAttribute("Weight") ~= weight then
+        model:SetAttribute("Weight", weight)
+        model:SetAttribute("SellValue", SeedPacks.getSellValue(seed, weight))
+    end
+    model:SetAttribute("MaturedAt", entry.matured_at)
+    local scale = math.min(size, SeedPacks.VISUAL_SCALE_MAX)
+    if force or math.abs(model:GetScale() - scale) >= 0.01 then
+        placeCrop(model, cropSurface(state, entry), scale)
+    end
+    -- the tutorial crop never counts for the leaderboard
+    if not entry.tutorial then
+        FarmingV2.recordWeight(player, weight, seed.id)
     end
 end
 
@@ -556,7 +657,7 @@ local function syncPlayer(player)
     local crops = cloneTableOrEmpty(data:Get("seed_crops"))
     local changed = false
     if next(crops) == nil and nonnegativeInteger(data:Get({"stats", "Food_Collected"})) <= 0 and nonnegativeInteger(data:Get("seed_planted_count")) <= 0 then
-        crops["1"] = {seed_id = "clover", planted_at = 0, tutorial = true}
+        crops["1"] = {seed_id = "clover", planted_at = 0, tutorial = true, size = 1}
         changed = true
     end
     -- Legacy saves: crops in the old 6 starter slots ("1".."6") get their slot's plot position.
@@ -733,6 +834,7 @@ local function plantSeed(player, seedId, position)
         x = math.round(rel.X * 100) / 100,
         z = math.round(rel.Z * 100) / 100,
         floor = if soil.floor == 2 then 2 else nil, -- Second Garden Floor crop
+        size = SeedPacks.rollSize(sizeRandom), -- this crop's own size (SeedPacks.SIZE_ROLLS)
         -- planted during the tutorial "Plant" step: quick first crop (SeedPacks.TUTORIAL_GROWTH)
         quick = if data:Get("tutorial_marker") == 4 then true else nil,
     }
@@ -847,6 +949,9 @@ function FarmingV2.completeHarvest(player, key, model)
     local valid = seed ~= nil and model and model:GetAttribute("Mature") == true and model:GetAttribute("Owner") == player.UserId
     local harvestedSeedId = if valid then entry.seed_id else nil
     CollectionService:RemoveTag(model, "HarvestBush")
+    if valid and not entry.tutorial then
+        FarmingV2.recordWeight(player, model:GetAttribute("Weight"), entry.seed_id)
+    end
     if valid and seed.is_regrowable and typeof(seed.regrow_time) == "number" then
         local now = os.time()
         entry.state = "regrowing"
@@ -855,6 +960,7 @@ function FarmingV2.completeHarvest(player, key, model)
         entry.water_credit = nil
         entry.water_count = nil
         entry.last_watered_at = nil
+        entry.matured_at = nil -- overgrowth starts again after the regrow (the size roll stays)
         crops[key] = entry
         data:Set("seed_crops", crops)
         model:SetAttribute("Mature", false)
@@ -960,9 +1066,14 @@ function FarmingV2._start()
     -- Matured crops are only flagged for harvest -- they are NEVER auto-harvested. Authored crop
     -- models also switch growth stage here (no loop or timer per crop).
     task.spawn(function()
+        local lastOvergrow = 0
         while true do
             task.wait(1)
             local now = os.time()
+            local overgrowNow = os.clock() - lastOvergrow >= OVERGROW_TICK
+            if overgrowNow then
+                lastOvergrow = os.clock()
+            end
             for player, crops in pairs(models) do
                 if player.Parent then
                     local controller
@@ -971,7 +1082,21 @@ function FarmingV2._start()
                     for key, model in pairs(crops) do
                         if not model.Parent then
                             crops[key] = nil -- harvested (or the farm was cleared): forget the model
-                        elseif not model:GetAttribute("Mature") then
+                        elseif model:GetAttribute("Mature") then
+                            -- overgrowth: mature crops keep getting bigger and heavier (every few seconds)
+                            if overgrowNow then
+                                controller = controller or getController(player)
+                                saved = saved or (controller and controller._data:Get("seed_crops") or {})
+                                local entry = saved[key]
+                                local seed = typeof(entry) == "table" and typeof(entry.seed_id) == "string" and SeedPacks.getSeed(entry.seed_id) or nil
+                                if seed then
+                                    local ok, err = pcall(FarmingV2._overgrow, player, key, model, entry, seed, now)
+                                    if not ok then
+                                        warn("[FarmingV2] overgrowth failed:", err)
+                                    end
+                                end
+                            end
+                        else
                             controller = controller or getController(player)
                             saved = saved or (controller and controller._data:Get("seed_crops") or {})
                             local entry = saved[key]
@@ -985,7 +1110,7 @@ function FarmingV2._start()
                                     if not ok then
                                         warn("[FarmingV2] mature failed:", err)
                                     end
-                                elseif readyAt and model:GetAttribute("Authored") and cropStage(entry, seed, readyAt, now) ~= model:GetAttribute("Stage") then
+                                elseif readyAt and model:GetAttribute("Staged") and cropStage(entry, seed, readyAt, now) ~= model:GetAttribute("Stage") then
                                     local ok, err = pcall(buildCrop, player, key, entry)
                                     if not ok then
                                         warn("[FarmingV2] stage change failed:", err)

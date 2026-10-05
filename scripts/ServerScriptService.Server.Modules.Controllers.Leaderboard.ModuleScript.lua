@@ -10,6 +10,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local Network
 local NumberUtility
 local FishingUtility
+local SeedPacks
 
 local WRITE_INTERVAL = 180 -- seconds between saves of one player's value in one category
 local READ_INTERVAL = 120 -- seconds between global top-10 reads of one category
@@ -18,6 +19,13 @@ local TOP = 10
 local LOG_SCALE = 1e9 -- huge values (Coins / Gems) are stored as log10(value + 1) * LOG_SCALE
 
 local CATEGORIES = {
+	-- heaviest crop ever grown (FarmingV2 overgrowth): kg stored x100 (2 decimals) in the OrderedDataStore
+	{id = "HeaviestCrop", title = "⚖️ Heaviest Crop", scale = 100, format = function(value)
+		return SeedPacks.formatWeight(value)
+	end, get = function(client)
+		local best = client.data:Get("heaviest_crop")
+		return if typeof(best) == "table" then tonumber(best.weight) or 0 else 0
+	end},
 	{id = "Coins", title = "💰 Coins", log = true, get = function(client)
 		return client.data:Get({"stats", "Strength"})
 	end},
@@ -54,12 +62,18 @@ local function encode(category, value)
 	if category.log then
 		return math.floor(math.log10(value + 1) * LOG_SCALE)
 	end
+	if category.scale then
+		return math.floor(math.min(value * category.scale + 0.5, 2^52))
+	end
 	return math.floor(math.min(value, 2^52))
 end
 
 local function decode(category, stored)
 	if category.log then
 		return math.max(0, math.floor(10 ^ (stored / LOG_SCALE) - 1 + 0.5))
+	end
+	if category.scale then
+		return stored / category.scale
 	end
 	return stored
 end
@@ -217,7 +231,7 @@ local function buildBoard()
 	tabLayout.Padding = UDim.new(0.01, 0)
 	tabLayout.Parent = tabRow
 	for index, category in ipairs(CATEGORIES) do
-		local tab = text(tabRow, category.id, category.title, UDim2.fromScale(0.19, 1), UDim2.new(), 26, Color3.new(1, 1, 1), Enum.TextXAlignment.Center)
+		local tab = text(tabRow, category.id, category.title, UDim2.fromScale(1 / #CATEGORIES - 0.01, 1), UDim2.new(), 26, Color3.new(1, 1, 1), Enum.TextXAlignment.Center)
 		tab.LayoutOrder = index
 		tab.BackgroundTransparency = 0
 		tab.BackgroundColor3 = Color3.fromRGB(70, 100, 70)
@@ -261,7 +275,7 @@ local function show(category)
 		local item = list[i]
 		if item then
 			row.name.Text = nameOf(item.user_id)
-			row.value.Text = NumberUtility.short(item.value)
+			row.value.Text = if category.format then category.format(item.value) else NumberUtility.short(item.value)
 		else
 			row.name.Text = "-"
 			row.value.Text = ""
@@ -273,6 +287,7 @@ function Leaderboard._init()
 	Network = _L.Get {"Common", "Library", "Network"}
 	NumberUtility = _L.Get {"Common", "Library", "Utilities", "NumberUtility"}
 	FishingUtility = _L.Get {"Common", "Modules", "Utilities", "FishingUtility"}
+	SeedPacks = _L.Get {"Common", "Modules", "Databases", "SeedPacks"}
 end
 
 function Leaderboard._start()
