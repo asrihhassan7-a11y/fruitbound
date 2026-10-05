@@ -1,0 +1,144 @@
+--> Variables
+local _L = _G._L
+
+local Services
+local Signal
+local Tracker
+local Data
+local TableUtility
+local NumberUtility
+local Spr
+local Trove
+local Audio
+local Shared
+local Timer
+local FastTween
+local cancellableDelay
+local Constants
+local AttributeUtility
+local TrackerUtility
+local ArrayUtility
+local UI
+local Network
+local PetUtility
+local Notifications
+local RankUtility
+local DiscordUtility
+
+--> Constants
+
+------------->
+local DiscordVerification = {
+	name = script.Name
+}
+
+function DiscordVerification:_init()
+	Services = _L.Get {"Common", "Library", "Services"}
+	Network = _L.Get {"Common", "Library", "Network"}
+	Signal = _L.Get {"Common", "Library", "Classes", "Signal"}
+	Tracker = _L.Get {"Common", "Library", "Classes", "Tracker", "Tracker"}
+	Timer = _L.Get {"Common", "Library", "Classes", "Timer"}
+	Data = _L.Get {"Client", "Library", "Classes", "Data"}
+	TableUtility = _L.Get {"Common", "Library", "Utilities", "TableUtility"}
+	NumberUtility = _L.Get {"Common", "Library", "Utilities", "NumberUtility"}
+	TrackerUtility = _L.Get {"Common", "Library", "Utilities", "TrackerUtility"}
+	AttributeUtility = _L.Get {"Common", "Library", "Utilities", "AttributeUtility"}
+	ArrayUtility = _L.Get {"Common", "Library", "Utilities", "ArrayUtility"}
+	Spr = _L.Get {"Common", "Library", "Physics", "Spr"}
+	Trove = _L.Get {"Common", "Library", "Classes", "Trove"}
+	Audio = _L.Get {"Common", "Library", "Audio"} 
+	Shared = _L.Get {"Common", "Modules", "Shared"}
+	FastTween = _L.Get {"Common", "Library", "Functions", "FastTween"}
+	cancellableDelay = _L.Get {"Common", "Library", "Functions", "cancellableDelay"}
+	Constants = _L.Get {"Common", "Modules", "Constants"}
+	UI = _L.Get {"Client", "Modules", "UI"}
+	RankUtility = _L.Get {"Common", "Modules", "Utilities", "RankUtility"}
+	DiscordUtility = _L.Get {"Common", "Modules", "Utilities", "DiscordUtility"}
+	self.is_open = Tracker.new(false)
+	self.trove = Trove.new()
+end
+
+function DiscordVerification:_start()
+	Notifications = UI.Get("Notifications")
+	
+	self.object = _L.PlayerGui.DiscordVerification
+	
+	self.is_open:Bind(function(value, props)
+		if value then
+			self:Open()
+		else
+			self:Close()
+		end
+	end)
+	
+	local data = Data.Await()
+	
+	if data then
+		self.object.Main.VerifyBtn.MouseButton1Click:Connect(function()
+			local currentCode = self.object.Main.H.TextBox.Text
+
+			currentCode = string.lower(currentCode)
+			
+			self.object.Main.H.TextBox.Text = ""
+			
+			if data:Get({"discord_verified"}) then
+				return
+			end
+			
+			local success, err = Network.Remote.Invoke("S_Discord_Verification_Submit", currentCode)
+			
+			if success then
+				Notifications:add({
+					text = "✅ You claimed your reward!",
+					color = Color3.fromRGB(0, 255, 0),
+					audio = {name = "Success1"}
+				})
+			elseif err then
+				Notifications:add({
+					text = "❌ You entered an invalid code!",
+					color = Color3.fromRGB(255, 0, 0),
+					audio = {name = "Fail1"}
+				})
+			end
+		end)
+		
+		data:Bind({"discord_verified"}, function(value)
+			self.object.Main.Verified.Visible = value
+		end)
+	end
+end
+
+function DiscordVerification:Open()
+	Spr.Stop(self.object.Main)
+	
+	
+	self.object.Main.Visible = true
+	self.object.Main.Position = UDim2.fromScale(0.5, 0.55)
+	
+	Spr.Target(self.object.Main, 1, 4, {
+		Position = UDim2.fromScale(0.5, 0.5)
+	})
+	
+	Spr.Target(workspace.CurrentCamera, 0.7, 4, {
+		FieldOfView = 80
+	})
+
+	Spr.Target(Services.Lighting.Blur, 0.7, 4, {
+		Size = 20
+	})
+end
+
+function DiscordVerification:Close()
+	self.object.Main.Visible = false
+	
+
+	Spr.Target(workspace.CurrentCamera, 0.7, 4, {
+		FieldOfView = 70
+	})
+
+	Spr.Target(Services.Lighting.Blur, 0.7, 4, {
+		Size = 0
+	})
+end
+
+return DiscordVerification
