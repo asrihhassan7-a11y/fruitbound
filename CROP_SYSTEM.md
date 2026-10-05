@@ -1,6 +1,18 @@
 # Crop system: size, weight & overgrowth
 
-All changes are in `here.rbxl` (open it in Studio). The changed scripts are also in `scripts/`.
+The changes are 8 scripts, packaged in `CropUpdate.rbxmx`. The source of each script is also in `scripts/`.
+`here.rbxl` is your original place, unchanged.
+
+## Install into your place
+1. Open your place in Studio and close any open script tabs.
+2. Right-click **Workspace** → **Insert from File...** → pick `CropUpdate.rbxmx`.
+3. Open **View → Command Bar**, paste this line and press Enter:
+
+```lua
+local f=game:FindFirstChild("CropUpdate",true) for _,s in f:GetChildren() do local t=game for n in s.Name:gmatch("[^/]+") do t=t and t:FindFirstChild(n) end if t and t:IsA("ModuleScript") then t.Source=s.Source print("updated "..t:GetFullName()) else warn("not found: "..s.Name) end end f:Destroy()
+```
+
+4. The Output window should show 8 `updated` lines. Then save (Ctrl+S).
 
 ## How it works
 - **One plant per crop.** Every Seed you plant is its own single plant (one carrot, one sunflower,
