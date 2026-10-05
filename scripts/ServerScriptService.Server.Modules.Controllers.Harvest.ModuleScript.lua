@@ -298,7 +298,8 @@ function Harvest.tryHarvest(playerController, range, clickPosition, auto)
 		harvestedSeedId = FarmingV2.completeHarvest(player, tostring(seedSlot), bush.model)
 	end
 
-	return bush, nil, foodName, valueMult, harvestedSeedId
+	-- plantFinished: this pick emptied the plant (a Seed crop's one harvest) = one real crop harvested
+	return bush, nil, foodName, valueMult, harvestedSeedId, s.left <= 0
 end
 
 -- ============================================================

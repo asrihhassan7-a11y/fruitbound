@@ -160,12 +160,12 @@ function Character:_create_billboard()
 	
 	self._trove:Add(newBillboardInstance)
 	
-	self._trove:Add(Tracker.Subscribe({self._data:Track({"stats", "Strength"}), self._data:Track({"stats", "Kills"})}, function(value)
+	self._trove:Add(Tracker.Subscribe({self._data:Track({"stats", "Strength"}), self._data:Track({"stats", "Crops_Harvested"}), self._data:Track("crop_legacy")}, function(value)
 		local currentStrength = self._data:Get({"stats", "Strength"})
-		local currentKills = self._data:Get({"stats", "Kills"})
 		
 		local emojiMapInfo = EmojiMapUtility.getInfo(currentStrength)
-		local rankInfo = RankUtility.getInfoFromKills(currentKills)
+		-- rank from real crops harvested (+ the rank kept from before the crop counter migration)
+		local rankInfo = RankUtility.getInfoFromData(self._data)
 		
 		newBillboardInstance.Main.Rank.Text = rankInfo.name.." "..emojiMapInfo[2]
 		newBillboardInstance.Main.Strength.Text = NumberUtility.short(currentStrength).." Coins"

@@ -82,12 +82,13 @@ function Ranks:_start()
 	if data then
 		local ttt = (30*60)
 		
-		Tracker.Subscribe({data:Track("rank_reward"), data:Track({"stats", "Kills"}), data:Track({"stats", "Total_Time"})}, function()
+		Tracker.Subscribe({data:Track("rank_reward"), data:Track({"stats", "Crops_Harvested"}), data:Track("crop_legacy"), data:Track({"stats", "Total_Time"})}, function()
 			local canClaim = RankUtility.canClaim(data)
-			local progress = data:Get({"stats", "Kills"})
+			-- rank progress = real crops harvested (RankUtility.getProgress / getInfoFromData)
+			local progress = RankUtility.getProgress(data)
 			local t = data:Get({"stats", "Total_Time"})
-			local v = RankUtility.getNextInfoFromKills(progress)
-			local cc = RankUtility.getInfoFromKills(progress)
+			local v = RankUtility.getNextInfoFromData(data)
+			local cc = RankUtility.getInfoFromData(data)
 			local tttt = RankUtility.getTimeLeft(data)
 			local p = progress/if v then v.required else progress
 			local s = p > 0

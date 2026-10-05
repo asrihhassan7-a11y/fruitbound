@@ -51,7 +51,8 @@ return {
 			stats = {
 				Strength = 0,
 				Gems = 0,
-				Kills = 0,
+				Kills = 0, -- LEGACY harvest counter (old 6-item harvests), frozen: never written by harvests any more
+				Crops_Harvested = 0, -- real crops harvested (1 per finished plant): quests, achievements, ranks
 				Rebirths = 0,
 				Crowns = 5,
 				Wheel_Spin = 2,
@@ -109,6 +110,11 @@ return {
 			seed_planted_count = 0,
 			-- heaviest crop this player ever HARVESTED: the "Heaviest Crop" leaderboard
 			heaviest_crop = {weight = 0},
+			-- crop progression migration (ProgressUtility.migrateCropProgress): 0 = old save not migrated yet
+			crop_progression_version = 0,
+			-- written once by that migration: {rank = rank index from the old Kills thresholds (a rank never
+			-- drops below it), achievements = {[id] = true} harvest achievements already completed with old Kills}
+			crop_legacy = {},
 			daycare = {slots = {}}, -- RETIRED V1 Daycare (kept as-is for old saves, never read for V1.1)
 			-- V1.1 Daycare (Fruit Pen): entries[fruitUid] = {fruit_uid, fruit_id, deposited_at, last_collected_at}
 			-- The Fruit record itself stays in `fruits` (same UID / level / stage / tier) with daycare = true.

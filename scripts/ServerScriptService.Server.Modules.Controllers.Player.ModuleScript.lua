@@ -1143,7 +1143,7 @@ function Player:_power_click(position, range, auto)
 		end
 		
 		local Harvest = _L.Get {"Server", "Modules", "Controllers", "Harvest"}
-		local bush, reason, pickedPlant, mutationMult, harvestedSeedId = Harvest.tryHarvest(self, range, position, auto == true)
+		local bush, reason, pickedPlant, mutationMult, harvestedSeedId, plantFinished = Harvest.tryHarvest(self, range, position, auto == true)
 		
 		if not bush then
 			return false, reason or "no_bush"
@@ -1154,14 +1154,16 @@ function Player:_power_click(position, range, auto)
 			self._last_cooldown = tick()
 		end
 		
-		-- "Kills" stat / quest "1" / clan "kills" are reused as the harvest counters: one harvest = one
-		-- crop item = 1 (a Seed crop is ONE plant, ONE harvest, ONE item)
-		local pickedItems = 1
-		self._data:Set({"stats", "Kills"}, (self._data:Get({"stats", "Kills"}) or 0) + pickedItems)
-		self:_quests_progress("1", pickedItems)
-		local harvestClan = self:get_clan()
-		if harvestClan then
-			harvestClan:increment("kills", pickedItems)
+		-- REAL crop counter: +1 per finished plant (a Seed crop = 1 plant = 1 harvest = 1 crop item).
+		-- Drives the harvest quest "1", the clan crop counter, achievements and ranks. The legacy
+		-- stats.Kills / clan "kills" (old 6-item harvests) are frozen and never written here.
+		if plantFinished then
+			self._data:Set({"stats", "Crops_Harvested"}, (self._data:Get({"stats", "Crops_Harvested"}) or 0) + 1)
+			self:_quests_progress("1", 1)
+			local harvestClan = self:get_clan()
+			if harvestClan then
+				harvestClan:increment("crops_harvested", 1)
+			end
 		end
 		
 		if currentPowerComponentInfo then
@@ -1745,7 +1747,7 @@ function Player:_rank_reward_claim()
 	if canClaim then
 		self._data:Set("rank_reward", os.time())
 		
-		local currentRankInfo, i = RankUtility.getInfoFromKills(self._data:Get({"stats", "Kills"}))
+		local currentRankInfo, i = RankUtility.getInfoFromData(self._data)
 		
 		local rew = {{name = "Stat", props = {
 			name = "Gems",

@@ -203,7 +203,13 @@ function Clan:_construct()
 			_type = fetched._type or {"Public", tick()},
 			players = fetched.players,
 			max_players = fetched.max_players or 10,
-			kills = fetched.kills or 0,
+			kills = fetched.kills or 0, -- LEGACY clan harvest counter (old 6-item harvests), frozen
+			-- real crops harvested by members (clan quest "1"). One-time migration for clans saved before
+			-- it existed: floor(kills / 6), marked by crop_progression_version (kills itself is kept)
+			crops_harvested = if fetched.crop_progression_version == 1 and typeof(fetched.crops_harvested) == "number"
+				then fetched.crops_harvested
+				else math.max(0, math.floor(tonumber(fetched.crops_harvested) or 0)) + math.max(0, math.floor((tonumber(fetched.kills) or 0) / 6)),
+			crop_progression_version = 1,
 			deaths = fetched.deaths or 0,
 			eggs_opened = fetched.eggs_opened or 0,
 			strength = fetched.strength or 0,
@@ -482,6 +488,8 @@ function Clan:_write()
 				players = newPlayers,
 				max_players = self._data:Get("max_players"),
 				kills = self._data:Get("kills"),
+				crops_harvested = self._data:Get("crops_harvested"),
+				crop_progression_version = self._data:Get("crop_progression_version"),
 				deaths = self._data:Get("deaths"),
 				eggs_opened = self._data:Get("eggs_opened"),
 				strength = self._data:Get("strength"),
@@ -533,7 +541,8 @@ function Clan:increment(name, value, ignoreCache)
 		if not ignoreCache then
 			self._incremented[name] = (self._incremented[name] or 0) + value
 		end
-		self._data:Set(name, self._data:Get(name) + value)
+		-- (or 0): a counter another server version does not know yet starts at 0 instead of erroring
+		self._data:Set(name, (self._data:Get(name) or 0) + value)
 	end
 end
 
@@ -550,6 +559,7 @@ function Clan:_update()
 		players = self._data:Get("players"),
 		max_players = self._data:Get("max_players"),
 		kills = self._data:Get("kills"),
+		crops_harvested = self._data:Get("crops_harvested"),
 		deaths = self._data:Get("deaths"),
 		eggs_opened = self._data:Get("eggs_opened"),
 		strength = self._data:Get("strength"),

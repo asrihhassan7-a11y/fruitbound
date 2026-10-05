@@ -27,7 +27,7 @@ local Achievements = {
 	{
 		id = "first_harvest", name = "First Harvest", icon = "🌱",
 		description = "Harvest 8 crops.",
-		progress = "harvests", goal = 8, -- was 50 with the old 6-item harvests
+		progress = "harvests", goal = 8, legacy_goal = 50, -- legacy_goal: old Kills goal (migration only)
 		reward_text = "250 Coins",
 		rewards = {{name = "Stat", props = {name = "Strength", value = 250}}},
 	},
@@ -84,7 +84,7 @@ local Achievements = {
 	{
 		id = "busy_bee", name = "Busy Bee", icon = "🐝",
 		description = "Harvest 850 crops.",
-		progress = "harvests", goal = 850, -- was 5,000 with the old 6-item harvests
+		progress = "harvests", goal = 850, legacy_goal = 5000,
 		reward_text = "🌿 Green Thumb title",
 		rewards = {{name = "Title", props = {id = "green_thumb"}}},
 	},
@@ -129,7 +129,7 @@ local Achievements = {
 	{
 		id = "harvest_legend", name = "Harvest Legend", icon = "🌾",
 		description = "Harvest 17,000 crops.",
-		progress = "harvests", goal = 17000, -- was 100,000 with the old 6-item harvests
+		progress = "harvests", goal = 17000, legacy_goal = 100000,
 		reward_text = "1,000 Gems + 3 Divine Lotus",
 		rewards = {
 			{name = "Stat", props = {name = "Gems", value = 1000}},

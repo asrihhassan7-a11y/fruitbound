@@ -15,6 +15,35 @@ local Constants
 local RankUtility
 
 RankUtility = {
+	-- RANK PROGRESS = real crops harvested (stats.Crops_Harvested), never below the rank the player had
+	-- with the old Kills thresholds (crop_legacy.rank, written once by ProgressUtility.migrateCropProgress).
+	getProgress = function(data)
+		local value = data:Get({"stats", "Crops_Harvested"})
+		return if typeof(value) == "number" and value == value then value else 0
+	end,
+
+	-- rank info + index (1 = Rookie) for this player's data
+	getInfoFromData = function(data)
+		local progress = RankUtility.getProgress(data)
+		local index = 1
+		for i, v in ipairs(Ranks) do
+			if typeof(v) == "table" and v.required <= progress then
+				index = math.max(index, i)
+			end
+		end
+		local floor = data:Get({"crop_legacy", "rank"})
+		if typeof(floor) == "number" and floor == floor then
+			index = math.clamp(math.max(index, math.floor(floor)), 1, #Ranks)
+		end
+		return Ranks[index], index
+	end,
+
+	-- the next rank (nil at max rank)
+	getNextInfoFromData = function(data)
+		local _, index = RankUtility.getInfoFromData(data)
+		return Ranks[index + 1]
+	end,
+
 	getNextInfoFromKills = function(kills)
 		local v = RankUtility.getInfoFromKills(kills)
 		local i, vv = TableUtility.match(Ranks, function(i, vv)
@@ -54,7 +83,13 @@ RankUtility = {
 	
 	has = function(data, rankName, r)
 		local rankInfo = RankUtility.getInfo(rankName)
-		return data:Get({"stats", if r then "Rebirths" else "Kills"}) >= rankInfo.required
+		if r then
+			-- unchanged rebirth check (the original thresholds)
+			return data:Get({"stats", "Rebirths"}) >= (rankInfo.legacy_required or rankInfo.required)
+		end
+		local _, index = RankUtility.getInfoFromData(data)
+		local wanted = rankInfo and table.find(Ranks, rankInfo)
+		return wanted ~= nil and index >= wanted
 	end,
 	
 	_init = function()

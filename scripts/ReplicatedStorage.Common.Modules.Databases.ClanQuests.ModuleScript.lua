@@ -11,11 +11,11 @@ local NumberUtility
 local ClanQuests
 
 ClanQuests = {
-	-- counts harvests (1 Seed crop = 1 harvest = 1 crop item): was 2,500 with the old 6-item harvests
+	-- counts REAL crops (clan crops_harvested, 1 per finished plant): was 2,500 on the legacy 6-item "kills"
 	{id = "1", icon = "rbxassetid://14304116782", description = "Harvest 420 Fruits", server_predicate = function(clan, client)
-		return clan._data:Get("kills") >= 420
+		return (clan._data:Get("crops_harvested") or 0) >= 420
 	end, client_predicate = function(clanData, playerData)
-		return clanData:Get("kills") >= 420
+		return (clanData:Get("crops_harvested") or 0) >= 420
 	end, reward = {{
 		name = "Stat",
 		props = {
@@ -23,9 +23,9 @@ ClanQuests = {
 			value = 2500
 		}
 	}}, fetch_progress = function(clanData, playerData)
-		return clanData:Get("kills") / 420
+		return (clanData:Get("crops_harvested") or 0) / 420
 	end, fetch_format = function(clanData, playerData)
-		return NumberUtility.commas(clanData:Get("kills")).."/"..NumberUtility.commas(420)
+		return NumberUtility.commas((clanData:Get("crops_harvested") or 0)).."/"..NumberUtility.commas(420)
 	end,},
 
 	{id = "2", icon = "rbxassetid://14304120449", description = "Collect 500 Food", server_predicate = function(clan, client)

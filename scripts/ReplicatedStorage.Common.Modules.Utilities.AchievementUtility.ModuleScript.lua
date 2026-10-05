@@ -28,6 +28,10 @@ AchievementUtility = {
 		if not info then
 			return 0, 1
 		end
+		-- completed before the crop progression migration with the old goal (ProgressUtility.migrateCropProgress)
+		if data:Get({"crop_legacy", "achievements", id}) == true then
+			return info.goal, info.goal
+		end
 		return math.min(ProgressUtility.get(data, info.progress), info.goal), info.goal
 	end,
 

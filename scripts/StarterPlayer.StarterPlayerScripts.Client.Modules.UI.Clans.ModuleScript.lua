@@ -480,7 +480,7 @@ function Clans:_start()
 						--	end
 						--end))
 						
-						self.object.Main.Pages.StatsView.Content.Main.Container.Kills.Main.Title.Text = "Total Kills: "..NumberUtility.commas(clanData:Get("kills"))
+						self.object.Main.Pages.StatsView.Content.Main.Container.Kills.Main.Title.Text = "Total Harvests: "..NumberUtility.commas(clanData:Get("crops_harvested") or 0)
 						self.object.Main.Pages.StatsView.Content.Main.Container.Deaths.Main.Title.Text = "Total Deaths: "..NumberUtility.commas(clanData:Get("deaths"))
 						self.object.Main.Pages.StatsView.Content.Main.Container.Eggs_Opened.Main.Title.Text = "Total Eggs Opened: "..NumberUtility.commas(clanData:Get("eggs_opened"))
 						self.object.Main.Pages.StatsView.Content.Main.Container.Strength.Main.Title.Text = "Total Coins: "..NumberUtility.short(clanData:Get("strength"))
