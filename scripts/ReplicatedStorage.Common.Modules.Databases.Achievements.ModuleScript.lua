@@ -26,8 +26,8 @@ local Achievements = {
 	},
 	{
 		id = "first_harvest", name = "First Harvest", icon = "🌱",
-		description = "Pick 50 plants.",
-		progress = "harvests", goal = 50,
+		description = "Harvest 8 crops.",
+		progress = "harvests", goal = 8, -- was 50 with the old 6-item harvests
 		reward_text = "250 Coins",
 		rewards = {{name = "Stat", props = {name = "Strength", value = 250}}},
 	},
@@ -83,8 +83,8 @@ local Achievements = {
 	},
 	{
 		id = "busy_bee", name = "Busy Bee", icon = "🐝",
-		description = "Pick 5,000 plants.",
-		progress = "harvests", goal = 5000,
+		description = "Harvest 850 crops.",
+		progress = "harvests", goal = 850, -- was 5,000 with the old 6-item harvests
 		reward_text = "🌿 Green Thumb title",
 		rewards = {{name = "Title", props = {id = "green_thumb"}}},
 	},
@@ -128,8 +128,8 @@ local Achievements = {
 	},
 	{
 		id = "harvest_legend", name = "Harvest Legend", icon = "🌾",
-		description = "Pick 100,000 plants.",
-		progress = "harvests", goal = 100000,
+		description = "Harvest 17,000 crops.",
+		progress = "harvests", goal = 17000, -- was 100,000 with the old 6-item harvests
 		reward_text = "1,000 Gems + 3 Divine Lotus",
 		rewards = {
 			{name = "Stat", props = {name = "Gems", value = 1000}},

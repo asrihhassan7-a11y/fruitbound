@@ -13,10 +13,11 @@ local Quests
 Quests = {
 	{
 		id = "1", 
-		daily_value_range = {100, 400}, 
+		-- counts harvests (1 Seed crop = 1 harvest = 1 crop item): the old 6-item harvest targets / 6
+		daily_value_range = {17, 67}, 
 		daily_reward_range = {500, 1500}, 
 		
-		weekly_value_range = {600, 1500}, 
+		weekly_value_range = {100, 250}, 
 		weekly_reward_range = {800, 2250}, 
 		
 		icon = "rbxassetid://14304116782", 

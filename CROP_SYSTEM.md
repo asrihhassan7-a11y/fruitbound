@@ -1,6 +1,6 @@
 # Crop system: size, weight & overgrowth
 
-The changes are 8 scripts, packaged in `CropUpdate.rbxmx`. The source of each script is also in `scripts/`.
+The changes are 12 scripts, packaged in `CropUpdate.rbxmx`. The source of each script is also in `scripts/`.
 `here.rbxl` is your original place, unchanged.
 
 ## Install into your place
@@ -12,7 +12,7 @@ The changes are 8 scripts, packaged in `CropUpdate.rbxmx`. The source of each sc
 local f=game:FindFirstChild("CropUpdate",true) for _,s in f:GetChildren() do local t=game for n in s.Name:gmatch("[^/]+") do t=t and t:FindFirstChild(n) end if t and t:IsA("ModuleScript") then t.Source=s.Source print("updated "..t:GetFullName()) else warn("not found: "..s.Name) end end f:Destroy()
 ```
 
-4. The Output window should show 8 `updated` lines. Then save (Ctrl+S).
+4. The Output window should show 12 `updated` lines. Then save (Ctrl+S).
 
 ## How it works
 - **One plant per crop.** Every Seed you plant is its own single plant (one carrot, one sunflower,
@@ -40,3 +40,8 @@ local f=game:FindFirstChild("CropUpdate",true) for _,s in f:GetChildren() do loc
 
 Crops planted before this update start at normal size and begin overgrowing from the moment they
 mature, or from when you rejoin if they're already mature. Old saves don't get instant giants.
+
+## Harvest-count targets (÷6 for one item per harvest)
+Quest "1" daily 100–400 → 17–67, weekly 600–1500 → 100–250; Clan quest "Harvest 2,500 Fruits" →
+420; achievements First Harvest 50 → 8, Busy Bee 5,000 → 850 (+ Titles unlock text), Harvest Legend
+100,000 → 17,000. Rewards unchanged. Ranks (Kills-based) are not changed.

@@ -44,7 +44,7 @@ Titles = {
 	{
 		id = "green_thumb", text = "🌿 Green Thumb", color = Color3.fromRGB(110, 220, 110),
 		boosts = {harvest_speed = 0.08},
-		unlock = "Harvest 1,000 plants.", achievement = "busy_bee",
+		unlock = "Harvest 850 crops.", achievement = "busy_bee",
 	},
 	{
 		id = "nature_master", text = "🍃 Nature Master", color = Color3.fromRGB(90, 200, 140),
