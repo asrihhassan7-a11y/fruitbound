@@ -485,9 +485,8 @@ local function buildCrop(player, key, entry)
     model.Name = "SeedCrop_" .. key
     model:SetAttribute("Owner", player.UserId)
     model:SetAttribute("Garden", 0)
-    -- 1 Seed = 1 Plant = 1 Harvest: one pick empties the crop and gives Yield crop items
+    -- 1 Seed = 1 Plant = 1 Harvest = 1 crop item: one pick empties the crop and removes it
     model:SetAttribute("Fruits", 1)
-    model:SetAttribute("Yield", SeedPacks.HARVEST_UNITS)
     -- size / weight / value of THIS crop (overgrowth keeps them growing once it is mature)
     model:SetAttribute("SizeRoll", roll)
     model:SetAttribute("SizeLabel", SeedPacks.getSizeLabel(roll))

@@ -1154,15 +1154,9 @@ function Player:_power_click(position, range, auto)
 			self._last_cooldown = tick()
 		end
 		
-		-- "Kills" stat / quest "1" / clan "kills" are reused as the harvest counters. A Seed crop's ONE
-		-- harvest counts as its whole yield of crop items, so "Harvest N Fruits" quests keep their pace.
+		-- "Kills" stat / quest "1" / clan "kills" are reused as the harvest counters: one harvest = one
+		-- crop item = 1 (a Seed crop is ONE plant, ONE harvest, ONE item)
 		local pickedItems = 1
-		if bush.model:GetAttribute("SeedCropSlot") then
-			local yield = bush.model:GetAttribute("Yield")
-			if typeof(yield) == "number" and yield == yield and yield >= 1 then
-				pickedItems = math.clamp(math.floor(yield), 1, 20)
-			end
-		end
 		self._data:Set({"stats", "Kills"}, (self._data:Get({"stats", "Kills"}) or 0) + pickedItems)
 		self:_quests_progress("1", pickedItems)
 		local harvestClan = self:get_clan()
@@ -1208,31 +1202,29 @@ function Player:_power_click(position, range, auto)
 				local worth = self:_calc_strength(baseValue * plantMultiplier, nil, true) * (mutationMult or 1)
 				if pickedPlant then
 					-- V1.1 Fruit harvest luck: one server roll per successful MANUAL harvest of a mature
-					-- Seed crop (never for Auto Collect) -> a SMALL bonus (+HARVEST_LUCK_BONUS crop item)
+					-- Seed crop (never for Auto Collect) -> the ONE crop item is worth a bit more
 					local SeedPacksDB = _L.Get {"Common", "Modules", "Databases", "SeedPacks"}
-					local bonusItems = 0
+					local lucky = false
 					local isManual = not auto and range == nil
 					if isManual and bush.model:GetAttribute("SeedCropSlot") and bush.model:GetAttribute("Owner") == self._instance.UserId then
 						local FruitFarmUtility = _L.Get {"Common", "Modules", "Utilities", "FruitFarmUtility"}
 						local okLuck, luck = pcall(FruitFarmUtility.getHarvestLuck, self._data)
 						self._harvest_luck_rng = self._harvest_luck_rng or Random.new()
 						if okLuck and typeof(luck) == "number" and luck > 0 and self._harvest_luck_rng:NextNumber() < luck then
-							bonusItems = SeedPacksDB.HARVEST_LUCK_BONUS or 1
+							lucky = true
+							worth *= 1 + (SeedPacksDB.HARVEST_LUCK_VALUE_BONUS or 0)
 						end
 					end
+					-- exactly ONE crop item per harvest (Harvest.tryHarvest already refused a full backpack)
 					local BackpackUtility = _L.Get {"Common", "Modules", "Utilities", "BackpackUtility"}
-					local added = 0
-					for n = 1, pickedItems + bonusItems do
-						if BackpackUtility.isFull(self._data) then
-							break
-						end
+					local added = false
+					if not BackpackUtility.isFull(self._data) then
 						self:_backpack_add(pickedPlant, worth)
-						added = n
+						added = true
 					end
-					if bonusItems > 0 and added > pickedItems then
-						self:_notify({text = "🍀 Fruit Luck! +" .. (added - pickedItems) .. " " .. tostring(pickedPlant), color = Color3.fromRGB(170, 240, 120)})
+					if lucky and added then
+						self:_notify({text = "🍀 Fruit Luck! +" .. math.round((SeedPacksDB.HARVEST_LUCK_VALUE_BONUS or 0) * 100) .. "% value " .. tostring(pickedPlant), color = Color3.fromRGB(170, 240, 120)})
 					end
-					added = added > 0
 					if added and not auto then
 						local tutorialStep = self._data:Get("tutorial_marker")
 						if tutorialStep == 1 then

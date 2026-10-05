@@ -225,13 +225,6 @@ function Harvest.tryHarvest(playerController, range, clickPosition, auto)
 	if not bush then
 		return nil, reason
 	end
-	-- a Seed crop's ONE harvest gives all its items at once: it needs room for the whole yield
-	local yield = bush.model:GetAttribute("SeedCropSlot") and bush.model:GetAttribute("Yield")
-	if typeof(yield) == "number" and yield > 1
-		and BackpackUtility.getCount(playerController._data) + yield > BackpackUtility.getCapacity(playerController._data) then
-		return nil, "full"
-	end
-
 	local s = getState(player, bush)
 	s.left -= 1
 

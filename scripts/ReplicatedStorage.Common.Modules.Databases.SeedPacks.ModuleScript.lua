@@ -12,7 +12,7 @@ SeedPacks.Seeds = {
         leaf = Color3.fromRGB(75, 175, 75),
         growth_time = 90, -- 1m30s
         coin_multiplier = 16,
-        sell_value = 8, -- Coins per crop item; one harvest gives HARVEST_UNITS items
+        sell_value = 48, -- Coins for the ONE crop item of a normal-size crop (scaled by its weight)
         base_weight = 0.25, -- kg of a normal-size crop the moment it is ready (see getWeight)
     },
     mint = {
@@ -25,7 +25,7 @@ SeedPacks.Seeds = {
         leaf = Color3.fromRGB(55, 165, 105),
         growth_time = 240, -- 4m
         coin_multiplier = 24,
-        sell_value = 14, -- Coins per crop item; one harvest gives HARVEST_UNITS items
+        sell_value = 84, -- Coins for the ONE crop item of a normal-size crop (scaled by its weight)
         base_weight = 0.35, -- kg of a normal-size crop the moment it is ready (see getWeight)
     },
     carrot = {
@@ -38,7 +38,7 @@ SeedPacks.Seeds = {
         leaf = Color3.fromRGB(95, 195, 85),
         growth_time = 480, -- 8m
         coin_multiplier = 40,
-        sell_value = 24, -- Coins per crop item; one harvest gives HARVEST_UNITS items
+        sell_value = 144, -- Coins for the ONE crop item of a normal-size crop (scaled by its weight)
         base_weight = 0.6, -- kg of a normal-size crop the moment it is ready (see getWeight)
     },
     sunflower = {
@@ -51,7 +51,7 @@ SeedPacks.Seeds = {
         leaf = Color3.fromRGB(80, 180, 80),
         growth_time = 1080, -- 18m
         coin_multiplier = 64,
-        sell_value = 42, -- Coins per crop item; one harvest gives HARVEST_UNITS items
+        sell_value = 252, -- Coins for the ONE crop item of a normal-size crop (scaled by its weight)
         base_weight = 1.8, -- kg of a normal-size crop the moment it is ready (see getWeight)
     },
     glow_mushroom = {
@@ -64,7 +64,7 @@ SeedPacks.Seeds = {
         leaf = Color3.fromRGB(80, 175, 145),
         growth_time = 2400, -- 40m
         coin_multiplier = 120,
-        sell_value = 75, -- Coins per crop item; one harvest gives HARVEST_UNITS items
+        sell_value = 450, -- Coins for the ONE crop item of a normal-size crop (scaled by its weight)
         base_weight = 3.2, -- kg of a normal-size crop the moment it is ready (see getWeight)
     },
     -- REGROWABLE crop (future): harvesting keeps the tree, it regrows its fruit after regrow_time.
@@ -81,7 +81,7 @@ SeedPacks.Seeds = {
         growth_time = 5400, -- 90m first growth
         is_regrowable = true,
         regrow_time = 1500, -- 25m between harvests
-        sell_value = 60, -- per item (harvest reward = sell_value x HARVEST_UNITS per regrow)
+        sell_value = 360, -- Coins for the ONE crop item of each regrow harvest (scaled by its weight)
         base_weight = 5, -- kg of a normal-size crop the moment it is ready (see getWeight)
         available = false,
     },
@@ -177,12 +177,12 @@ SeedPacks.Packs = {
     },
 }
 
--- V1.1: 1 Seed = 1 Plant = 1 Harvest. The ONE harvest of a mature crop gives HARVEST_UNITS crop
--- items at once (same total value per Seed as the old 6-pick crops: Clover 6 x 8 = 48 base Coins).
-SeedPacks.HARVEST_UNITS = 6
+-- 1 Seed = 1 Plant = 1 Harvest = 1 crop item. sell_value is the value of that ONE item for a
+-- normal-size crop: the same total per Seed as the old 6-item harvests (Clover 6 x 8 = 48 Coins).
 
--- Fruit Harvest Luck bonus: extra crop items on a lucky harvest (small, never a doubled crop)
-SeedPacks.HARVEST_LUCK_BONUS = 1
+-- Fruit Harvest Luck: a lucky MANUAL harvest makes the one crop item worth this much more (+1/6 =
+-- the same average bonus as the old "+1 extra item out of 6"). Never an extra item.
+SeedPacks.HARVEST_LUCK_VALUE_BONUS = 1 / 6
 
 -- Growth boosts stack with diminishing returns so a 40m crop can never take seconds:
 -- effective = 1 + GROWTH_MAX_EXTRA * extra / (extra + GROWTH_SOFTNESS), extra = raw boost - 1.
@@ -229,8 +229,8 @@ SeedPacks.SIZE_MAX = 2
 --    15m -> x1.21, 1h -> x1.48, 8h -> x2.05, 1 day -> x2.37, 1 week -> x2.95 (and still growing)
 SeedPacks.OVERGROW_RATE = 0.3
 SeedPacks.OVERGROW_PERIOD = 900
--- 3) Weight = base_weight x size^2 (kg). Sell value per crop item = sell_value x weight / base_weight,
---    so a crop twice as heavy sells for twice as much.
+-- 3) Weight = base_weight x size^2 (kg). The crop item sells for sell_value x weight / base_weight
+--    (calculated once per crop), so a crop twice as heavy sells for twice as much.
 -- 4) Models stop getting visibly bigger at this scale (they would cover the whole farm); the weight
 --    and value keep growing.
 SeedPacks.VISUAL_SCALE_MAX = 3
@@ -313,7 +313,7 @@ function SeedPacks.getWeight(seed, size)
 end
 
 --[[
-Coins one crop item of this weight sells for (never below 1).
+Coins the ONE crop item of a crop of this weight sells for (never below 1).
 @param seed table -- Seed configuration.
 @param weight number -- getWeight result.
 @return number

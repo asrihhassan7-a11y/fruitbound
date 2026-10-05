@@ -25,8 +25,11 @@ local f=game:FindFirstChild("CropUpdate",true) for _,s in f:GetChildren() do loc
   1 week x2.95, and it never stops). Models stop getting visibly bigger at x3, but the weight keeps going up.
 - **Weight.** `weight = base_weight × size²` (kg). Base weights: Clover 0.25, Mint 0.35, Carrot 0.6,
   Sunflower 1.8, Glow Mushroom 3.2.
-- **Value.** Each crop item sells for `sell_value × weight / base_weight`, so a crop twice as heavy is
-  worth twice the Coins.
+- **One harvest = one crop item.** Harvesting a mature crop (by hand or with Auto Collect) gives ONE
+  crop item and removes the plant. That item sells for `sell_value × weight / base_weight`, where
+  `sell_value` is the value of a whole normal-size crop (Clover 48, Mint 84, Carrot 144,
+  Sunflower 252, Glow Mushroom 450: the same per-Seed totals as the old 6-item harvests).
+  Fruit Harvest Luck makes that one item worth +1/6 more (it no longer adds an extra item).
 - **Leaderboard.** New "⚖️ Heaviest Crop" category on the Village board: the heaviest crop each player
   ever harvested (saved in `heaviest_crop`, only updated when a harvest beats it). A record harvest shows "NEW HEAVIEST CROP!".
 - **Labels.** Your mature crops show their weight. Other players' mature crops show theirs too, so you
