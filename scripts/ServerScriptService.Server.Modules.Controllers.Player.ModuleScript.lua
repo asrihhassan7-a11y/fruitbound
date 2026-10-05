@@ -1247,12 +1247,13 @@ function Player:_power_click(position, range, auto)
 						local cropWeight = harvestedSeedId and bush.model:GetAttribute("Weight")
 						if typeof(cropWeight) == "number" and not bush.model:GetAttribute("TutorialCrop") then
 							local SeedPacksDB = _L.Get {"Common", "Modules", "Databases", "SeedPacks"}
-							local best = self._data:Get("heaviest_crop")
-							local isBest = typeof(best) == "table" and tonumber(best.weight) ~= nil and cropWeight >= best.weight
+							-- NewRecord: set by FarmingV2.completeHarvest when this harvest beat heaviest_crop
+							local isBest = bush.model:GetAttribute("NewRecord") == true
 							local sizeLabel = bush.model:GetAttribute("SizeLabel")
 							self:_notify({
-								text = "⚖️ " .. SeedPacksDB.formatWeight(cropWeight) .. " " .. (if sizeLabel then sizeLabel .. " " else "") .. tostring(pickedPlant)
-									.. (if isBest then " - 🏆 your heaviest crop ever!" else ""),
+								text = if isBest
+									then "🏆 NEW HEAVIEST CROP! " .. SeedPacksDB.formatWeight(cropWeight) .. " " .. tostring(pickedPlant)
+									else "⚖️ " .. SeedPacksDB.formatWeight(cropWeight) .. " " .. (if sizeLabel then sizeLabel .. " " else "") .. tostring(pickedPlant),
 								color = if isBest then Color3.fromRGB(255, 215, 90) else Color3.fromRGB(235, 225, 200),
 							})
 						end

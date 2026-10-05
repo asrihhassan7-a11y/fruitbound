@@ -28,7 +28,7 @@ local f=game:FindFirstChild("CropUpdate",true) for _,s in f:GetChildren() do loc
 - **Value.** Each crop item sells for `sell_value × weight / base_weight`, so a crop twice as heavy is
   worth twice the Coins.
 - **Leaderboard.** New "⚖️ Heaviest Crop" category on the Village board: the heaviest crop each player
-  ever grew (saved in `heaviest_crop`). Harvesting shows the weight and says when it's your heaviest ever.
+  ever harvested (saved in `heaviest_crop`, only updated when a harvest beats it). A record harvest shows "NEW HEAVIEST CROP!".
 - **Labels.** Your mature crops show their weight. Other players' mature crops show theirs too, so you
   can compare.
 

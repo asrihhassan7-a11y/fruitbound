@@ -569,7 +569,8 @@ function FarmingV2._saveMaturity(player, key, readyAt)
 end
 
 --[[
-Records a crop weight as the player's heaviest crop if it beats it ("Heaviest Crop" leaderboard).
+Records a HARVESTED crop weight as the player's heaviest crop if it beats it ("Heaviest Crop"
+leaderboard). Only called from completeHarvest, so the save changes once per record harvest.
 @param player Player -- Crop owner.
 @param weight number -- Crop weight in kg.
 @param seedId string -- Seed of that crop.
@@ -617,10 +618,6 @@ function FarmingV2._overgrow(player, key, model, entry, seed, now, force)
     local scale = math.min(size, SeedPacks.VISUAL_SCALE_MAX)
     if force or math.abs(model:GetScale() - scale) >= 0.01 then
         placeCrop(model, cropSurface(state, entry), scale)
-    end
-    -- the tutorial crop never counts for the leaderboard
-    if not entry.tutorial then
-        FarmingV2.recordWeight(player, weight, seed.id)
     end
 end
 
@@ -949,8 +946,9 @@ function FarmingV2.completeHarvest(player, key, model)
     local valid = seed ~= nil and model and model:GetAttribute("Mature") == true and model:GetAttribute("Owner") == player.UserId
     local harvestedSeedId = if valid then entry.seed_id else nil
     CollectionService:RemoveTag(model, "HarvestBush")
-    if valid and not entry.tutorial then
-        FarmingV2.recordWeight(player, model:GetAttribute("Weight"), entry.seed_id)
+    -- the weight is the server's own model attribute (FarmingV2._overgrow), never a client value
+    if valid and not entry.tutorial and FarmingV2.recordWeight(player, model:GetAttribute("Weight"), entry.seed_id) then
+        model:SetAttribute("NewRecord", true) -- the Player controller shows "NEW HEAVIEST CROP!"
     end
     if valid and seed.is_regrowable and typeof(seed.regrow_time) == "number" then
         local now = os.time()
