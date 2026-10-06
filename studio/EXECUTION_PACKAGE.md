@@ -405,81 +405,133 @@ Diffs (Items, Fishing, UI/Fishing, new FishModelUtility, client remote caller), 
 ## E6 — Fence upgrades
 
 ```
-FRUITBOUND E6 — FENCE TIERS T1–T4 (ONE CONTROLLER, SERVER-AUTHORITATIVE). Do not publish. Report NOT RUN for any test you did not run.
+FRUITBOUND E6 — FENCE TIERS T1–T4 (VISUALLY DISTINCT, ONE CONTROLLER, SERVER-AUTHORITATIVE). Do not publish. Report NOT RUN for any test you did not run.
 
 1. INSPECT
-- Workspace.__MAP.FarmIsland.Plots.<1..8>: Fence (Folder, ~67 Parts: posts + rails), Base, Sign, SignPostL, SignPostR, Spawn, Built, Pads
+- Workspace.__MAP.FarmIsland.Plots.<1..8>: Fence (Folder, ~67 Parts named Post / Rail etc.), Base, Sign, SignPostL, SignPostR, Spawn, Built, Pads.
+  First list one plot's Fence parts (Name, Size, CFrame in plot space) and identify:
+  - posts
+  - rails (each rail = one fence run between two posts)
+  - entrance gap(s) = places with no rail between neighbouring posts (expected at the front, near Sign/SignPosts/Spawn)
+  Record each entrance gap's clear width.
 - Server/Controllers/Farm:
-  - local assign(player) (~217): picks a free plot, plot.model/plot.cf, builds into plot.model.Built
-  - local release(player) (~313): clears Built/Pads and resets the sign
+  - local assign(player) (~217): picks a free plot, plot.model / plot.cf
+  - local release(player) (~313): clears Built/Pads, resets the sign
   - Farm.buy (~169; spends Coins with data:Set({"stats","Strength"}, coins - cost) after a server check)
-  - PLOT_HALF = 70
 - Common/Settings data.template (add the new field next to garden_floor2)
-- Notification pattern used by Farm/GardenFloor (notify)
+- Notify pattern used by Farm/GardenFloor
+- FarmBuilder palette (WOOD, WOOD_DARK colours, materials) so new tiers match the cozy FruitBound style
 
 2. CHANGE
-a) New Common/Databases/Fences:
-   {tier = 1, name = "Basic", cost = 0}
-   {tier = 2, name = "Reinforced", cost = 150000}
-   {tier = 3, name = "Palisade", cost = 2000000}
-   {tier = 4, name = "Fortified", cost = 15000000}
-   Each tier also gets visual params: color, material, heightScale, cap style.
+a) New Common/Databases/Fences, tiers with price and visual spec:
+   - T1 Basic — 0 Coins: the current fence, untouched.
+   - T2 Reinforced — 150,000 Coins:
+     - ~5 studs tall
+     - thicker square posts (~1.0–1.2 studs), Wood, warm brown
+     - 3 horizontal rails per run
+     - simple diagonal cross brace (X or single diagonal) in each run where the run is long enough (skip short runs)
+     - small post caps
+   - T3 Palisade — 2,000,000 Coins:
+     - ~9 studs tall
+     - thick posts (~1.4–1.6 studs)
+     - dense vertical timber boards/planks filling each run (WoodPlanks, slight colour variation, small gaps optional)
+     - top and bottom rail
+     - simple flat or lightly rounded tops (NOT sharp spikes)
+   - T4 Fortified — 15,000,000 Coins:
+     - ~12 studs tall
+     - low stone base wall ~2–2.5 studs (Cobblestone/Slate, warm grey)
+     - heavy timber panel above it (WoodPlanks, dark wood)
+     - top beam
+     - stone pillar accents at corners and about every 3rd–4th post, with a wooden/stone cap
+     - optional lanterns/flower boxes on a few pillars for cozy countryside charm
+     - NO battlements, NO crenellations, NO castle towers
 b) Settings template: fence_tier = 1 (Reconcile fills old profiles).
-c) New Server/Controllers/Fence:
+c) New Server/Controllers/Fence (the ONLY place with fence logic):
    - Fence.apply(plot, tier):
-     - On first touch, store each Fence part's original Size, CFrame, Color, Material and Transparency as attributes.
-     - Tier 1 = restore the originals exactly.
-     - Tiers 2–4 restyle the SAME parts: color/material, and height grown upward from the part's bottom (Size.Y × heightScale, CFrame shifted up by half the growth). Never change X/Z size or X/Z position, so every entrance gap stays identical.
-     - Optional decorative caps go in a folder plot.model.FenceTier, rebuilt on every apply and destroyed on tier 1. Caps sit only on top of existing posts and must not block the Sign or SignPosts.
+     - First call per plot: store every original Fence part's Transparency, CanCollide, CanQuery, CanTouch as attributes. The originals are NEVER moved or resized.
+     - Tier 1: destroy plot.model.FenceTier (if any) and restore the original parts' saved properties exactly.
+     - Tiers 2–4:
+       - Hide the original parts (Transparency 1, CanCollide false, CanQuery false, CanTouch false).
+       - Rebuild plot.model.FenceTier from scratch, generated from the original layout:
+         - a post at every original post X/Z
+         - one fence run per original rail (start/end = the rail's ends, along its length axis)
+       - Runs are generated ONLY where an original rail exists, so entrance gaps stay open.
+       - Post/pillar thickness may grow, but at an entrance it must grow AWAY from the gap: the clear gap width at every tier must be ≥ the T1 width.
+       - Nothing may overlap Sign, SignPostL, SignPostR, Spawn, Base edges toward neighbouring plots, or the plot path.
+       - All generated parts: Anchored, collidable only for posts/panels/base (decor pieces CanCollide false), CastShadow false on small pieces.
+       - Build in plot space (plot.cf * offset), so it works on all 8 plots.
+       - Keep the part count reasonable (report the count per tier; target < 400 per plot at T4).
    - Fence.buy(player):
      - Rate limit 1 s; must own a plot (Farm._farms[player])
      - nextTier = clamp(saved fence_tier, 1, 4) + 1; must be ≤ 4
-     - Price from the DB only; coins = stats.Strength must be ≥ price
-     - Then: data:Set("fence_tier", nextTier), spend coins exactly like Farm.buy, apply, notify
-   - Purchase entry: a small sign Part with a ProximityPrompt built into plot.model.Built during assign (Built is cleared on release).
-     - ActionText "Upgrade Fence", ObjectText "<Next tier> – <price> Coins", HoldDuration = 1 (acts as the confirmation)
-     - Hidden/disabled at T4
-     - Triggered → server checks the owner (non-owner gets a notify "Not your farm"), then Fence.buy
-   - Hooks:
-     - In Farm.assign, after the plot is assigned: Fence.apply(plot, saved fence_tier or 1)
-     - In Farm.release, before or after clearing: Fence.apply(plot, 1)
-     - Use lazy _L.Get to avoid require cycles.
-d) No scripts inside fence parts or plots.
+     - Price from the DB only; stats.Strength must be ≥ price
+     - Then, with no yield between check and set: data:Set("fence_tier", nextTier), spend Coins exactly like Farm.buy, then Fence.apply and notify
+   - Purchase entry:
+     - A small wooden sign Part with a ProximityPrompt, built into plot.model.Built during assign (Built is cleared on release)
+     - ActionText "Upgrade Fence", ObjectText "<Next tier name> – <price> Coins", HoldDuration = 1 (this is the confirmation)
+     - Disabled/removed at T4
+     - Triggered → server checks the owner (non-owner gets notify "Not your farm") → Fence.buy
+     - Place it inside the plot next to the entrance, not in the gap
+   - Hooks (lazy _L.Get to avoid require cycles):
+     - Farm.assign, after the plot is assigned → Fence.apply(plot, saved fence_tier or 1)
+     - Farm.release → Fence.apply(plot, 1)
+     - On controller start, apply to plots that are already assigned
+d) No scripts inside fence parts, FenceTier or plots. No per-part logic anywhere else.
 
 3. DO NOT CHANGE
-- FarmUpgrades list/ids/prices, plot size, Base, Sign/SignPosts, Spawn, decor rules
+- The original Fence parts' Size/CFrame (only hide/restore them)
+- FarmUpgrades list/ids/prices, plot size, Base, Sign/SignPosts, Spawn, decor rules, Second Floor
 - Economy values other than these four fence prices
-- No new currency, no UI framework
+- No new currency, no new UI framework, no castle style
 
 4. BACKWARD COMPATIBILITY
 - Old profiles get fence_tier = 1 via Reconcile
 - A missing or invalid value is treated as 1
-- Plots that are already assigned when the controller starts get apply()
+- At T1 every plot looks and collides exactly as today
 
 5. SECURITY
 - Price and tier come only from the server DB
 - Client input = the prompt trigger only
-- Next-tier-only, no skipping, no downgrades via remotes
-- Single charge per purchase (re-check coins and tier at the moment of purchase, no yield between check and set)
+- Next-tier only; no skipping; no downgrade path
+- Exactly one charge per tier
 - Fence tier is visual only (no gameplay effect)
 
-6. LIVE TEST (Studio, 2 players; /fb coins/setcoins from E4 or the command bar to set Coins)
-a) Fresh profile: fence is T1 and identical to before (compare one post's Size/CFrame before/after)
-b) setcoins 149,999 → prompt refused; setcoins 150,000 → buy → Coins = 0 exactly, T2 visuals
-c) Spam the prompt with enough Coins → only one tier gained per hold, Coins deducted once per tier
-d) Buy T3 and T4 → prompt gone at T4
-e) Walk in/out through every entrance at T1 and T4 (also as P2, and on the phone emulator)
-f) P1 leaves → plot back to exact T1 originals; P2 or a new join takes that plot → T1; P1 rejoins → gets a plot with T4
+6. LIVE TEST (Studio, 2 players; Coins via E4 /fb setcoins or the server command bar)
+a) T1: every plot identical to before (compare 3 original parts' Size/CFrame/Transparency before/after the change)
+b) Visual review: set one plot to each tier (server command bar Fence.apply(plot, n)). Screenshot T1, T2, T3, T4:
+   - front, corner and entrance close-up
+   - one from the Village path
+   - one from the Second Floor deck
+   Check:
+   - heights ≈ 5 / 9 / 12
+   - T2 has 3 rails + braces
+   - T3 has dense boards
+   - T4 has stone base + timber + pillars
+   - cozy, not castle-like
+c) setcoins 149,999 → buy refused; setcoins 150,000 → buy → Coins = 0 exactly, T2 shown
+d) Hold the prompt repeatedly with plenty of Coins → exactly one tier per completed hold, one charge per tier; prompt gone at T4
+e) Entrance: at every tier, walk in and out as P1 and P2 (desktop and phone emulator 667x375); measure the clear gap width (≥ T1 width); the camera does not get stuck on the taller fence near the entrance
+f) P1 leaves → plot back to exact T1 (FenceTier gone, originals visible and collidable); P2 or a new join on that plot sees T1; P1 rejoins → their plot shows T4
 g) Non-owner triggers another farm's prompt → "Not your farm", nothing charged
-h) Output
+h) Performance: part count per tier; frame rate standing at the farm with all 8 plots at T4 (Studio stats)
+i) Output
 
 7. PASS IF
-- Every step as described; originals restored exactly
-- No entrance blocked; no double charges; tier persists across rejoin
-- Output clean
+- Tiers clearly distinct and match the spec
+- Cozy style, no castle look
+- Entrance gaps ≥ T1 width at all tiers
+- Originals restored exactly on release
+- No double charges; tier persists across rejoin
+- Part count reported; Output clean
 
 8. REPORT
-Diffs/new files, the tier visual params chosen, before/after Size/CFrame values for one post, Coins before/after per purchase, and results a–h as PASS/FAIL/NOT RUN.
+- Diffs/new files
+- The original layout summary (posts, rails, entrance gap widths)
+- The tier specs as built (heights, thicknesses, materials, colours)
+- Part counts per tier
+- Screenshot list with descriptions
+- Coins before/after per purchase
+- Results a–i as PASS/FAIL/NOT RUN
 ```
 
 ---
@@ -720,14 +772,46 @@ Use a returning profile (the main account) and a fresh profile.
 Use E4 test commands only in Studio/private servers. Remove any QA data afterwards.
 
 6. LIVE TEST
-A) Seven crops (per crop: /fb seeds <id> 3 then /fb grow, and one crop grown naturally on fast-forward or real time):
-   - Stage1 → Stage2 → Stage3 → Mature: no jarring jump in size/colour at the switch to the custom Mature model
-   - Mature scale vs neighbours; upright; grounded (not floating or buried); on ground soil AND on the deck
+A) Seven crops. Stage transitions MUST be checked with forced timestamps, NOT with /fb grow.
+   Stage rule (FarmingV2 cropStage):
+   - progress = (now - planted_at) / (readyAt - planted_at)
+   - Stage1 below 1/3, Stage2 from 1/3 to 2/3, Stage3 from 2/3 to 1, Mature at 1 or more
+   - Stage1-3 are procedural; Mature is the custom model
+   For each crop:
+   1. Get 1 Seed (/fb seeds <id> 1) and plant it on ground soil.
+   2. Run this helper in the server command bar (set KEY to that crop's seed_crops key; find it with client.data:Get("seed_crops")):
+      local P=game.Players:GetPlayers()[1]; local L=_G._L
+      local client=L.Get{"Common","Library","Network"}.Bindable.Invoke("S_Client_Get",P)
+      local SP=L.Get{"Common","Modules","Databases","SeedPacks"}; local F=L.Get{"Server","Modules","Controllers","FarmingV2"}
+      local function setP(key,p)
+        local crops=table.clone(client.data:Get("seed_crops")); local e=table.clone(crops[key])
+        local seed=SP.getSeed(e.seed_id); local total=seed.growth_time/SP.getGrowthMultiplier(client.data)
+        e.quick=nil; e.water_credit=nil; e.water_count=nil; e.last_watered_at=nil; e.matured_at=nil
+        e.planted_at=os.time()-math.floor(p*total)
+        crops[key]=e; client.data:Set("seed_crops",crops); F._rebuild(P,key)
+        print(e.seed_id,"p=",p,"expected",p<1/3 and "Stage1" or p<2/3 and "Stage2" or p<1 and "Stage3" or "Mature")
+      end
+   3. Step FORWARD only, rebuilding after each step:
+      - setP(KEY,0.05)  early Stage1
+      - setP(KEY,0.50)  Stage2
+      - setP(KEY,0.80)  Stage3
+      - setP(KEY,0.97)  just before Mature — inspect immediately; it matures soon
+      - setP(KEY,1.02)  Mature
+   4. At every step, record:
+      - the model actually shown (Stage1/2/3/Mature)
+      - size relative to the soil disc
+      - colour
+      - upright and grounded (not floating or buried)
+      - any pop or jump compared with the previous step, especially Stage3 → Mature (procedural → custom model)
+   5. Repeat steps 1-4 once on a Second Floor deck bed.
+   6. Leave/rejoin at Stage2 and at Mature → the same stage comes back.
+   Only AFTER the stage pass, use /fb grow (or the Mature step) for harvest/value checks:
    - Big/Huge/Giant rolls and overgrowth up to the visual cap look sane
    - Harvest → exactly 1 item; weight and value match the table
    - Backpack ✋ Hold shows the right model upright
    - Phone emulator tap-to-harvest works
-   - Leave/rejoin while growing and while mature → same stage/size, harvestable once
+   - Leave/rejoin while mature → harvestable once
+   Remove leftover test crops afterwards.
 B) Economy (fresh profile, 20–30 min real play, no commands):
    - Record Coins at 0/5/10/15/20/25/30 min
    - Record when you first: buy a pack, hatch an egg, buy a Gear, buy each Farm upgrade, catch fish, complete a quest
@@ -748,7 +832,7 @@ C) Final release QA:
 Every row PASS. Any FAIL is listed with exact reproduction steps.
 
 8. REPORT
-- A table: crop × check → PASS/FAIL/NOT RUN with a screenshot description or Output line
+- A table: crop × stage step (0.05 / 0.50 / 0.80 / 0.97 / 1.02, ground and deck) → model shown + PASS/FAIL/NOT RUN, then crop × harvest/value/hold/mobile/rejoin checks
 - The economy log with timestamps and Coins
 - The final QA checklist with PASS/FAIL/NOT RUN per line
 - A final verdict: READY TO PUBLISH (only if everything passed) or NOT READY + the blocking lines

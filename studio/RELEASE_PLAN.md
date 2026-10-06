@@ -116,10 +116,10 @@ Crowns: real currency (Clan Shop `Player:1401`, also from Invite/Free/Daily gift
 
 ### 4. Fence tiers
 Audited: each map plot `Workspace/__MAP/FarmIsland/Plots/N` has `Fence` (67 Parts), `Base`, `Sign`, `SignPostL/R`, `Spawn`, `Built`, `Pads`. `Farm.assign` (`Farm:217`) / `release` (`Farm:313`). Coins are spent with `data:Set({"stats","Strength"}, coins - cost)` (`Farm.buy:187`).
-- [ ] `Databases/Fences`: `{ {tier=1,name="Basic",cost=0}, {2,"Reinforced",150000}, {3,"Palisade",2000000}, {4,"Fortified",15000000} }` + visual params per tier (color, material, height scale, top shape).
+- [ ] `Databases/Fences`: T1 Basic 0 (current fence), T2 Reinforced 150,000 (~5 studs, stronger posts, 3 rails, simple cross braces), T3 Palisade 2,000,000 (~9 studs, thick posts, dense timber board panels), T4 Fortified 15,000,000 (~12 studs, low stone base, heavy timber, stone pillar accents; cozy countryside, NOT castle). Full spec in EXECUTION_PACKAGE E6.
 - [ ] Template: `fence_tier = 1` (Reconcile fills old profiles).
 - [ ] `Server/Controllers/Fence`:
-  - `apply(plot, tier)`: on first call store each part's original `Size/CFrame/Color/Material/Transparency` as attributes; tier 1 = restore originals; higher tiers restyle the SAME parts (color/material, grow height upward from the base keeping X/Z) → entrance gap is unchanged by construction. Optional decorative caps added into a `FenceTier` folder inside the plot, cleared on reapply.
+  - `apply(plot, tier)`: tier 1 = original parts visible exactly as today, `FenceTier` folder removed; tiers 2–4 = originals hidden (never moved), tier fence generated into `plot.model.FenceTier` from the original layout (post X/Z + one run per original rail; no rail = entrance gap stays open; gap width ≥ T1 at every tier).
   - `buy(player)`: rate limit; must own a plot; next tier only (`current + 1`); server reads price from DB; coins ≥ price; set `fence_tier`, spend coins, `apply`.
   - Hooks: `Farm.assign` → `Fence.apply(plot, data.fence_tier)`; `Farm.release` → `Fence.apply(plot, 1)`.
   - Buy UI: ProximityPrompt on the plot sign (or a small sign by the entrance) built by the controller, owner-only; shows next tier + Coin icon price; reuse `Confirm` UI.
@@ -251,7 +251,8 @@ Expected (size roll 1.0; value scales with weight, farm bonuses on top):
 | moonberry | 75m | 0.7 | 920 | Enchanted (25%) |
 | dragon_fruit | 90m | 1.2 | 1,200 | Enchanted (5%) |
 For each crop:
-- [ ] Stage1 → Stage2 → Stage3 (procedural) → Mature (custom model): no jarring jump in size/colour.
+- [ ] Stage check with FORCED timestamps (not `/fb grow`): planted_at at progress 0.05 / 0.50 / 0.80 / 0.97 / 1.02 of growth time, rebuild after each, inspect (helper in EXECUTION_PACKAGE E10). Stage1 → Stage2 → Stage3 (procedural) → Mature (custom model): no jarring jump; on ground and deck.
+- [ ] `/fb grow` only afterwards, for harvest/value checks.
 - [ ] Mature scale vs neighbours, orientation upright, grounded (not floating/buried), on ground AND deck.
 - [ ] Big/Huge/Giant + overgrowth cap (`VISUAL_SCALE_MAX = 3`) looks sane.
 - [ ] Harvest gives exactly ONE item; weight/value match the table × size² (× farm bonus).
