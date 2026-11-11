@@ -30,6 +30,7 @@ local stunUntil = 0
 local smashStart = nil
 local shielding = false
 local shake = 0
+local recoveryReady = true
 
 local function getChar()
 	local char = player.Character
@@ -87,6 +88,17 @@ local function press(action)
 	elseif action == "Smash" then
 		smashStart = os.clock()
 	elseif action == "Special" then
+		local _, root, hum = getChar()
+		if dirInput() == "Up" and root then
+			-- super saut de récupération (une fois par passage en l'air)
+			if hum.FloorMaterial == Enum.Material.Air and recoveryReady and os.clock() >= stunUntil
+				and state:GetAttribute("Phase") == "Fight" then
+				recoveryReady = false
+				root.AssemblyLinearVelocity = Vector3.new(moveAxis() * 25, Config.RECOVERY_VELOCITY, 0)
+				actionRemote:FireServer("Special", "Up", facing)
+			end
+			return
+		end
 		actionRemote:FireServer("Special", dirInput(), facing)
 	elseif action == "Shield" then
 		shielding = true
@@ -147,6 +159,7 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b)
 		hum.PlatformStand = true
 		root.AssemblyLinearVelocity = a
 		airJumps = Config.AIR_JUMPS
+		recoveryReady = true
 	elseif kind == "Reset" then
 		stunUntil = 0
 		hum.PlatformStand = false
@@ -158,12 +171,13 @@ end)
 ----------------------------------------------------------------------
 -- Plateformes traversables (localement, pour son propre perso)
 ----------------------------------------------------------------------
-local arena = workspace:WaitForChild("SmashArena")
-local platforms = arena:WaitForChild("Platforms")
 
 local function updatePlatforms(root)
 	local feet = root.Position.Y - 3
 	local vy = root.AssemblyLinearVelocity.Y
+	local arena = workspace:FindFirstChild("SmashArena")
+	local platforms = arena and arena:FindFirstChild("Platforms")
+	if not platforms then return end
 	for _, p in ipairs(platforms:GetChildren()) do
 		local top = p.Position.Y + p.Size.Y / 2
 		local solid = feet >= top - 0.6
@@ -209,7 +223,10 @@ RunService.Stepped:Connect(function()
 		hum:ChangeState(Enum.HumanoidStateType.Freefall)
 	end
 
-	if hum.FloorMaterial ~= Enum.Material.Air then airJumps = Config.AIR_JUMPS end
+	if hum.FloorMaterial ~= Enum.Material.Air then
+		airJumps = Config.AIR_JUMPS
+		recoveryReady = true
+	end
 
 	local x = moveAxis()
 	if shielding or state:GetAttribute("Phase") == "Countdown" then x = 0 end
@@ -240,7 +257,7 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 			local ref = info:FindFirstChild("Character")
 			local m = ref and ref.Value
 			local r = m and m:FindFirstChild("HumanoidRootPart")
-			if r and (info:GetAttribute("Stocks") or 0) > 0 and math.abs(r.Position.X - O.X) < Config.BLAST_X + 10
+			if r and (info:GetAttribute("Stocks") or 0) > 0 and not r.Anchored and math.abs(r.Position.X - O.X) < (state:GetAttribute("BlastX") or 95) + 10
 				and math.abs(r.Position.Z - O.Z) < 50 then
 				local p = r.Position
 				minX, maxX = math.min(minX, p.X), math.max(maxX, p.X)
@@ -249,7 +266,8 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 			end
 		end
 		if n > 0 then
-			local cx = math.clamp((minX + maxX) / 2, O.X - 40, O.X + 40)
+			local range = state:GetAttribute("CamRangeX") or 35
+			local cx = math.clamp((minX + maxX) / 2, O.X - range, O.X + range)
 			local cy = math.clamp((minY + maxY) / 2 + 3, O.Y, O.Y + 45)
 			targetFocus = Vector3.new(cx, cy, O.Z)
 			local spread = math.max(maxX - minX, (maxY - minY) * 1.6)
@@ -308,13 +326,13 @@ local help = Instance.new("TextLabel")
 help.BackgroundTransparency = 0.4
 help.BackgroundColor3 = Color3.new(0, 0, 0)
 help.Position = UDim2.new(0, 12, 0, 50)
-help.Size = UDim2.new(0, 250, 0, 120)
+help.Size = UDim2.new(0, 260, 0, 136)
 help.Font = Enum.Font.Gotham
 help.TextSize = 13
 help.TextColor3 = Color3.new(1, 1, 1)
 help.TextXAlignment = Enum.TextXAlignment.Left
 help.TextYAlignment = Enum.TextYAlignment.Top
-help.Text = "  A/D ou Q/D : bouger\n  Espace : saut (x2 en l'air)\n  J / clic gauche : attaque\n  K / clic droit (maintenir) : smash\n  E ou L : projectile\n  W/Z ou S + attaque : direction\n  S en l'air : chute rapide / traverser\n  Shift : bouclier"
+help.Text = "  A/D ou Q/D : bouger\n  Espace : saut (x2 en l'air)\n  J / clic gauche : attaque\n  K / clic droit (maintenir) : smash\n  E ou L : projectile\n  Haut + E en l'air : super saut\n  W/Z ou S + attaque : direction\n  S en l'air : chute rapide / traverser\n  Shift : bouclier"
 help.Parent = gui
 Instance.new("UICorner", help).CornerRadius = UDim.new(0, 8)
 
@@ -411,3 +429,193 @@ RunService.RenderStepped:Connect(function()
 		if h then h:Destroy() end
 	end
 end)
+
+----------------------------------------------------------------------
+-- Chrono, nom de la map, résultats
+----------------------------------------------------------------------
+local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
+
+local timer = Instance.new("TextLabel")
+timer.BackgroundColor3 = Color3.new(0, 0, 0)
+timer.BackgroundTransparency = 0.4
+timer.AnchorPoint = Vector2.new(0.5, 0)
+timer.Position = UDim2.new(0.5, 0, 0, 44)
+timer.Size = UDim2.new(0, 220, 0, 44)
+timer.Font = Enum.Font.FredokaOne
+timer.TextScaled = true
+timer.TextColor3 = Color3.new(1, 1, 1)
+timer.Parent = gui
+Instance.new("UICorner", timer).CornerRadius = UDim.new(0, 10)
+
+local resultsLabel = Instance.new("TextLabel")
+resultsLabel.BackgroundColor3 = Color3.new(0, 0, 0)
+resultsLabel.BackgroundTransparency = 0.3
+resultsLabel.AnchorPoint = Vector2.new(0.5, 0)
+resultsLabel.Position = UDim2.new(0.5, 0, 0.42, 0)
+resultsLabel.Size = UDim2.new(0, 420, 0, 170)
+resultsLabel.Font = Enum.Font.GothamBold
+resultsLabel.TextSize = 20
+resultsLabel.TextColor3 = Color3.new(1, 1, 1)
+resultsLabel.Visible = false
+resultsLabel.Parent = gui
+Instance.new("UICorner", resultsLabel).CornerRadius = UDim.new(0, 12)
+
+local function fmtTime(t)
+	return string.format("%d:%02d", math.floor(t / 60), t % 60)
+end
+
+local function refreshTop()
+	local ph = state:GetAttribute("Phase")
+	local t = state:GetAttribute("TimeLeft") or 0
+	local mapName = state:GetAttribute("MapName") or ""
+	if ph == "Fight" or ph == "Countdown" then
+		timer.Visible = true
+		timer.Text = (Config.ROUND_TIME > 0 and fmtTime(t) .. "  •  " or "") .. mapName
+		timer.TextColor3 = (ph == "Fight" and t <= 10 and Config.ROUND_TIME > 0) and Color3.fromRGB(255, 80, 80) or Color3.new(1, 1, 1)
+	elseif ph == "Vote" then
+		timer.Visible = true
+		timer.Text = "Vote : " .. t .. "s"
+		timer.TextColor3 = Color3.new(1, 1, 1)
+	else
+		timer.Visible = false
+	end
+	local res = state:GetAttribute("Results") or ""
+	resultsLabel.Visible = res ~= ""
+	resultsLabel.Text = res
+end
+state.AttributeChanged:Connect(refreshTop)
+refreshTop()
+
+----------------------------------------------------------------------
+-- Écran de sélection de map (vote)
+----------------------------------------------------------------------
+local voteFrame = Instance.new("Frame")
+voteFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+voteFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+voteFrame.Size = UDim2.new(0.9, 0, 0, 290)
+voteFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+voteFrame.BackgroundTransparency = 0.15
+voteFrame.Visible = false
+voteFrame.Parent = gui
+Instance.new("UICorner", voteFrame).CornerRadius = UDim.new(0, 14)
+local sizeLimit = Instance.new("UISizeConstraint", voteFrame)
+sizeLimit.MaxSize = Vector2.new(1000, 290)
+
+local voteTitle = Instance.new("TextLabel")
+voteTitle.BackgroundTransparency = 1
+voteTitle.Size = UDim2.new(1, 0, 0, 44)
+voteTitle.Position = UDim2.new(0, 0, 0, 8)
+voteTitle.Font = Enum.Font.FredokaOne
+voteTitle.TextScaled = true
+voteTitle.TextColor3 = Color3.new(1, 1, 1)
+voteTitle.Text = "CHOISIS LA MAP"
+voteTitle.Parent = voteFrame
+
+local list = Instance.new("ScrollingFrame")
+list.BackgroundTransparency = 1
+list.BorderSizePixel = 0
+list.Position = UDim2.new(0, 12, 0, 60)
+list.Size = UDim2.new(1, -24, 1, -72)
+list.ScrollingDirection = Enum.ScrollingDirection.X
+list.AutomaticCanvasSize = Enum.AutomaticSize.X
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.ScrollBarThickness = 6
+list.Parent = voteFrame
+local listLayout = Instance.new("UIListLayout", list)
+listLayout.FillDirection = Enum.FillDirection.Horizontal
+listLayout.Padding = UDim.new(0, 10)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local myVote = nil
+local voteButtons = {}
+
+local function makeVoteButton(idx, name, desc, color)
+	local b = Instance.new("TextButton")
+	b.LayoutOrder = idx == 0 and 999 or idx
+	b.Size = UDim2.new(0, 170, 1, -10)
+	b.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	b.AutoButtonColor = true
+	b.Text = ""
+	b.Parent = list
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+	local stroke = Instance.new("UIStroke", b)
+	stroke.Thickness = 2
+	stroke.Color = color
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+	local swatch = Instance.new("Frame")
+	swatch.BorderSizePixel = 0
+	swatch.BackgroundColor3 = color
+	swatch.Position = UDim2.new(0, 10, 0, 10)
+	swatch.Size = UDim2.new(1, -20, 0, 70)
+	swatch.Parent = b
+	Instance.new("UICorner", swatch).CornerRadius = UDim.new(0, 8)
+	local grad = Instance.new("UIGradient", swatch)
+	grad.Color = ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0), 0.6))
+	grad.Rotation = 90
+
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Position = UDim2.new(0, 10, 0, 86)
+	title.Size = UDim2.new(1, -20, 0, 24)
+	title.Font = Enum.Font.GothamBold
+	title.TextScaled = true
+	title.TextColor3 = Color3.new(1, 1, 1)
+	title.Text = name
+	title.Parent = b
+
+	local d = Instance.new("TextLabel")
+	d.BackgroundTransparency = 1
+	d.Position = UDim2.new(0, 10, 0, 112)
+	d.Size = UDim2.new(1, -20, 0, 40)
+	d.Font = Enum.Font.Gotham
+	d.TextSize = 13
+	d.TextWrapped = true
+	d.TextColor3 = Color3.fromRGB(200, 200, 210)
+	d.TextYAlignment = Enum.TextYAlignment.Top
+	d.Text = desc
+	d.Parent = b
+
+	local count = Instance.new("TextLabel")
+	count.BackgroundTransparency = 1
+	count.AnchorPoint = Vector2.new(0, 1)
+	count.Position = UDim2.new(0, 10, 1, -8)
+	count.Size = UDim2.new(1, -20, 0, 26)
+	count.Font = Enum.Font.FredokaOne
+	count.TextScaled = true
+	count.TextColor3 = color
+	count.Text = "0 vote"
+	count.Parent = b
+
+	b.MouseButton1Click:Connect(function()
+		myVote = idx
+		actionRemote:FireServer("Vote", idx)
+		for i, vb in pairs(voteButtons) do
+			vb.stroke.Thickness = (i == myVote) and 5 or 2
+			vb.button.BackgroundColor3 = (i == myVote) and Color3.fromRGB(60, 60, 85) or Color3.fromRGB(35, 35, 50)
+		end
+	end)
+	voteButtons[idx] = { button = b, stroke = stroke, count = count }
+end
+
+for i, m in ipairs(Maps) do makeVoteButton(i, m.name, m.desc, m.icon) end
+makeVoteButton(0, "Aléatoire", "Laisse le hasard choisir", Color3.fromRGB(200, 200, 200))
+
+local function refreshVote()
+	local isVote = state:GetAttribute("Phase") == "Vote"
+	if isVote and not voteFrame.Visible then
+		myVote = nil
+		for _, vb in pairs(voteButtons) do
+			vb.stroke.Thickness = 2
+			vb.button.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+		end
+	end
+	voteFrame.Visible = isVote
+	help.Visible = not isVote
+	for i, vb in pairs(voteButtons) do
+		local n = state:GetAttribute("Vote" .. i) or 0
+		vb.count.Text = n .. (n > 1 and " votes" or " vote")
+	end
+end
+state.AttributeChanged:Connect(refreshVote)
+refreshVote()

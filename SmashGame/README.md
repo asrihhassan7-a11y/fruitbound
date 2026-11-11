@@ -4,12 +4,24 @@ Jeu de combat de plateforme style Smash Bros, vue de côté fixe.
 
 ## Installation dans Roblox Studio (copier-coller)
 1. Ouvre Studio (de préférence un **Baseplate** neuf, ou `yess.rbxl`).
-2. **ReplicatedStorage** → Insérer un **ModuleScript** nommé `SmashConfig` → colle `src/ReplicatedStorage/SmashConfig.lua`.
+2. **ReplicatedStorage** → Insérer deux **ModuleScript** : `SmashConfig` (colle `src/ReplicatedStorage/SmashConfig.lua`) et `SmashMaps` (colle `src/ReplicatedStorage/SmashMaps.lua`).
 3. **ServerScriptService** → Insérer un **Script** nommé `SmashServer` → colle `src/ServerScriptService/SmashServer.server.lua`.
 4. **StarterPlayer > StarterPlayerScripts** → Insérer un **LocalScript** nommé `SmashClient` → colle `src/StarterPlayerScripts/SmashClient.client.lua`.
-5. Appuie sur **Play**. Tu affrontes un bot CPU (réglable avec `CPU_BOTS`).
+5. Appuie sur **Play**. Vote pour une map, puis affronte les bots CPU.
 
 Avec Rojo : `rojo serve` dans ce dossier.
+
+## Déroulement d'une manche
+1. **Vote** (15 s) : chaque joueur clique sur une map (ou « Aléatoire »).
+2. **Compte à rebours** puis **combat** chronométré (3 min).
+3. **Résultats** : classement par vies restantes, puis % le plus bas, puis KO.
+
+## Maps (module `SmashMaps`)
+Temple du Ciel · Plateau Final · Îles Jumelles · Volcan · Glacier.
+Pour en ajouter une, copie un bloc `Maps[n] = {...}` et change les pièces.
+
+## Bots CPU
+3 bots par défaut (Facile, Moyen, Difficile), réglables dans `Config.BOTS`.
 
 ## Règles
 - Chaque coup augmente ton **%** ; plus il est haut, plus tu es projeté loin.
@@ -23,6 +35,7 @@ Avec Rojo : `rojo serve` dans ce dossier.
 | J / clic gauche | Attaque (+ haut / bas pour la diriger) |
 | K / clic droit (maintenir) | Smash chargé |
 | E / L | Projectile |
+| Haut + E en l'air | Super saut de récupération |
 | S en l'air | Chute rapide ; S sur une plateforme : la traverser |
 | Shift | Bouclier |
 Manette supportée (A saut, X attaque, Y smash, B projectile, gâchettes bouclier).

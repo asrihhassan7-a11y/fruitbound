@@ -4,15 +4,23 @@
 local Config = {}
 
 -- Arène
-Config.ARENA_ORIGIN = Vector3.new(0, 1000, 0) -- loin de la map existante
-Config.STAGE_SIZE = Vector3.new(60, 6, 16)
-Config.BLAST_X = 95        -- distance horizontale du centre avant KO
-Config.BLAST_TOP = 85      -- hauteur au-dessus du centre avant KO
-Config.BLAST_BOTTOM = 60   -- profondeur sous le centre avant KO
+Config.ARENA_ORIGIN = Vector3.new(0, 1000, 0) -- dessus de la scène (loin de la map existante)
+-- Les arènes et leurs zones de KO sont dans le module SmashMaps
 
 -- Partie
 Config.STOCKS = 3
-Config.CPU_BOTS = 1        -- nombre de bots CPU
+Config.ROUND_TIME = 180    -- secondes par manche (0 = illimité)
+Config.VOTE_TIME = 15      -- secondes pour voter la map
+Config.INTERMISSION = 6    -- secondes d'écran de résultats
+
+-- Bots CPU : un bot par ligne (supprime des lignes pour en avoir moins)
+-- think = délai de réaction (s), aggro = chance d'attaquer, smash = chance de smash, aim = précision
+Config.BOTS = {
+	{ name = "CPU Facile",    think = 0.30, aggro = 0.45, smash = 0.15, special = 0.08, aim = 0.6 },
+	{ name = "CPU Moyen",     think = 0.18, aggro = 0.70, smash = 0.25, special = 0.15, aim = 0.8 },
+	{ name = "CPU Difficile", think = 0.08, aggro = 0.95, smash = 0.35, special = 0.20, aim = 1.0 },
+}
+Config.FILL_WITH_BOTS = true -- false = pas de bots quand il y a 2 vrais joueurs ou plus
 Config.RESPAWN_INVINCIBILITY = 2
 Config.GRAVITY = 140
 
@@ -28,6 +36,7 @@ Config.JUMP_POWER = 55
 Config.AIR_JUMPS = 1
 Config.AIR_JUMP_VELOCITY = 55
 Config.FAST_FALL_SPEED = 90
+Config.RECOVERY_VELOCITY = 80 -- E + haut en l'air : super saut (1 fois par saut)
 
 -- Bouclier
 Config.SHIELD_MAX = 100
@@ -44,6 +53,7 @@ Config.ATTACKS = {
 	SmashSide = { dmg = 13, base = 30, growth = 1.00, angle = 38,  offset = Vector2.new(4, 0),    size = Vector3.new(6, 5, 6), cooldown = 0.70, startup = 0.12 },
 	SmashUp   = { dmg = 14, base = 30, growth = 0.95, angle = 88,  offset = Vector2.new(0, 4.5),  size = Vector3.new(6, 6, 6), cooldown = 0.70, startup = 0.12 },
 	SmashDown = { dmg = 12, base = 28, growth = 0.90, angle = 25,  offset = Vector2.new(0, -1.5), size = Vector3.new(11, 3, 6), cooldown = 0.75, startup = 0.12, bothSides = true },
+	SpecialUp = { dmg = 6,  base = 22, growth = 0.25, angle = 80,  offset = Vector2.new(0, 2),    size = Vector3.new(6, 7, 6), cooldown = 0.5 },
 	Special   = { dmg = 6,  base = 12, growth = 0.12, angle = 20,  speed = 75, lifetime = 1.2, cooldown = 0.8 },
 }
 Config.SMASH_CHARGE_MAX = 1.0      -- secondes
