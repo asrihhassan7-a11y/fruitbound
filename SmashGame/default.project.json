@@ -1,0 +1,9 @@
+{
+  "name": "SmashGame",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": { "SmashConfig": { "$path": "src/ReplicatedStorage/SmashConfig.lua" } },
+    "ServerScriptService": { "SmashServer": { "$path": "src/ServerScriptService/SmashServer.server.lua" } },
+    "StarterPlayer": { "StarterPlayerScripts": { "SmashClient": { "$path": "src/StarterPlayerScripts/SmashClient.client.lua" } } }
+  }
+}
