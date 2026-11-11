@@ -393,6 +393,65 @@ local function refreshMsg() message.Text = state:GetAttribute("Message") or "" e
 state:GetAttributeChangedSignal("Message"):Connect(refreshMsg)
 refreshMsg()
 
+----------------------------------------------------------------------
+-- Contrôles tactiles (mobile / tablette)
+----------------------------------------------------------------------
+if UserInputService.TouchEnabled then
+	help.Visible = false
+	local touchGui = Instance.new("Frame")
+	touchGui.BackgroundTransparency = 1
+	touchGui.Size = UDim2.fromScale(1, 1)
+	touchGui.Parent = gui
+
+	local function button(text, pos, size, onDown, onUp)
+		local b = Instance.new("TextButton")
+		b.Text = text
+		b.Font = Enum.Font.FredokaOne
+		b.TextScaled = true
+		b.TextColor3 = Color3.new(1, 1, 1)
+		b.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+		b.BackgroundTransparency = 0.35
+		b.AnchorPoint = Vector2.new(0.5, 0.5)
+		b.Position = pos
+		b.Size = UDim2.fromOffset(size, size)
+		b.AutoButtonColor = true
+		b.Parent = touchGui
+		Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
+		b.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.Touch then onDown() end
+		end)
+		b.InputEnded:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.Touch and onUp then onUp() end
+		end)
+		return b
+	end
+	local function hold(action)
+		return function() held[action] = true press(action) end,
+			function() held[action] = false release(action) end
+	end
+
+	-- croix directionnelle (gauche)
+	local function dpad(action, label, dx, dy)
+		local down, up = function() held[action] = true end, function() held[action] = false end
+		button(label, UDim2.new(0, 110 + dx, 1, -150 + dy), 64, down, up)
+	end
+	dpad("Left", "◀", -70, 0)
+	dpad("Right", "▶", 70, 0)
+	dpad("Up", "▲", 0, -70)
+	dpad("Down", "▼", 0, 70)
+
+	-- actions (droite)
+	local function act(action, label, dx, dy, size)
+		local d, u = hold(action)
+		button(label, UDim2.new(1, -110 + dx, 1, -150 + dy), size or 70, d, u)
+	end
+	act("Jump", "⤒", 40, 40, 84)
+	act("Attack", "J", -60, 40)
+	act("Smash", "K", -20, -50)
+	act("Special", "E", 70, -60)
+	act("Shield", "🛡", -110, -40, 56)
+end
+
 -- indicateur de charge du smash
 RunService.RenderStepped:Connect(function()
 	if smashStart then
