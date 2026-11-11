@@ -8,6 +8,9 @@
       },
       "SmashMaps": {
         "$path": "src/ReplicatedStorage/SmashMaps.lua"
+      },
+      "SmashFighters": {
+        "$path": "src/ReplicatedStorage/SmashFighters.lua"
       }
     },
     "ServerScriptService": {

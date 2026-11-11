@@ -1,4 +1,4 @@
-<roblox version="4"><Item class="Workspace" referent="RBX0"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX3"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="ModuleScript" referent="RBX1"><Properties><string name="Name">SmashConfig</string><ProtectedString name="Source"><![CDATA[-- SmashConfig (ModuleScript dans ReplicatedStorage)
+<roblox version="4"><Item class="Workspace" referent="RBX3"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX4"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="ModuleScript" referent="RBX0"><Properties><string name="Name">SmashConfig</string><ProtectedString name="Source"><![CDATA[-- SmashConfig (ModuleScript dans ReplicatedStorage)
 -- Tous les réglages du jeu sont ici.
 
 local Config = {}
@@ -62,7 +62,7 @@ Config.HITSTUN_FACTOR = 0.007
 Config.HITSTUN_MAX = 1.5
 
 return Config
-]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX2"><Properties><string name="Name">SmashMaps</string><ProtectedString name="Source"><![CDATA[-- SmashMaps (ModuleScript dans ReplicatedStorage)
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX1"><Properties><string name="Name">SmashMaps</string><ProtectedString name="Source"><![CDATA[-- SmashMaps (ModuleScript dans ReplicatedStorage)
 -- Liste des arènes. Coordonnées relatives à Config.ARENA_ORIGIN (Y = 0 = dessus de la scène principale).
 -- kind = "solid" (sol), "platform" (traversable par-dessous), "deco" (sans collision)
 
@@ -178,7 +178,92 @@ Maps[5] = {
 }
 
 return Maps
-]]></ProtectedString></Properties></Item></Item><Item class="ServerScriptService" referent="RBX5"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX4"><Properties><string name="Name">SmashServer</string><ProtectedString name="Source"><![CDATA[-- SmashServer (Script dans ServerScriptService)
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX2"><Properties><string name="Name">SmashFighters</string><ProtectedString name="Source"><![CDATA[-- SmashFighters (ModuleScript dans ReplicatedStorage)
+-- Personnages jouables, poses d'attaque, objets et sons.
+
+local C = Color3.fromRGB
+local F = {}
+
+----------------------------------------------------------------------
+-- Personnages
+-- speed/jump : déplacement • airJumps : sauts en l'air
+-- weight : multiplicateur de recul SUBI (plus petit = plus lourd)
+-- power : multiplicateur de dégâts INFLIGÉS • scale : taille du perso
+-- projSpeed / projPower / specialCooldown : réglages du projectile (E)
+----------------------------------------------------------------------
+F.Characters = {
+	{ id = "Brawler", name = "Bagarreur", desc = "Équilibré, bon partout", color = C(255, 80, 80),
+		speed = 26, jump = 55, airJumps = 1, weight = 1.0, power = 1.0, scale = 1.0,
+		projSpeed = 75, projPower = 1.0, specialCooldown = 0.8 },
+	{ id = "Flash", name = "Éclair", desc = "Très rapide, 2 sauts en l'air, mais léger", color = C(255, 220, 60),
+		speed = 35, jump = 62, airJumps = 2, weight = 1.2, power = 0.85, scale = 0.85,
+		projSpeed = 90, projPower = 0.8, specialCooldown = 0.7 },
+	{ id = "Titan", name = "Titan", desc = "Lent mais frappe fort et dur à éjecter", color = C(120, 140, 160),
+		speed = 20, jump = 50, airJumps = 1, weight = 0.75, power = 1.3, scale = 1.25,
+		projSpeed = 60, projPower = 1.2, specialCooldown = 1.1 },
+	{ id = "Mage", name = "Mage", desc = "Projectiles rapides et puissants", color = C(170, 100, 255),
+		speed = 24, jump = 56, airJumps = 1, weight = 1.05, power = 0.9, scale = 1.0,
+		projSpeed = 110, projPower = 1.6, specialCooldown = 0.45 },
+}
+
+function F.get(id)
+	for _, c in ipairs(F.Characters) do
+		if c.id == id then return c end
+	end
+	return F.Characters[1]
+end
+
+----------------------------------------------------------------------
+-- Poses d'attaque (angles en degrés, vers l'avant = positif)
+-- RightArm / LeftArm / RightLeg / LeftLeg : bascule avant-arrière • Waist : rotation du buste
+-- windup = pose de préparation pendant le "startup" des smashs
+----------------------------------------------------------------------
+F.Poses = {
+	JabSide   = { strike = { RightArm = 95, Waist = -25 } },
+	JabUp     = { strike = { RightArm = 175, LeftArm = 40 } },
+	JabDown   = { strike = { RightLeg = 70, LeftArm = 40 } },
+	AirDown   = { strike = { RightLeg = -10, LeftLeg = -10, RightArm = 150, LeftArm = 150 } },
+	SmashSide = { windup = { RightArm = -70, LeftArm = 30, Waist = 35 }, strike = { RightArm = 100, LeftArm = 100, Waist = -35 } },
+	SmashUp   = { windup = { RightArm = -40, LeftArm = -40 }, strike = { RightArm = 180, LeftArm = 180 } },
+	SmashDown = { windup = { RightLeg = 30 }, strike = { RightLeg = 80, LeftLeg = -50, RightArm = 60, LeftArm = 60 } },
+	Special   = { strike = { RightArm = 90, LeftArm = 90 } },
+	SpecialUp = { strike = { RightArm = 180, LeftArm = 180, RightLeg = 20 } },
+	Shield    = { strike = { RightArm = 70, LeftArm = 70 }, hold = true },
+}
+
+----------------------------------------------------------------------
+-- Objets qui tombent sur la scène
+----------------------------------------------------------------------
+F.ITEM_INTERVAL = 12       -- secondes entre deux objets
+F.ITEM_LIFETIME = 15
+F.Items = {
+	{ id = "Heal",   name = "Soin",     color = C(90, 255, 120), weight = 3, desc = "-35 %" },
+	{ id = "Hammer", name = "Marteau",  color = C(255, 170, 40), weight = 2, desc = "Coups x1.6 pendant 10 s", duration = 10, mult = 1.6 },
+	{ id = "Boots",  name = "Bottes",   color = C(80, 200, 255), weight = 2, desc = "Vitesse x1.4 pendant 8 s", duration = 8, mult = 1.4 },
+	{ id = "Bomb",   name = "Bombe",    color = C(40, 40, 40),   weight = 2, desc = "Explose quand on la touche !",
+		dmg = 16, base = 40, growth = 0.9, angle = 55, radius = 10 },
+}
+
+----------------------------------------------------------------------
+-- Sons (fichiers intégrés à Roblox). Remplace par des "rbxassetid://..." si tu veux.
+----------------------------------------------------------------------
+F.Sounds = {
+	Hit = "rbxasset://sounds/swordslash.wav",
+	Smash = "rbxasset://sounds/swordlunge.wav",
+	Jump = "rbxasset://sounds/action_jump.mp3",
+	Beep = "rbxasset://sounds/electronicpingshort.wav",
+	KO = "rbxasset://sounds/Rocket shot.wav",
+	Pickup = "rbxasset://sounds/electronicpingshort.wav",
+}
+
+-- Musique : mets l'ID d'une musique de la boutique Créateur (ex : "rbxassetid://1234567").
+-- Une musique par map possible avec le champ `music` dans SmashMaps.
+F.MenuMusic = ""
+F.FightMusic = ""
+F.MusicVolume = 0.4
+
+return F
+]]></ProtectedString></Properties></Item></Item><Item class="ServerScriptService" referent="RBX6"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX5"><Properties><string name="Name">SmashServer</string><ProtectedString name="Source"><![CDATA[-- SmashServer (Script dans ServerScriptService)
 -- Maps + vote, manches chronométrées, dégâts en %, recul, KO, vies, bots CPU.
 
 local Players = game:GetService("Players")
@@ -190,6 +275,7 @@ local Debris = game:GetService("Debris")
 
 local Config = require(ReplicatedStorage:WaitForChild("SmashConfig"))
 local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
+local Fighters = require(ReplicatedStorage:WaitForChild("SmashFighters"))
 local O = Config.ARENA_ORIGIN
 
 workspace.Gravity = Config.GRAVITY
@@ -229,6 +315,10 @@ PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Fighters", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Ghost", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Platforms", false)
+PhysicsService:RegisterCollisionGroup("Items")
+PhysicsService:CollisionGroupSetCollidable("Items", "Fighters", false)
+PhysicsService:CollisionGroupSetCollidable("Items", "Ghost", false)
+PhysicsService:CollisionGroupSetCollidable("Items", "Items", false)
 
 local function setGroup(model, group)
 	for _, p in ipairs(model:GetDescendants()) do
@@ -342,6 +432,7 @@ local function newFighter(id, name, player)
 		damage = 0, stocks = 0, model = nil, kos = 0,
 		cooldownUntil = 0, stunUntil = 0, invincibleUntil = 0,
 		shielding = false, shieldHp = Config.SHIELD_MAX, shieldPart = nil,
+		char = Fighters.Characters[1], hammerUntil = 0, bootsUntil = 0,
 	}
 	local info = Instance.new("Folder")
 	info.Name = id
@@ -351,6 +442,8 @@ local function newFighter(id, name, player)
 	info:SetAttribute("Color", COLORS[((f.slot - 1) % #COLORS) + 1])
 	info:SetAttribute("Slot", f.slot)
 	info:SetAttribute("IsBot", player == nil)
+	info:SetAttribute("CharId", f.char.id)
+	info:SetAttribute("AirJumps", f.char.airJumps)
 	local charRef = Instance.new("ObjectValue")
 	charRef.Name = "Character"
 	charRef.Parent = info
@@ -451,6 +544,31 @@ local function park(f)
 	placeAt(f, PARK_POS + Vector3.new(f.slot * 10, 0, 0), true)
 end
 
+local function setChar(f, id)
+	f.char = Fighters.get(id)
+	f.info:SetAttribute("CharId", f.char.id)
+	f.info:SetAttribute("CharName", f.char.name)
+	f.info:SetAttribute("AirJumps", f.char.airJumps)
+end
+
+local function applyStats(f)
+	local hum = humOf(f)
+	if not hum then return end
+	local speed = f.char.speed
+	if os.clock() < f.bootsUntil then speed *= 1.4 end
+	hum.WalkSpeed = speed
+	hum.JumpPower = f.char.jump
+end
+
+local function applyScale(f)
+	local model = f.model
+	if model and model.Parent then
+		pcall(function()
+			if math.abs(model:GetScale() - f.char.scale) > 0.01 then model:ScaleTo(f.char.scale) end
+		end)
+	end
+end
+
 local function setupCharacter(f, model)
 	f.model = model
 	fighterByModel[model] = f
@@ -465,6 +583,8 @@ local function setupCharacter(f, model)
 	model:WaitForChild("HumanoidRootPart")
 	if not model:IsDescendantOf(workspace) then model.AncestryChanged:Wait() end
 	task.wait(0.1) -- laisser Roblox placer le perso avant de le téléporter
+	applyScale(f)
+	applyStats(f)
 	setGroup(model, "Fighters")
 	model.DescendantAdded:Connect(function(d)
 		if d:IsA("BasePart") and d.Name ~= "SmashShield" then d.CollisionGroup = "Fighters" end
@@ -542,7 +662,8 @@ local function hit(attacker, target, data, facing, mult, fromPos)
 		return
 	end
 
-	target.damage = math.min(999, target.damage + data.dmg * mult)
+	local atkMult = attacker.char.power * (os.clock() < attacker.hammerUntil and 1.6 or 1)
+	target.damage = math.min(999, target.damage + data.dmg * mult * atkMult)
 	sync(target)
 	target.lastHitBy = attacker
 	target.lastHitTime = os.clock()
@@ -552,7 +673,8 @@ local function hit(attacker, target, data, facing, mult, fromPos)
 		dir = math.sign(troot.Position.X - fromPos.X)
 		if dir == 0 then dir = facing end
 	end
-	local power = (data.base + target.damage * data.growth) * mult
+	local power = (data.base + target.damage * data.growth) * mult * target.char.weight
+	if os.clock() < attacker.hammerUntil then power *= 1.25 end
 	local a = math.rad(data.angle)
 	local vel = Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power
 	local hitstun = math.clamp(power * Config.HITSTUN_FACTOR, 0.15, Config.HITSTUN_MAX)
@@ -596,7 +718,11 @@ end
 local function fireProjectile(attacker, facing)
 	local root = rootOf(attacker)
 	if not root then return end
-	local data = Config.ATTACKS.Special
+	local base = Config.ATTACKS.Special
+	local data = table.clone(base)
+	data.speed = attacker.char.projSpeed
+	data.dmg = base.dmg * attacker.char.projPower
+	data.base = base.base * attacker.char.projPower
 	local ball = Instance.new("Part")
 	ball.Shape = Enum.PartType.Ball
 	ball.Size = Vector3.new(2.2, 2.2, 2.2)
@@ -645,10 +771,14 @@ local function doAction(f, kind, dir, facing, charge)
 	local now = os.clock()
 
 	if kind == "ShieldOn" then
-		if now >= f.stunUntil and f.shieldHp > 10 and hum.FloorMaterial ~= Enum.Material.Air then setShield(f, true) end
+		if now >= f.stunUntil and f.shieldHp > 10 and hum.FloorMaterial ~= Enum.Material.Air then
+			setShield(f, true)
+			knockRemote:FireAllClients("Pose", f.model, "Shield")
+		end
 		return
 	elseif kind == "ShieldOff" then
 		setShield(f, false)
+		knockRemote:FireAllClients("Pose", f.model, "ShieldEnd")
 		return
 	end
 
@@ -669,7 +799,8 @@ local function doAction(f, kind, dir, facing, charge)
 		if dir == "Up" then
 			name = "SpecialUp" -- le super saut lui-même est appliqué par le client / le bot
 		else
-			f.cooldownUntil = now + Config.ATTACKS.Special.cooldown
+			f.cooldownUntil = now + f.char.specialCooldown
+			knockRemote:FireAllClients("Pose", f.model, "Special")
 			fireProjectile(f, facing)
 			return
 		end
@@ -684,6 +815,7 @@ local function doAction(f, kind, dir, facing, charge)
 		mult = 1 + (charge / Config.SMASH_CHARGE_MAX) * Config.SMASH_CHARGE_BONUS
 	end
 	f.cooldownUntil = now + data.cooldown
+	knockRemote:FireAllClients("Pose", f.model, name)
 	if data.startup then
 		task.delay(data.startup, function()
 			if f.model and os.clock() >= f.stunUntil then hitboxAt(f, data, facing, mult) end
@@ -706,11 +838,18 @@ local function refreshVotes()
 end
 
 actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
+	if kind == "Pick" then
+		local f = fighters["P" .. player.UserId]
+		if f and f.inMenu and typeof(dir) == "string" then setChar(f, dir) end
+		return
+	end
 	if kind == "Play" then
 		local f = fighters["P" .. player.UserId]
 		if f and f.inMenu then
 			setMenu(f, false)
 			f.info:SetAttribute("Eliminated", false)
+			applyScale(f)
+			applyStats(f)
 			local ph = phase()
 			if ph == "Fight" or ph == "Countdown" then
 				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
@@ -969,14 +1108,16 @@ local function spawnBot(i, def)
 	local id = "CPU" .. i
 	if fighters[id] then return fighters[id] end
 	local f = newFighter(id, def.name, nil)
+	setChar(f, Fighters.Characters[math.random(1, #Fighters.Characters)].id)
+	f.info:SetAttribute("DisplayName", def.name .. " (" .. f.char.name .. ")")
 	f.isBot = true
 	f.ai = def
-	f.airJumps = Config.AIR_JUMPS
+	f.airJumps = f.char.airJumps
 	f.recovery = true
 	f.nextThink = 0
 	local ok, model = pcall(function()
 		local desc = Instance.new("HumanoidDescription")
-		local c = f.info:GetAttribute("Color")
+		local c = f.char.color
 		desc.HeadColor, desc.TorsoColor = c, c
 		desc.LeftArmColor, desc.RightArmColor = c, c
 		desc.LeftLegColor, desc.RightLegColor = Color3.fromRGB(40, 40, 40), Color3.fromRGB(40, 40, 40)
@@ -1066,7 +1207,7 @@ local function botThink(f)
 	end
 	if hum.PlatformStand then hum.PlatformStand = false end
 	if hum.FloorMaterial ~= Enum.Material.Air then
-		f.airJumps = Config.AIR_JUMPS
+		f.airJumps = f.char.airJumps
 		f.recovery = true
 	end
 	if phase() ~= "Fight" then hum:Move(Vector3.zero) return end
@@ -1192,6 +1333,240 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 ----------------------------------------------------------------------
+-- Objets
+----------------------------------------------------------------------
+local itemsFolder = Instance.new("Folder")
+itemsFolder.Name = "SmashItems"
+itemsFolder.Parent = workspace
+
+local function clearItems()
+	itemsFolder:ClearAllChildren()
+end
+
+local function pickItemDef()
+	local total = 0
+	for _, it in ipairs(Fighters.Items) do total += it.weight end
+	local r = math.random() * total
+	for _, it in ipairs(Fighters.Items) do
+		r -= it.weight
+		if r <= 0 then return it end
+	end
+	return Fighters.Items[1]
+end
+
+local function buildItemModel(def)
+	local m = Instance.new("Model")
+	m.Name = def.id
+	local main = Instance.new("Part")
+	main.Name = "Main"
+	main.Size = Vector3.new(2.4, 2.4, 2.4)
+	main.Color = def.color
+	main.Material = Enum.Material.Neon
+	main.CanTouch = false
+	main.CollisionGroup = "Items"
+	if def.id == "Bomb" then
+		main.Shape = Enum.PartType.Ball
+		main.Material = Enum.Material.SmoothPlastic
+		local fuse = Instance.new("Part")
+		fuse.Size = Vector3.new(0.4, 0.8, 0.4)
+		fuse.Color = Color3.fromRGB(255, 120, 40)
+		fuse.Material = Enum.Material.Neon
+		fuse.CanCollide = false
+		fuse.Massless = true
+		fuse.CollisionGroup = "Items"
+		fuse.CFrame = main.CFrame * CFrame.new(0, 1.4, 0)
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = main, fuse
+		w.Parent = fuse
+		fuse.Parent = m
+		local fire = Instance.new("Fire")
+		fire.Size = 2
+		fire.Heat = 4
+		fire.Parent = fuse
+	elseif def.id == "Heal" then
+		main.Shape = Enum.PartType.Ball
+	end
+	main.Parent = m
+	m.PrimaryPart = main
+
+	local light = Instance.new("PointLight")
+	light.Color = def.color
+	light.Range = 8
+	light.Parent = main
+
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.new(0, 110, 0, 26)
+	bb.StudsOffset = Vector3.new(0, 2.6, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = main
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.new(1, 0, 1, 0)
+	t.Font = Enum.Font.GothamBold
+	t.TextScaled = true
+	t.TextColor3 = def.id == "Bomb" and Color3.fromRGB(255, 90, 60) or def.color
+	t.TextStrokeTransparency = 0
+	t.Text = def.name
+	t.Parent = bb
+	return m
+end
+
+local function spawnItem()
+	local surfaces = {}
+	for _, p in ipairs(solidsFolder:GetChildren()) do table.insert(surfaces, p) end
+	for _, p in ipairs(platformsFolder:GetChildren()) do table.insert(surfaces, p) end
+	if #surfaces == 0 then return end
+	local surf = surfaces[math.random(1, #surfaces)]
+	local x = surf.Position.X + (math.random() - 0.5) * math.max(surf.Size.X - 4, 0)
+	local def = pickItemDef()
+	local m = buildItemModel(def)
+	m:SetAttribute("Spawned", os.clock())
+	m:PivotTo(CFrame.new(x, O.Y + 40, O.Z))
+	m.Parent = itemsFolder
+	-- plan 2D pour l'objet
+	local main = m.PrimaryPart
+	local att = Instance.new("Attachment", main)
+	local plane = Instance.new("AlignPosition")
+	plane.Mode = Enum.PositionAlignmentMode.OneAttachment
+	plane.Attachment0 = att
+	plane.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	plane.MaxAxesForce = Vector3.new(0, 0, 1e6)
+	plane.Position = Vector3.new(0, 0, O.Z)
+	plane.Responsiveness = 200
+	plane.Parent = main
+	main:SetNetworkOwner(nil)
+end
+
+local function explodeBomb(def, pos)
+	local e = Instance.new("Explosion")
+	e.Position = pos
+	e.BlastPressure = 0
+	e.DestroyJointRadiusPercent = 0
+	e.BlastRadius = def.radius
+	e.Parent = workspace
+	knockRemote:FireAllClients("Shake", 1.3)
+	for _, f in pairs(fighters) do
+		local r = rootOf(f)
+		if r and alive(f) and f.inRound and os.clock() >= f.invincibleUntil and (r.Position - pos).Magnitude <= def.radius then
+			if f.shielding then
+				f.shieldHp -= def.dmg * 2
+			else
+				f.damage = math.min(999, f.damage + def.dmg)
+				sync(f)
+				local dir = math.sign(r.Position.X - pos.X)
+				if dir == 0 then dir = 1 end
+				local a = math.rad(def.angle)
+				local power = (def.base + f.damage * def.growth) * f.char.weight
+				applyKnockback(f, Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power,
+					math.clamp(power * Config.HITSTUN_FACTOR, 0.2, Config.HITSTUN_MAX))
+			end
+		end
+	end
+end
+
+local function giveHammerVisual(f, duration)
+	if not f.model then return end
+	local hand = f.model:FindFirstChild("RightHand") or f.model:FindFirstChild("Right Arm")
+	if not hand then return end
+	local old = f.model:FindFirstChild("SmashHammer")
+	if old then old:Destroy() end
+	local hammer = Instance.new("Model")
+	hammer.Name = "SmashHammer"
+	local handle = Instance.new("Part")
+	handle.Size = Vector3.new(0.4, 3, 0.4)
+	handle.Color = Color3.fromRGB(120, 80, 40)
+	handle.Material = Enum.Material.Wood
+	handle.CanCollide = false
+	handle.CanQuery = false
+	handle.Massless = true
+	handle.CFrame = hand.CFrame * CFrame.new(0, -1.2, 0)
+	handle.Parent = hammer
+	local head = Instance.new("Part")
+	head.Size = Vector3.new(1.6, 1.2, 1.2)
+	head.Color = Color3.fromRGB(255, 170, 40)
+	head.Material = Enum.Material.Metal
+	head.CanCollide = false
+	head.CanQuery = false
+	head.Massless = true
+	head.CFrame = handle.CFrame * CFrame.new(0, -1.6, 0)
+	head.Parent = hammer
+	for _, part in ipairs({ handle, head }) do
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = part, hand
+		w.Parent = part
+	end
+	hammer.Parent = f.model
+	Debris:AddItem(hammer, duration)
+end
+
+local function pickup(f, item)
+	local def
+	for _, d in ipairs(Fighters.Items) do
+		if d.id == item.Name then def = d end
+	end
+	if not def then return end
+	local pos = item:GetPivot().Position
+	item:Destroy()
+	if def.id == "Bomb" then
+		explodeBomb(def, pos)
+		return
+	end
+	if f.player then knockRemote:FireClient(f.player, "Pickup", def.name .. " : " .. def.desc) end
+	if def.id == "Heal" then
+		f.damage = math.max(0, f.damage - 35)
+		sync(f)
+		flash(CFrame.new(pos), Vector3.new(6, 6, 6), def.color, 0.25).Shape = Enum.PartType.Ball
+	elseif def.id == "Hammer" then
+		f.hammerUntil = os.clock() + def.duration
+		giveHammerVisual(f, def.duration)
+	elseif def.id == "Boots" then
+		f.bootsUntil = os.clock() + def.duration
+		applyStats(f)
+		task.delay(def.duration + 0.05, function() applyStats(f) end)
+		local r = rootOf(f)
+		if r then
+			local sp = Instance.new("Sparkles")
+			sp.SparkleColor = def.color
+			sp.Parent = r
+			Debris:AddItem(sp, def.duration)
+		end
+	end
+end
+
+local nextItemAt = math.huge
+RunService.Heartbeat:Connect(function()
+	if phase() ~= "Fight" then return end
+	local now = os.clock()
+	if now >= nextItemAt then
+		nextItemAt = now + Fighters.ITEM_INTERVAL * (0.7 + math.random() * 0.6)
+		spawnItem()
+	end
+	for _, item in ipairs(itemsFolder:GetChildren()) do
+		local main = item.PrimaryPart
+		if not main then
+			item:Destroy()
+		else
+			local pos = main.Position
+			local age = now - (item:GetAttribute("Spawned") or now)
+			if age > Fighters.ITEM_LIFETIME or pos.Y < O.Y - curMap.blast.bottom then
+				if item.Name == "Bomb" and age > Fighters.ITEM_LIFETIME then
+					explodeBomb(Fighters.Items[4], pos)
+				end
+				item:Destroy()
+			else
+				for _, f in pairs(fighters) do
+					local r = rootOf(f)
+					if r and alive(f) and f.inRound and (r.Position - pos).Magnitude < 4 then
+						pickup(f, item)
+						break
+					end
+				end
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------------------
 -- Manches
 ----------------------------------------------------------------------
 -- joueurs qui ont appuyé sur JOUER
@@ -1226,6 +1601,10 @@ local function startRound()
 		end
 		setInRound(f, true)
 		f.koing = false
+		f.hammerUntil = 0
+		f.bootsUntil = 0
+		applyStats(f)
+		if f.model and f.model:FindFirstChild("SmashHammer") then f.model.SmashHammer:Destroy() end
 		f.stocks = Config.STOCKS
 		f.damage = 0
 		f.kos = 0
@@ -1268,6 +1647,7 @@ task.spawn(function()
 			task.wait(1)
 		end
 		local idx = pickMap()
+		clearItems()
 		loadMap(idx)
 		setupBots()
 		task.wait(0.3)
@@ -1280,6 +1660,7 @@ task.spawn(function()
 		task.wait(1.2)
 		for i = 3, 1, -1 do setMsg(tostring(i)) task.wait(0.8) end
 		state:SetAttribute("Phase", "Fight")
+		nextItemAt = os.clock() + Fighters.ITEM_INTERVAL
 		setMsg("GO !")
 		task.delay(1, function() if state:GetAttribute("Message") == "GO !" then setMsg("") end end)
 
@@ -1309,6 +1690,7 @@ task.spawn(function()
 
 		-- 5) résultats
 		state:SetAttribute("Phase", "End")
+		clearItems()
 		local ranking = results()
 		local lines = { timeUp and "TEMPS ÉCOULÉ !" or "FIN DU MATCH !" }
 		for i, f in ipairs(ranking) do
@@ -1321,7 +1703,7 @@ task.spawn(function()
 		state:SetAttribute("Results", "")
 	end
 end)
-]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX8"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX7"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX6"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[-- SmashClient (LocalScript dans StarterPlayer > StarterPlayerScripts)
+]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX9"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX8"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX7"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[-- SmashClient (LocalScript dans StarterPlayer > StarterPlayerScripts)
 -- Caméra de côté fixe, déplacement 2D, double saut, contrôles d'attaque, HUD des %.
 
 local Players = game:GetService("Players")
@@ -1334,6 +1716,8 @@ local remotes = ReplicatedStorage:WaitForChild("SmashRemotes")
 local actionRemote = remotes:WaitForChild("Action")
 local knockRemote = remotes:WaitForChild("Knock")
 local state = ReplicatedStorage:WaitForChild("SmashState")
+local Fighters = require(ReplicatedStorage:WaitForChild("SmashFighters"))
+local SoundService = game:GetService("SoundService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -1347,7 +1731,26 @@ controls:Disable()
 -- État local
 ----------------------------------------------------------------------
 local held = {}
+local function maxAirJumps()
+	local me = state:FindFirstChild("P" .. player.UserId)
+	return (me and me:GetAttribute("AirJumps")) or Config.AIR_JUMPS
+end
 local airJumps = Config.AIR_JUMPS
+
+-- sons locaux
+local function sfx(name, pitch, volume)
+	local id = Fighters.Sounds[name]
+	if not id or id == "" then return end
+	local snd = Instance.new("Sound")
+	snd.SoundId = id
+	snd.PlaybackSpeed = pitch or 1
+	snd.Volume = volume or 0.6
+	snd.Parent = SoundService
+	snd.PlayOnRemove = false
+	snd:Play()
+	snd.Ended:Connect(function() snd:Destroy() end)
+	task.delay(5, function() if snd.Parent then snd:Destroy() end end)
+end
 local facing = 1
 local stunUntil = 0
 local smashStart = nil
@@ -1399,9 +1802,11 @@ local function jump()
 	if not root or os.clock() < stunUntil or shielding then return end
 	if hum.FloorMaterial ~= Enum.Material.Air then
 		hum.Jump = true
+		sfx("Jump", 1, 0.4)
 	elseif airJumps > 0 then
 		airJumps -= 1
-		root.AssemblyLinearVelocity = Vector3.new(moveAxis() * Config.WALK_SPEED, Config.AIR_JUMP_VELOCITY, 0)
+		root.AssemblyLinearVelocity = Vector3.new(moveAxis() * hum.WalkSpeed, Config.AIR_JUMP_VELOCITY, 0)
+		sfx("Jump", 1.25, 0.4)
 	end
 end
 
@@ -1436,6 +1841,7 @@ local function release(action)
 		local charge = math.min(os.clock() - smashStart, Config.SMASH_CHARGE_MAX)
 		smashStart = nil
 		actionRemote:FireServer("Smash", dirInput(), facing, charge)
+		sfx("Smash", 1 - charge * 0.3, 0.7)
 	elseif action == "Shield" then
 		shielding = false
 		actionRemote:FireServer("ShieldOff")
@@ -1486,6 +1892,13 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 	elseif kind == "NextRound" then
 		if fx.toast then fx.toast("Tu rejoindras la prochaine manche !") end
 		return
+	elseif kind == "Pose" then
+		if fx.pose then fx.pose(a, b) end
+		return
+	elseif kind == "Pickup" then
+		sfx("Pickup", 1.5, 0.7)
+		if fx.toast then fx.toast(a) end
+		return
 	elseif kind == "KOStart" then
 		koLock = true
 		held = {}
@@ -1497,14 +1910,14 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 		stunUntil = os.clock() + b
 		hum.PlatformStand = true
 		root.AssemblyLinearVelocity = a
-		airJumps = Config.AIR_JUMPS
+		airJumps = maxAirJumps()
 		recoveryReady = true
 	elseif kind == "Reset" then
 		koLock = false
 		stunUntil = 0
 		hum.PlatformStand = false
 		root.AssemblyLinearVelocity = Vector3.zero
-		airJumps = Config.AIR_JUMPS
+		airJumps = maxAirJumps()
 	end
 end)
 
@@ -1564,7 +1977,7 @@ RunService.Stepped:Connect(function()
 	end
 
 	if hum.FloorMaterial ~= Enum.Material.Air then
-		airJumps = Config.AIR_JUMPS
+		airJumps = maxAirJumps()
 		recoveryReady = true
 	end
 
@@ -1993,6 +2406,7 @@ local TweenService = game:GetService("TweenService")
 
 fx.ko = function(pos, color, name)
 	shake = math.max(shake, 1.5)
+	sfx("KO", 0.8, 0.8)
 	whiteFlash.BackgroundTransparency = 0.35
 	TweenService:Create(whiteFlash, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
 	koText.Text = "KO !\n" .. tostring(name)
@@ -2082,7 +2496,7 @@ menuSub.Parent = menu
 
 local playButton = Instance.new("TextButton")
 playButton.AnchorPoint = Vector2.new(0.5, 0.5)
-playButton.Position = UDim2.new(0.5, 0, 0.55, 0)
+playButton.Position = UDim2.new(0.5, 0, 0.7, 0)
 playButton.Size = UDim2.new(0, 280, 0, 80)
 playButton.BackgroundColor3 = Color3.fromRGB(80, 200, 110)
 playButton.Font = Enum.Font.FredokaOne
@@ -2103,7 +2517,7 @@ playPad.PaddingBottom = UDim.new(0, 12)
 local menuInfo = Instance.new("TextLabel")
 menuInfo.BackgroundTransparency = 1
 menuInfo.AnchorPoint = Vector2.new(0.5, 0)
-menuInfo.Position = UDim2.new(0.5, 0, 0.55, 60)
+menuInfo.Position = UDim2.new(0.5, 0, 0.7, 50)
 menuInfo.Size = UDim2.new(0.9, 0, 0, 120)
 menuInfo.Font = Enum.Font.Gotham
 menuInfo.TextSize = 16
@@ -2116,7 +2530,7 @@ menuInfo.Parent = menu
 local lastResult = Instance.new("TextLabel")
 lastResult.BackgroundTransparency = 1
 lastResult.AnchorPoint = Vector2.new(0.5, 1)
-lastResult.Position = UDim2.new(0.5, 0, 0.55, -50)
+lastResult.Position = UDim2.new(0.5, 0, 0.12, 180)
 lastResult.Size = UDim2.new(0.8, 0, 0, 30)
 lastResult.Font = Enum.Font.GothamBold
 lastResult.TextScaled = true
@@ -2166,4 +2580,314 @@ state.ChildAdded:Connect(function(c)
 	if c.Name == "P" .. player.UserId then hookMe(c) end
 end)
 refreshMenu()
+
+----------------------------------------------------------------------
+-- Sélection du personnage (dans le menu)
+----------------------------------------------------------------------
+local pickRow = Instance.new("Frame")
+pickRow.BackgroundTransparency = 1
+pickRow.AnchorPoint = Vector2.new(0.5, 0.5)
+pickRow.Position = UDim2.new(0.5, 0, 0.48, 0)
+pickRow.Size = UDim2.new(0.95, 0, 0, 170)
+pickRow.ZIndex = 21
+pickRow.Parent = menu
+local pickLayout = Instance.new("UIListLayout", pickRow)
+pickLayout.FillDirection = Enum.FillDirection.Horizontal
+pickLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pickLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+pickLayout.Padding = UDim.new(0, 12)
+
+local pickCards = {}
+local myPick = "Brawler"
+local function statBar(parent, y, label, value, color)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Position = UDim2.new(0, 8, 0, y)
+	l.Size = UDim2.new(0, 50, 0, 12)
+	l.Font = Enum.Font.Gotham
+	l.TextSize = 11
+	l.TextXAlignment = Enum.TextXAlignment.Left
+	l.TextColor3 = Color3.fromRGB(200, 200, 210)
+	l.Text = label
+	l.ZIndex = 23
+	l.Parent = parent
+	local bg = Instance.new("Frame")
+	bg.BorderSizePixel = 0
+	bg.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+	bg.Position = UDim2.new(0, 60, 0, y + 3)
+	bg.Size = UDim2.new(1, -70, 0, 6)
+	bg.ZIndex = 23
+	bg.Parent = parent
+	local fill = Instance.new("Frame")
+	fill.BorderSizePixel = 0
+	fill.BackgroundColor3 = color
+	fill.Size = UDim2.new(math.clamp(value, 0.05, 1), 0, 1, 0)
+	fill.ZIndex = 24
+	fill.Parent = bg
+end
+
+local function selectPick(id)
+	myPick = id
+	actionRemote:FireServer("Pick", id)
+	for cid, card in pairs(pickCards) do
+		card.stroke.Thickness = (cid == id) and 5 or 2
+		card.button.BackgroundColor3 = (cid == id) and Color3.fromRGB(60, 60, 85) or Color3.fromRGB(30, 30, 45)
+	end
+end
+
+for i, c in ipairs(Fighters.Characters) do
+	local b = Instance.new("TextButton")
+	b.LayoutOrder = i
+	b.Size = UDim2.new(0, 160, 1, 0)
+	b.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+	b.Text = ""
+	b.ZIndex = 22
+	b.Parent = pickRow
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
+	local stroke = Instance.new("UIStroke", b)
+	stroke.Color = c.color
+	stroke.Thickness = 2
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+	local swatch = Instance.new("Frame")
+	swatch.BorderSizePixel = 0
+	swatch.BackgroundColor3 = c.color
+	swatch.AnchorPoint = Vector2.new(0.5, 0)
+	swatch.Position = UDim2.new(0.5, 0, 0, 10)
+	swatch.Size = UDim2.fromOffset(34 * c.scale, 34 * c.scale)
+	swatch.ZIndex = 23
+	swatch.Parent = b
+	Instance.new("UICorner", swatch).CornerRadius = UDim.new(1, 0)
+
+	local n = Instance.new("TextLabel")
+	n.BackgroundTransparency = 1
+	n.Position = UDim2.new(0, 6, 0, 52)
+	n.Size = UDim2.new(1, -12, 0, 22)
+	n.Font = Enum.Font.FredokaOne
+	n.TextScaled = true
+	n.TextColor3 = Color3.new(1, 1, 1)
+	n.Text = c.name
+	n.ZIndex = 23
+	n.Parent = b
+
+	local d = Instance.new("TextLabel")
+	d.BackgroundTransparency = 1
+	d.Position = UDim2.new(0, 6, 0, 75)
+	d.Size = UDim2.new(1, -12, 0, 30)
+	d.Font = Enum.Font.Gotham
+	d.TextSize = 11
+	d.TextWrapped = true
+	d.TextColor3 = Color3.fromRGB(200, 200, 210)
+	d.Text = c.desc
+	d.ZIndex = 23
+	d.Parent = b
+
+	statBar(b, 108, "Vitesse", (c.speed - 15) / 22, c.color)
+	statBar(b, 124, "Force", (c.power - 0.6) / 0.8, c.color)
+	statBar(b, 140, "Poids", (1.4 - c.weight) / 0.7, c.color)
+
+	b.MouseButton1Click:Connect(function() selectPick(c.id) end)
+	pickCards[c.id] = { button = b, stroke = stroke }
+end
+selectPick(myPick)
+
+----------------------------------------------------------------------
+-- Animations d'attaque (poses procédurales sur les articulations)
+----------------------------------------------------------------------
+local JOINTS = {
+	RightArm = { "RightShoulder", "Right Shoulder", 1 },
+	LeftArm = { "LeftShoulder", "Left Shoulder", -1 },
+	RightLeg = { "RightHip", "Right Hip", 1 },
+	LeftLeg = { "LeftHip", "Left Hip", -1 },
+	Waist = { "Waist", nil, 0 },
+}
+local baseC0 = setmetatable({}, { __mode = "k" })
+local poseToken = setmetatable({}, { __mode = "k" })
+
+local function findMotor(model, name)
+	if not name then return nil end
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("Motor6D") and d.Name == name then return d end
+	end
+end
+
+local function jointOffset(jointKey, motor, deg)
+	local r = math.rad(deg)
+	local info = JOINTS[jointKey]
+	if jointKey == "Waist" then return CFrame.Angles(0, r, 0) end
+	if motor.Name == info[1] then
+		return CFrame.Angles(r, 0, 0) -- R15
+	end
+	return CFrame.Angles(0, 0, r * info[3]) -- R6
+end
+
+local function applyPose(model, pose, time)
+	local tweens = {}
+	for key, deg in pairs(pose) do
+		local info = JOINTS[key]
+		local motor = info and (findMotor(model, info[1]) or findMotor(model, info[2]))
+		if motor then
+			baseC0[motor] = baseC0[motor] or motor.C0
+			local t = TweenService:Create(motor, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ C0 = baseC0[motor] * jointOffset(key, motor, deg) })
+			t:Play()
+			table.insert(tweens, t)
+		end
+	end
+	return tweens
+end
+
+local function resetPose(model, time)
+	for motor, c0 in pairs(baseC0) do
+		if motor.Parent and motor:IsDescendantOf(model) then
+			TweenService:Create(motor, TweenInfo.new(time, Enum.EasingStyle.Quad), { C0 = c0 }):Play()
+		end
+	end
+end
+
+fx.pose = function(model, name)
+	if typeof(model) ~= "Instance" or not model.Parent then return end
+	if name == "ShieldEnd" then
+		poseToken[model] = {}
+		resetPose(model, 0.15)
+		return
+	end
+	local def = Fighters.Poses[name]
+	if not def then return end
+	local token = {}
+	poseToken[model] = token
+	local atk = Config.ATTACKS[name]
+	local startup = atk and atk.startup or 0
+	task.spawn(function()
+		if def.windup and startup > 0 then
+			applyPose(model, def.windup, startup * 0.8)
+			task.wait(startup)
+			if poseToken[model] ~= token then return end
+		end
+		applyPose(model, def.strike, 0.06)
+		if def.hold then return end
+		task.wait(0.18)
+		if poseToken[model] ~= token then return end
+		resetPose(model, 0.18)
+	end)
+end
+
+-- bip du compte à rebours
+state:GetAttributeChangedSignal("Message"):Connect(function()
+	local m = state:GetAttribute("Message")
+	if m == "3" or m == "2" or m == "1" then sfx("Beep", 1, 0.6)
+	elseif m == "GO !" then sfx("Beep", 1.5, 0.8) end
+end)
+
+----------------------------------------------------------------------
+-- Musique
+----------------------------------------------------------------------
+local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
+local music = Instance.new("Sound")
+music.Name = "SmashMusic"
+music.Looped = true
+music.Volume = Fighters.MusicVolume
+music.Parent = SoundService
+
+local function refreshMusic()
+	local me = state:FindFirstChild("P" .. player.UserId)
+	local inMenu = me == nil or me:GetAttribute("InMenu") == true
+	local id
+	if inMenu then
+		id = Fighters.MenuMusic
+	else
+		local map = Maps[state:GetAttribute("Map") or 1]
+		id = (map and map.music) or Fighters.FightMusic
+	end
+	id = id or ""
+	if music.SoundId ~= id then
+		music:Stop()
+		music.SoundId = id
+		if id ~= "" then music:Play() end
+	end
+end
+state.AttributeChanged:Connect(refreshMusic)
+state.ChildAdded:Connect(function(c)
+	if c.Name == "P" .. player.UserId then c.AttributeChanged:Connect(refreshMusic) end
+end)
+do
+	local me = state:FindFirstChild("P" .. player.UserId)
+	if me then me.AttributeChanged:Connect(refreshMusic) end
+end
+refreshMusic()
+
+----------------------------------------------------------------------
+-- Contrôles mobiles (boutons tactiles)
+----------------------------------------------------------------------
+if UserInputService.TouchEnabled then
+	help.Visible = false
+	local touchGui = Instance.new("Frame")
+	touchGui.BackgroundTransparency = 1
+	touchGui.Size = UDim2.new(1, 0, 1, 0)
+	touchGui.ZIndex = 10
+	touchGui.Parent = gui
+
+	local function touchButton(label, action, pos, size, color)
+		local b = Instance.new("TextButton")
+		b.AnchorPoint = Vector2.new(0.5, 0.5)
+		b.Position = pos
+		b.Size = UDim2.fromOffset(size, size)
+		b.BackgroundColor3 = color or Color3.fromRGB(40, 40, 55)
+		b.BackgroundTransparency = 0.35
+		b.Font = Enum.Font.GothamBold
+		b.TextScaled = true
+		b.TextColor3 = Color3.new(1, 1, 1)
+		b.Text = label
+		b.AutoButtonColor = false
+		b.ZIndex = 11
+		b.Parent = touchGui
+		Instance.new("UICorner", b).CornerRadius = UDim.new(1, 0)
+		local pad = Instance.new("UIPadding", b)
+		pad.PaddingTop, pad.PaddingBottom = UDim.new(0.22, 0), UDim.new(0.22, 0)
+		pad.PaddingLeft, pad.PaddingRight = UDim.new(0.15, 0), UDim.new(0.15, 0)
+		b.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				held[action] = true
+				b.BackgroundTransparency = 0.05
+				press(action)
+			end
+		end)
+		b.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch then
+				held[action] = false
+				b.BackgroundTransparency = 0.35
+				release(action)
+			end
+		end)
+		return b
+	end
+
+	-- croix directionnelle (gauche)
+	touchButton("◀", "Left", UDim2.new(0, 70, 1, -150), 70)
+	touchButton("▶", "Right", UDim2.new(0, 210, 1, -150), 70)
+	touchButton("▲", "Up", UDim2.new(0, 140, 1, -220), 64)
+	touchButton("▼", "Down", UDim2.new(0, 140, 1, -80), 64)
+	-- actions (droite)
+	touchButton("Saut", "Jump", UDim2.new(1, -80, 1, -90), 90, Color3.fromRGB(70, 160, 90))
+	touchButton("Coup", "Attack", UDim2.new(1, -180, 1, -130), 80, Color3.fromRGB(200, 70, 70))
+	touchButton("Smash", "Smash", UDim2.new(1, -110, 1, -200), 76, Color3.fromRGB(220, 140, 40))
+	touchButton("Tir", "Special", UDim2.new(1, -220, 1, -230), 70, Color3.fromRGB(140, 90, 220))
+	touchButton("Bouclier", "Shield", UDim2.new(1, -270, 1, -90), 70, Color3.fromRGB(60, 140, 200))
+
+	-- la barre des % remonte un peu au-dessus des boutons
+	bar.Position = UDim2.new(0.5, 0, 1, -270)
+	bar.Size = UDim2.new(1, -32, 0, 90)
+
+	-- masquer les boutons dans le menu
+	local function refreshTouch()
+		local me = state:FindFirstChild("P" .. player.UserId)
+		touchGui.Visible = not (me == nil or me:GetAttribute("InMenu"))
+	end
+	state.ChildAdded:Connect(function(c)
+		if c.Name == "P" .. player.UserId then c.AttributeChanged:Connect(refreshTouch) end
+	end)
+	local me = state:FindFirstChild("P" .. player.UserId)
+	if me then me.AttributeChanged:Connect(refreshTouch) end
+	refreshTouch()
+end
 ]]></ProtectedString></Properties></Item></Item></Item></roblox>

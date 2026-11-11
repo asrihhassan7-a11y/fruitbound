@@ -4,7 +4,7 @@ Jeu de combat de plateforme style Smash Bros, vue de côté fixe.
 
 ## Installation dans Roblox Studio (copier-coller)
 1. Ouvre Studio (de préférence un **Baseplate** neuf, ou `yess.rbxl`).
-2. **ReplicatedStorage** → Insérer deux **ModuleScript** : `SmashConfig` (colle `src/ReplicatedStorage/SmashConfig.lua`) et `SmashMaps` (colle `src/ReplicatedStorage/SmashMaps.lua`).
+2. **ReplicatedStorage** → Insérer deux **ModuleScript** : `SmashConfig` (colle `src/ReplicatedStorage/SmashConfig.lua`) `SmashMaps` (colle `src/ReplicatedStorage/SmashMaps.lua`) et `SmashFighters` (colle `src/ReplicatedStorage/SmashFighters.lua`).
 3. **ServerScriptService** → Insérer un **Script** nommé `SmashServer` → colle `src/ServerScriptService/SmashServer.server.lua`.
 4. **StarterPlayer > StarterPlayerScripts** → Insérer un **LocalScript** nommé `SmashClient` → colle `src/StarterPlayerScripts/SmashClient.client.lua`.
 5. Appuie sur **Play**. Vote pour une map, puis affronte les bots CPU.
@@ -19,6 +19,18 @@ Avec Rojo : `rojo serve` dans ce dossier.
 ## Maps (module `SmashMaps`)
 Temple du Ciel · Plateau Final · Îles Jumelles · Volcan · Glacier.
 Pour en ajouter une, copie un bloc `Maps[n] = {...}` et change les pièces.
+
+## Personnages (module `SmashFighters`)
+Choisis-le dans le menu : Bagarreur (équilibré), Éclair (rapide, 2 sauts), Titan (lourd, fort), Mage (projectiles).
+
+## Objets
+Un objet tombe toutes les ~12 s : Soin (-35 %), Marteau (coups x1.6), Bottes (vitesse), Bombe (explose au contact).
+
+## Musique
+Mets un ID de musique dans `SmashFighters.MenuMusic` / `FightMusic`, ou `music = "rbxassetid://..."` dans une map.
+
+## Mobile
+Des boutons tactiles apparaissent automatiquement sur téléphone/tablette.
 
 ## Bots CPU
 3 bots par défaut (Facile, Moyen, Difficile), réglables dans `Config.BOTS`.

@@ -10,6 +10,7 @@ local Debris = game:GetService("Debris")
 
 local Config = require(ReplicatedStorage:WaitForChild("SmashConfig"))
 local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
+local Fighters = require(ReplicatedStorage:WaitForChild("SmashFighters"))
 local O = Config.ARENA_ORIGIN
 
 workspace.Gravity = Config.GRAVITY
@@ -49,6 +50,10 @@ PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Fighters", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Ghost", false)
 PhysicsService:CollisionGroupSetCollidable("Ghost", "Platforms", false)
+PhysicsService:RegisterCollisionGroup("Items")
+PhysicsService:CollisionGroupSetCollidable("Items", "Fighters", false)
+PhysicsService:CollisionGroupSetCollidable("Items", "Ghost", false)
+PhysicsService:CollisionGroupSetCollidable("Items", "Items", false)
 
 local function setGroup(model, group)
 	for _, p in ipairs(model:GetDescendants()) do
@@ -162,6 +167,7 @@ local function newFighter(id, name, player)
 		damage = 0, stocks = 0, model = nil, kos = 0,
 		cooldownUntil = 0, stunUntil = 0, invincibleUntil = 0,
 		shielding = false, shieldHp = Config.SHIELD_MAX, shieldPart = nil,
+		char = Fighters.Characters[1], hammerUntil = 0, bootsUntil = 0,
 	}
 	local info = Instance.new("Folder")
 	info.Name = id
@@ -171,6 +177,8 @@ local function newFighter(id, name, player)
 	info:SetAttribute("Color", COLORS[((f.slot - 1) % #COLORS) + 1])
 	info:SetAttribute("Slot", f.slot)
 	info:SetAttribute("IsBot", player == nil)
+	info:SetAttribute("CharId", f.char.id)
+	info:SetAttribute("AirJumps", f.char.airJumps)
 	local charRef = Instance.new("ObjectValue")
 	charRef.Name = "Character"
 	charRef.Parent = info
@@ -271,6 +279,31 @@ local function park(f)
 	placeAt(f, PARK_POS + Vector3.new(f.slot * 10, 0, 0), true)
 end
 
+local function setChar(f, id)
+	f.char = Fighters.get(id)
+	f.info:SetAttribute("CharId", f.char.id)
+	f.info:SetAttribute("CharName", f.char.name)
+	f.info:SetAttribute("AirJumps", f.char.airJumps)
+end
+
+local function applyStats(f)
+	local hum = humOf(f)
+	if not hum then return end
+	local speed = f.char.speed
+	if os.clock() < f.bootsUntil then speed *= 1.4 end
+	hum.WalkSpeed = speed
+	hum.JumpPower = f.char.jump
+end
+
+local function applyScale(f)
+	local model = f.model
+	if model and model.Parent then
+		pcall(function()
+			if math.abs(model:GetScale() - f.char.scale) > 0.01 then model:ScaleTo(f.char.scale) end
+		end)
+	end
+end
+
 local function setupCharacter(f, model)
 	f.model = model
 	fighterByModel[model] = f
@@ -285,6 +318,8 @@ local function setupCharacter(f, model)
 	model:WaitForChild("HumanoidRootPart")
 	if not model:IsDescendantOf(workspace) then model.AncestryChanged:Wait() end
 	task.wait(0.1) -- laisser Roblox placer le perso avant de le téléporter
+	applyScale(f)
+	applyStats(f)
 	setGroup(model, "Fighters")
 	model.DescendantAdded:Connect(function(d)
 		if d:IsA("BasePart") and d.Name ~= "SmashShield" then d.CollisionGroup = "Fighters" end
@@ -362,7 +397,8 @@ local function hit(attacker, target, data, facing, mult, fromPos)
 		return
 	end
 
-	target.damage = math.min(999, target.damage + data.dmg * mult)
+	local atkMult = attacker.char.power * (os.clock() < attacker.hammerUntil and 1.6 or 1)
+	target.damage = math.min(999, target.damage + data.dmg * mult * atkMult)
 	sync(target)
 	target.lastHitBy = attacker
 	target.lastHitTime = os.clock()
@@ -372,7 +408,8 @@ local function hit(attacker, target, data, facing, mult, fromPos)
 		dir = math.sign(troot.Position.X - fromPos.X)
 		if dir == 0 then dir = facing end
 	end
-	local power = (data.base + target.damage * data.growth) * mult
+	local power = (data.base + target.damage * data.growth) * mult * target.char.weight
+	if os.clock() < attacker.hammerUntil then power *= 1.25 end
 	local a = math.rad(data.angle)
 	local vel = Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power
 	local hitstun = math.clamp(power * Config.HITSTUN_FACTOR, 0.15, Config.HITSTUN_MAX)
@@ -416,7 +453,11 @@ end
 local function fireProjectile(attacker, facing)
 	local root = rootOf(attacker)
 	if not root then return end
-	local data = Config.ATTACKS.Special
+	local base = Config.ATTACKS.Special
+	local data = table.clone(base)
+	data.speed = attacker.char.projSpeed
+	data.dmg = base.dmg * attacker.char.projPower
+	data.base = base.base * attacker.char.projPower
 	local ball = Instance.new("Part")
 	ball.Shape = Enum.PartType.Ball
 	ball.Size = Vector3.new(2.2, 2.2, 2.2)
@@ -465,10 +506,14 @@ local function doAction(f, kind, dir, facing, charge)
 	local now = os.clock()
 
 	if kind == "ShieldOn" then
-		if now >= f.stunUntil and f.shieldHp > 10 and hum.FloorMaterial ~= Enum.Material.Air then setShield(f, true) end
+		if now >= f.stunUntil and f.shieldHp > 10 and hum.FloorMaterial ~= Enum.Material.Air then
+			setShield(f, true)
+			knockRemote:FireAllClients("Pose", f.model, "Shield")
+		end
 		return
 	elseif kind == "ShieldOff" then
 		setShield(f, false)
+		knockRemote:FireAllClients("Pose", f.model, "ShieldEnd")
 		return
 	end
 
@@ -489,7 +534,8 @@ local function doAction(f, kind, dir, facing, charge)
 		if dir == "Up" then
 			name = "SpecialUp" -- le super saut lui-même est appliqué par le client / le bot
 		else
-			f.cooldownUntil = now + Config.ATTACKS.Special.cooldown
+			f.cooldownUntil = now + f.char.specialCooldown
+			knockRemote:FireAllClients("Pose", f.model, "Special")
 			fireProjectile(f, facing)
 			return
 		end
@@ -504,6 +550,7 @@ local function doAction(f, kind, dir, facing, charge)
 		mult = 1 + (charge / Config.SMASH_CHARGE_MAX) * Config.SMASH_CHARGE_BONUS
 	end
 	f.cooldownUntil = now + data.cooldown
+	knockRemote:FireAllClients("Pose", f.model, name)
 	if data.startup then
 		task.delay(data.startup, function()
 			if f.model and os.clock() >= f.stunUntil then hitboxAt(f, data, facing, mult) end
@@ -526,11 +573,18 @@ local function refreshVotes()
 end
 
 actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
+	if kind == "Pick" then
+		local f = fighters["P" .. player.UserId]
+		if f and f.inMenu and typeof(dir) == "string" then setChar(f, dir) end
+		return
+	end
 	if kind == "Play" then
 		local f = fighters["P" .. player.UserId]
 		if f and f.inMenu then
 			setMenu(f, false)
 			f.info:SetAttribute("Eliminated", false)
+			applyScale(f)
+			applyStats(f)
 			local ph = phase()
 			if ph == "Fight" or ph == "Countdown" then
 				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
@@ -789,14 +843,16 @@ local function spawnBot(i, def)
 	local id = "CPU" .. i
 	if fighters[id] then return fighters[id] end
 	local f = newFighter(id, def.name, nil)
+	setChar(f, Fighters.Characters[math.random(1, #Fighters.Characters)].id)
+	f.info:SetAttribute("DisplayName", def.name .. " (" .. f.char.name .. ")")
 	f.isBot = true
 	f.ai = def
-	f.airJumps = Config.AIR_JUMPS
+	f.airJumps = f.char.airJumps
 	f.recovery = true
 	f.nextThink = 0
 	local ok, model = pcall(function()
 		local desc = Instance.new("HumanoidDescription")
-		local c = f.info:GetAttribute("Color")
+		local c = f.char.color
 		desc.HeadColor, desc.TorsoColor = c, c
 		desc.LeftArmColor, desc.RightArmColor = c, c
 		desc.LeftLegColor, desc.RightLegColor = Color3.fromRGB(40, 40, 40), Color3.fromRGB(40, 40, 40)
@@ -886,7 +942,7 @@ local function botThink(f)
 	end
 	if hum.PlatformStand then hum.PlatformStand = false end
 	if hum.FloorMaterial ~= Enum.Material.Air then
-		f.airJumps = Config.AIR_JUMPS
+		f.airJumps = f.char.airJumps
 		f.recovery = true
 	end
 	if phase() ~= "Fight" then hum:Move(Vector3.zero) return end
@@ -1012,6 +1068,240 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 ----------------------------------------------------------------------
+-- Objets
+----------------------------------------------------------------------
+local itemsFolder = Instance.new("Folder")
+itemsFolder.Name = "SmashItems"
+itemsFolder.Parent = workspace
+
+local function clearItems()
+	itemsFolder:ClearAllChildren()
+end
+
+local function pickItemDef()
+	local total = 0
+	for _, it in ipairs(Fighters.Items) do total += it.weight end
+	local r = math.random() * total
+	for _, it in ipairs(Fighters.Items) do
+		r -= it.weight
+		if r <= 0 then return it end
+	end
+	return Fighters.Items[1]
+end
+
+local function buildItemModel(def)
+	local m = Instance.new("Model")
+	m.Name = def.id
+	local main = Instance.new("Part")
+	main.Name = "Main"
+	main.Size = Vector3.new(2.4, 2.4, 2.4)
+	main.Color = def.color
+	main.Material = Enum.Material.Neon
+	main.CanTouch = false
+	main.CollisionGroup = "Items"
+	if def.id == "Bomb" then
+		main.Shape = Enum.PartType.Ball
+		main.Material = Enum.Material.SmoothPlastic
+		local fuse = Instance.new("Part")
+		fuse.Size = Vector3.new(0.4, 0.8, 0.4)
+		fuse.Color = Color3.fromRGB(255, 120, 40)
+		fuse.Material = Enum.Material.Neon
+		fuse.CanCollide = false
+		fuse.Massless = true
+		fuse.CollisionGroup = "Items"
+		fuse.CFrame = main.CFrame * CFrame.new(0, 1.4, 0)
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = main, fuse
+		w.Parent = fuse
+		fuse.Parent = m
+		local fire = Instance.new("Fire")
+		fire.Size = 2
+		fire.Heat = 4
+		fire.Parent = fuse
+	elseif def.id == "Heal" then
+		main.Shape = Enum.PartType.Ball
+	end
+	main.Parent = m
+	m.PrimaryPart = main
+
+	local light = Instance.new("PointLight")
+	light.Color = def.color
+	light.Range = 8
+	light.Parent = main
+
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.new(0, 110, 0, 26)
+	bb.StudsOffset = Vector3.new(0, 2.6, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = main
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.new(1, 0, 1, 0)
+	t.Font = Enum.Font.GothamBold
+	t.TextScaled = true
+	t.TextColor3 = def.id == "Bomb" and Color3.fromRGB(255, 90, 60) or def.color
+	t.TextStrokeTransparency = 0
+	t.Text = def.name
+	t.Parent = bb
+	return m
+end
+
+local function spawnItem()
+	local surfaces = {}
+	for _, p in ipairs(solidsFolder:GetChildren()) do table.insert(surfaces, p) end
+	for _, p in ipairs(platformsFolder:GetChildren()) do table.insert(surfaces, p) end
+	if #surfaces == 0 then return end
+	local surf = surfaces[math.random(1, #surfaces)]
+	local x = surf.Position.X + (math.random() - 0.5) * math.max(surf.Size.X - 4, 0)
+	local def = pickItemDef()
+	local m = buildItemModel(def)
+	m:SetAttribute("Spawned", os.clock())
+	m:PivotTo(CFrame.new(x, O.Y + 40, O.Z))
+	m.Parent = itemsFolder
+	-- plan 2D pour l'objet
+	local main = m.PrimaryPart
+	local att = Instance.new("Attachment", main)
+	local plane = Instance.new("AlignPosition")
+	plane.Mode = Enum.PositionAlignmentMode.OneAttachment
+	plane.Attachment0 = att
+	plane.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	plane.MaxAxesForce = Vector3.new(0, 0, 1e6)
+	plane.Position = Vector3.new(0, 0, O.Z)
+	plane.Responsiveness = 200
+	plane.Parent = main
+	main:SetNetworkOwner(nil)
+end
+
+local function explodeBomb(def, pos)
+	local e = Instance.new("Explosion")
+	e.Position = pos
+	e.BlastPressure = 0
+	e.DestroyJointRadiusPercent = 0
+	e.BlastRadius = def.radius
+	e.Parent = workspace
+	knockRemote:FireAllClients("Shake", 1.3)
+	for _, f in pairs(fighters) do
+		local r = rootOf(f)
+		if r and alive(f) and f.inRound and os.clock() >= f.invincibleUntil and (r.Position - pos).Magnitude <= def.radius then
+			if f.shielding then
+				f.shieldHp -= def.dmg * 2
+			else
+				f.damage = math.min(999, f.damage + def.dmg)
+				sync(f)
+				local dir = math.sign(r.Position.X - pos.X)
+				if dir == 0 then dir = 1 end
+				local a = math.rad(def.angle)
+				local power = (def.base + f.damage * def.growth) * f.char.weight
+				applyKnockback(f, Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power,
+					math.clamp(power * Config.HITSTUN_FACTOR, 0.2, Config.HITSTUN_MAX))
+			end
+		end
+	end
+end
+
+local function giveHammerVisual(f, duration)
+	if not f.model then return end
+	local hand = f.model:FindFirstChild("RightHand") or f.model:FindFirstChild("Right Arm")
+	if not hand then return end
+	local old = f.model:FindFirstChild("SmashHammer")
+	if old then old:Destroy() end
+	local hammer = Instance.new("Model")
+	hammer.Name = "SmashHammer"
+	local handle = Instance.new("Part")
+	handle.Size = Vector3.new(0.4, 3, 0.4)
+	handle.Color = Color3.fromRGB(120, 80, 40)
+	handle.Material = Enum.Material.Wood
+	handle.CanCollide = false
+	handle.CanQuery = false
+	handle.Massless = true
+	handle.CFrame = hand.CFrame * CFrame.new(0, -1.2, 0)
+	handle.Parent = hammer
+	local head = Instance.new("Part")
+	head.Size = Vector3.new(1.6, 1.2, 1.2)
+	head.Color = Color3.fromRGB(255, 170, 40)
+	head.Material = Enum.Material.Metal
+	head.CanCollide = false
+	head.CanQuery = false
+	head.Massless = true
+	head.CFrame = handle.CFrame * CFrame.new(0, -1.6, 0)
+	head.Parent = hammer
+	for _, part in ipairs({ handle, head }) do
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = part, hand
+		w.Parent = part
+	end
+	hammer.Parent = f.model
+	Debris:AddItem(hammer, duration)
+end
+
+local function pickup(f, item)
+	local def
+	for _, d in ipairs(Fighters.Items) do
+		if d.id == item.Name then def = d end
+	end
+	if not def then return end
+	local pos = item:GetPivot().Position
+	item:Destroy()
+	if def.id == "Bomb" then
+		explodeBomb(def, pos)
+		return
+	end
+	if f.player then knockRemote:FireClient(f.player, "Pickup", def.name .. " : " .. def.desc) end
+	if def.id == "Heal" then
+		f.damage = math.max(0, f.damage - 35)
+		sync(f)
+		flash(CFrame.new(pos), Vector3.new(6, 6, 6), def.color, 0.25).Shape = Enum.PartType.Ball
+	elseif def.id == "Hammer" then
+		f.hammerUntil = os.clock() + def.duration
+		giveHammerVisual(f, def.duration)
+	elseif def.id == "Boots" then
+		f.bootsUntil = os.clock() + def.duration
+		applyStats(f)
+		task.delay(def.duration + 0.05, function() applyStats(f) end)
+		local r = rootOf(f)
+		if r then
+			local sp = Instance.new("Sparkles")
+			sp.SparkleColor = def.color
+			sp.Parent = r
+			Debris:AddItem(sp, def.duration)
+		end
+	end
+end
+
+local nextItemAt = math.huge
+RunService.Heartbeat:Connect(function()
+	if phase() ~= "Fight" then return end
+	local now = os.clock()
+	if now >= nextItemAt then
+		nextItemAt = now + Fighters.ITEM_INTERVAL * (0.7 + math.random() * 0.6)
+		spawnItem()
+	end
+	for _, item in ipairs(itemsFolder:GetChildren()) do
+		local main = item.PrimaryPart
+		if not main then
+			item:Destroy()
+		else
+			local pos = main.Position
+			local age = now - (item:GetAttribute("Spawned") or now)
+			if age > Fighters.ITEM_LIFETIME or pos.Y < O.Y - curMap.blast.bottom then
+				if item.Name == "Bomb" and age > Fighters.ITEM_LIFETIME then
+					explodeBomb(Fighters.Items[4], pos)
+				end
+				item:Destroy()
+			else
+				for _, f in pairs(fighters) do
+					local r = rootOf(f)
+					if r and alive(f) and f.inRound and (r.Position - pos).Magnitude < 4 then
+						pickup(f, item)
+						break
+					end
+				end
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------------------
 -- Manches
 ----------------------------------------------------------------------
 -- joueurs qui ont appuyé sur JOUER
@@ -1046,6 +1336,10 @@ local function startRound()
 		end
 		setInRound(f, true)
 		f.koing = false
+		f.hammerUntil = 0
+		f.bootsUntil = 0
+		applyStats(f)
+		if f.model and f.model:FindFirstChild("SmashHammer") then f.model.SmashHammer:Destroy() end
 		f.stocks = Config.STOCKS
 		f.damage = 0
 		f.kos = 0
@@ -1088,6 +1382,7 @@ task.spawn(function()
 			task.wait(1)
 		end
 		local idx = pickMap()
+		clearItems()
 		loadMap(idx)
 		setupBots()
 		task.wait(0.3)
@@ -1100,6 +1395,7 @@ task.spawn(function()
 		task.wait(1.2)
 		for i = 3, 1, -1 do setMsg(tostring(i)) task.wait(0.8) end
 		state:SetAttribute("Phase", "Fight")
+		nextItemAt = os.clock() + Fighters.ITEM_INTERVAL
 		setMsg("GO !")
 		task.delay(1, function() if state:GetAttribute("Message") == "GO !" then setMsg("") end end)
 
@@ -1129,6 +1425,7 @@ task.spawn(function()
 
 		-- 5) résultats
 		state:SetAttribute("Phase", "End")
+		clearItems()
 		local ranking = results()
 		local lines = { timeUp and "TEMPS ÉCOULÉ !" or "FIN DU MATCH !" }
 		for i, f in ipairs(ranking) do
