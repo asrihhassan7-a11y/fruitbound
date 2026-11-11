@@ -18,9 +18,9 @@ Config.GRAVITY = 140
 
 -- Caméra
 Config.CAMERA_FOLLOW = true   -- false = caméra totalement fixe sur l'arène
-Config.CAMERA_MIN_DIST = 45
-Config.CAMERA_MAX_DIST = 100
-Config.CAMERA_FIXED_DIST = 85
+Config.CAMERA_MIN_DIST = 22
+Config.CAMERA_MAX_DIST = 55
+Config.CAMERA_FIXED_DIST = 45
 
 -- Déplacement
 Config.WALK_SPEED = 26

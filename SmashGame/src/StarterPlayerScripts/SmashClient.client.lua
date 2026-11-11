@@ -250,10 +250,10 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 		end
 		if n > 0 then
 			local cx = math.clamp((minX + maxX) / 2, O.X - 40, O.X + 40)
-			local cy = math.clamp((minY + maxY) / 2 + 6, O.Y, O.Y + 45)
+			local cy = math.clamp((minY + maxY) / 2 + 3, O.Y, O.Y + 45)
 			targetFocus = Vector3.new(cx, cy, O.Z)
 			local spread = math.max(maxX - minX, (maxY - minY) * 1.6)
-			targetDist = math.clamp(spread * 1.1 + 30, Config.CAMERA_MIN_DIST, Config.CAMERA_MAX_DIST)
+			targetDist = math.clamp(spread * 0.8 + 18, Config.CAMERA_MIN_DIST, Config.CAMERA_MAX_DIST)
 		end
 	end
 
