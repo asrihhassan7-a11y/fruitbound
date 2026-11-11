@@ -1,0 +1,415 @@
+<roblox version="4"><Item class="LocalScript" referent="RBX2"><Properties><string name="Name">SmashClient</string><ProtectedString name="Source"><![CDATA[-- SmashClient (LocalScript dans StarterPlayer > StarterPlayerScripts)
+-- Caméra de côté fixe, déplacement 2D, double saut, contrôles d'attaque, HUD des %.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage:WaitForChild("SmashConfig"))
+local remotes = ReplicatedStorage:WaitForChild("SmashRemotes")
+local actionRemote = remotes:WaitForChild("Action")
+local knockRemote = remotes:WaitForChild("Knock")
+local state = ReplicatedStorage:WaitForChild("SmashState")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local O = Config.ARENA_ORIGIN
+
+-- Désactive les contrôles Roblox par défaut (on gère nous-mêmes en 2D)
+local controls = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")):GetControls()
+controls:Disable()
+
+----------------------------------------------------------------------
+-- État local
+----------------------------------------------------------------------
+local held = {}
+local airJumps = Config.AIR_JUMPS
+local facing = 1
+local stunUntil = 0
+local smashStart = nil
+local shielding = false
+local shake = 0
+
+local function getChar()
+	local char = player.Character
+	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if root and hum then return char, root, hum end
+end
+
+local function dirInput()
+	if held.Up then return "Up" end
+	if held.Down then return "Down" end
+	return "Side"
+end
+
+local function moveAxis()
+	local x = 0
+	if held.Left then x -= 1 end
+	if held.Right then x += 1 end
+	if x == 0 and held.Stick then x = held.Stick end
+	return x
+end
+
+----------------------------------------------------------------------
+-- Entrées
+----------------------------------------------------------------------
+local KEYS = {
+	[Enum.KeyCode.A] = "Left", [Enum.KeyCode.Left] = "Left", [Enum.KeyCode.Q] = "Left",
+	[Enum.KeyCode.D] = "Right", [Enum.KeyCode.Right] = "Right",
+	[Enum.KeyCode.W] = "Up", [Enum.KeyCode.Up] = "Up", [Enum.KeyCode.Z] = "Up",
+	[Enum.KeyCode.S] = "Down", [Enum.KeyCode.Down] = "Down",
+	[Enum.KeyCode.Space] = "Jump", [Enum.KeyCode.ButtonA] = "Jump",
+	[Enum.KeyCode.J] = "Attack", [Enum.KeyCode.ButtonX] = "Attack",
+	[Enum.KeyCode.K] = "Smash", [Enum.KeyCode.ButtonY] = "Smash",
+	[Enum.KeyCode.L] = "Special", [Enum.KeyCode.E] = "Special", [Enum.KeyCode.ButtonB] = "Special",
+	[Enum.KeyCode.LeftShift] = "Shield", [Enum.KeyCode.ButtonR2] = "Shield", [Enum.KeyCode.ButtonL2] = "Shield",
+}
+
+local function jump()
+	local _, root, hum = getChar()
+	if not root or os.clock() < stunUntil or shielding then return end
+	if state:GetAttribute("Phase") == "Countdown" then return end
+	if hum.FloorMaterial ~= Enum.Material.Air then
+		hum.Jump = true
+	elseif airJumps > 0 then
+		airJumps -= 1
+		root.AssemblyLinearVelocity = Vector3.new(moveAxis() * Config.WALK_SPEED, Config.AIR_JUMP_VELOCITY, 0)
+	end
+end
+
+local function press(action)
+	if action == "Jump" then
+		jump()
+	elseif action == "Attack" then
+		actionRemote:FireServer("Attack", dirInput(), facing)
+	elseif action == "Smash" then
+		smashStart = os.clock()
+	elseif action == "Special" then
+		actionRemote:FireServer("Special", dirInput(), facing)
+	elseif action == "Shield" then
+		shielding = true
+		actionRemote:FireServer("ShieldOn")
+	end
+end
+
+local function release(action)
+	if action == "Smash" and smashStart then
+		local charge = math.min(os.clock() - smashStart, Config.SMASH_CHARGE_MAX)
+		smashStart = nil
+		actionRemote:FireServer("Smash", dirInput(), facing, charge)
+	elseif action == "Shield" then
+		shielding = false
+		actionRemote:FireServer("ShieldOff")
+	end
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	local action = KEYS[input.KeyCode]
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then action = "Attack" end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then action = "Smash" end
+	if not action then return end
+	held[action] = true
+	press(action)
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	local action = KEYS[input.KeyCode]
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then action = "Smash" end
+	if not action then return end
+	held[action] = false
+	release(action)
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.Thumbstick1 then
+		local p = input.Position
+		held.Stick = math.abs(p.X) > 0.3 and math.sign(p.X) or nil
+		held.Up = p.Y > 0.6 or nil
+		held.Down = p.Y < -0.6 or nil
+	end
+end)
+
+----------------------------------------------------------------------
+-- Messages du serveur
+----------------------------------------------------------------------
+knockRemote.OnClientEvent:Connect(function(kind, a, b)
+	local _, root, hum = getChar()
+	if kind == "Shake" then
+		shake = math.max(shake, a)
+		return
+	end
+	if not root then return end
+	if kind == "Knock" then
+		stunUntil = os.clock() + b
+		hum.PlatformStand = true
+		root.AssemblyLinearVelocity = a
+		airJumps = Config.AIR_JUMPS
+	elseif kind == "Reset" then
+		stunUntil = 0
+		hum.PlatformStand = false
+		root.AssemblyLinearVelocity = Vector3.zero
+		airJumps = Config.AIR_JUMPS
+	end
+end)
+
+----------------------------------------------------------------------
+-- Plateformes traversables (localement, pour son propre perso)
+----------------------------------------------------------------------
+local arena = workspace:WaitForChild("SmashArena")
+local platforms = arena:WaitForChild("Platforms")
+
+local function updatePlatforms(root)
+	local feet = root.Position.Y - 3
+	local vy = root.AssemblyLinearVelocity.Y
+	for _, p in ipairs(platforms:GetChildren()) do
+		local top = p.Position.Y + p.Size.Y / 2
+		local solid = feet >= top - 0.6
+		-- maintenir Bas pour tomber à travers
+		if held.Down and feet >= top - 1 and feet < top + 1.5 and os.clock() - (held.DownTime or 0) > 0.15 then
+			solid = false
+		end
+		if vy > 1 then solid = false end
+		p.CanCollide = solid
+	end
+end
+
+----------------------------------------------------------------------
+-- Boucle de déplacement 2D
+----------------------------------------------------------------------
+local lastDown = false
+RunService.Stepped:Connect(function()
+	local _, root, hum = getChar()
+	if not root then return end
+
+	if held.Down and not lastDown then held.DownTime = os.clock() end
+	lastDown = held.Down
+
+	-- verrouiller sur le plan Z
+	local pos = root.Position
+	if math.abs(pos.Z - O.Z) > 0.01 then
+		root.CFrame += Vector3.new(0, 0, O.Z - pos.Z)
+	end
+	local v = root.AssemblyLinearVelocity
+	if v.Z ~= 0 then root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, 0) end
+
+	updatePlatforms(root)
+
+	local now = os.clock()
+	if now < stunUntil then
+		-- en hitstun : on vole, orientation figée
+		hum:Move(Vector3.zero)
+		root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(facing > 0 and -90 or 90), 0)
+		root.AssemblyAngularVelocity = Vector3.zero
+		return
+	elseif hum.PlatformStand then
+		hum.PlatformStand = false
+		hum:ChangeState(Enum.HumanoidStateType.Freefall)
+	end
+
+	if hum.FloorMaterial ~= Enum.Material.Air then airJumps = Config.AIR_JUMPS end
+
+	local x = moveAxis()
+	if shielding or state:GetAttribute("Phase") == "Countdown" then x = 0 end
+	if x ~= 0 then facing = x end
+	hum:Move(Vector3.new(x, 0, 0), false)
+
+	-- chute rapide
+	if held.Down and hum.FloorMaterial == Enum.Material.Air and v.Y < 10 then
+		root.AssemblyLinearVelocity = Vector3.new(v.X, math.min(v.Y, -Config.FAST_FALL_SPEED), 0)
+	end
+end)
+
+----------------------------------------------------------------------
+-- Caméra de côté
+----------------------------------------------------------------------
+camera.CameraType = Enum.CameraType.Scriptable
+local camFocus = O + Vector3.new(0, Config.CAMERA_FIXED_HEIGHT or 12, 0)
+local camDist = Config.CAMERA_FIXED_DIST
+
+RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	camera.CameraType = Enum.CameraType.Scriptable
+	local targetFocus, targetDist = O + Vector3.new(0, Config.CAMERA_FIXED_HEIGHT or 12, 0), Config.CAMERA_FIXED_DIST
+
+	if Config.CAMERA_FOLLOW then
+		local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+		local n = 0
+		for _, info in ipairs(state:GetChildren()) do
+			local ref = info:FindFirstChild("Character")
+			local m = ref and ref.Value
+			local r = m and m:FindFirstChild("HumanoidRootPart")
+			if r and (info:GetAttribute("Stocks") or 0) > 0 and math.abs(r.Position.X - O.X) < Config.BLAST_X + 10
+				and math.abs(r.Position.Z - O.Z) < 50 then
+				local p = r.Position
+				minX, maxX = math.min(minX, p.X), math.max(maxX, p.X)
+				minY, maxY = math.min(minY, p.Y), math.max(maxY, p.Y)
+				n += 1
+			end
+		end
+		if n > 0 then
+			local cx = math.clamp((minX + maxX) / 2, O.X - 40, O.X + 40)
+			local cy = math.clamp((minY + maxY) / 2 + 6, O.Y, O.Y + 45)
+			targetFocus = Vector3.new(cx, cy, O.Z)
+			local spread = math.max(maxX - minX, (maxY - minY) * 1.6)
+			targetDist = math.clamp(spread * 1.1 + 30, Config.CAMERA_MIN_DIST, Config.CAMERA_MAX_DIST)
+		end
+	end
+
+	local a = 1 - math.exp(-4 * dt)
+	camFocus = camFocus:Lerp(targetFocus, a)
+	camDist += (targetDist - camDist) * a
+
+	local offset = Vector3.zero
+	if shake > 0 then
+		offset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shake * 2
+		shake = math.max(0, shake - dt * 4)
+	end
+	local camPos = camFocus + Vector3.new(0, camDist * 0.12, camDist) + offset
+	camera.FieldOfView = 50
+	camera.CFrame = CFrame.lookAt(camPos, camFocus + offset)
+end)
+
+----------------------------------------------------------------------
+-- HUD
+----------------------------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "SmashHUD"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local bar = Instance.new("Frame")
+bar.BackgroundTransparency = 1
+bar.AnchorPoint = Vector2.new(0.5, 1)
+bar.Position = UDim2.new(0.5, 0, 1, -16)
+bar.Size = UDim2.new(1, -32, 0, 110)
+bar.Parent = gui
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Padding = UDim.new(0, 14)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = bar
+
+local message = Instance.new("TextLabel")
+message.BackgroundTransparency = 1
+message.AnchorPoint = Vector2.new(0.5, 0.5)
+message.Position = UDim2.new(0.5, 0, 0.3, 0)
+message.Size = UDim2.new(0.8, 0, 0, 100)
+message.Font = Enum.Font.FredokaOne
+message.TextScaled = true
+message.TextColor3 = Color3.new(1, 1, 1)
+message.TextStrokeTransparency = 0
+message.Parent = gui
+
+local help = Instance.new("TextLabel")
+help.BackgroundTransparency = 0.4
+help.BackgroundColor3 = Color3.new(0, 0, 0)
+help.Position = UDim2.new(0, 12, 0, 50)
+help.Size = UDim2.new(0, 250, 0, 120)
+help.Font = Enum.Font.Gotham
+help.TextSize = 13
+help.TextColor3 = Color3.new(1, 1, 1)
+help.TextXAlignment = Enum.TextXAlignment.Left
+help.TextYAlignment = Enum.TextYAlignment.Top
+help.Text = "  A/D ou Q/D : bouger\n  Espace : saut (x2 en l'air)\n  J / clic gauche : attaque\n  K / clic droit (maintenir) : smash\n  E ou L : projectile\n  W/Z ou S + attaque : direction\n  S en l'air : chute rapide / traverser\n  Shift : bouclier"
+help.Parent = gui
+Instance.new("UICorner", help).CornerRadius = UDim.new(0, 8)
+
+local cards = {}
+local function makeCard(info)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(0, 150, 1, 0)
+	card.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	card.BackgroundTransparency = 0.25
+	card.Parent = bar
+	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
+	local stroke = Instance.new("UIStroke", card)
+	stroke.Thickness = 3
+
+	local name = Instance.new("TextLabel")
+	name.BackgroundTransparency = 1
+	name.Size = UDim2.new(1, -10, 0, 22)
+	name.Position = UDim2.new(0, 5, 0, 4)
+	name.Font = Enum.Font.GothamBold
+	name.TextScaled = true
+	name.TextColor3 = Color3.new(1, 1, 1)
+	name.Parent = card
+
+	local pct = Instance.new("TextLabel")
+	pct.BackgroundTransparency = 1
+	pct.Size = UDim2.new(1, -10, 0, 52)
+	pct.Position = UDim2.new(0, 5, 0, 26)
+	pct.Font = Enum.Font.FredokaOne
+	pct.TextScaled = true
+	pct.TextStrokeTransparency = 0
+	pct.Parent = card
+
+	local stocks = Instance.new("TextLabel")
+	stocks.BackgroundTransparency = 1
+	stocks.Size = UDim2.new(1, -10, 0, 20)
+	stocks.Position = UDim2.new(0, 5, 0, 80)
+	stocks.Font = Enum.Font.GothamBold
+	stocks.TextScaled = true
+	stocks.Parent = card
+
+	local shieldBar = Instance.new("Frame")
+	shieldBar.BorderSizePixel = 0
+	shieldBar.Position = UDim2.new(0, 8, 1, -6)
+	shieldBar.Size = UDim2.new(1, -16, 0, 3)
+	shieldBar.Parent = card
+
+	local function refresh()
+		local c = info:GetAttribute("Color") or Color3.new(1, 1, 1)
+		local dmg = info:GetAttribute("Damage") or 0
+		local st = info:GetAttribute("Stocks") or 0
+		card.LayoutOrder = info:GetAttribute("Slot") or 0
+		stroke.Color = c
+		name.Text = info:GetAttribute("DisplayName") or info.Name
+		pct.Text = dmg .. "%"
+		local t = math.clamp(dmg / 150, 0, 1)
+		pct.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 220, 60), math.min(t * 2, 1)):Lerp(Color3.fromRGB(200, 20, 20), math.max(t * 2 - 1, 0))
+		stocks.Text = st > 0 and string.rep("● ", st) or "ÉLIMINÉ"
+		stocks.TextColor3 = c
+		shieldBar.BackgroundColor3 = c
+		shieldBar.Size = UDim2.new((info:GetAttribute("Shield") or 1), -16, 0, 3)
+		card.BackgroundTransparency = st > 0 and 0.25 or 0.7
+	end
+	info.AttributeChanged:Connect(refresh)
+	refresh()
+	cards[info] = card
+end
+
+for _, info in ipairs(state:GetChildren()) do makeCard(info) end
+state.ChildAdded:Connect(makeCard)
+state.ChildRemoved:Connect(function(info)
+	if cards[info] then cards[info]:Destroy() cards[info] = nil end
+end)
+
+local function refreshMsg() message.Text = state:GetAttribute("Message") or "" end
+state:GetAttributeChangedSignal("Message"):Connect(refreshMsg)
+refreshMsg()
+
+-- indicateur de charge du smash
+RunService.RenderStepped:Connect(function()
+	if smashStart then
+		local c = math.min(os.clock() - smashStart, Config.SMASH_CHARGE_MAX) / Config.SMASH_CHARGE_MAX
+		local char = player.Character
+		if char then
+			local h = char:FindFirstChild("SmashCharge") or Instance.new("Highlight")
+			h.Name = "SmashCharge"
+			h.FillColor = Color3.fromRGB(255, 220, 60)
+			h.FillTransparency = 1 - c * 0.7
+			h.OutlineTransparency = 1
+			h.Parent = char
+		end
+	else
+		local char = player.Character
+		local h = char and char:FindFirstChild("SmashCharge")
+		if h then h:Destroy() end
+	end
+end)
+]]></ProtectedString></Properties></Item></roblox>

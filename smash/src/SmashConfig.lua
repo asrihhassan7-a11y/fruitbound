@@ -1,0 +1,55 @@
+-- SmashConfig (ModuleScript dans ReplicatedStorage)
+-- Tous les réglages du jeu sont ici.
+
+local Config = {}
+
+-- Arène
+Config.ARENA_ORIGIN = Vector3.new(0, 1000, 0) -- loin de la map existante
+Config.STAGE_SIZE = Vector3.new(60, 6, 16)
+Config.BLAST_X = 95        -- distance horizontale du centre avant KO
+Config.BLAST_TOP = 85      -- hauteur au-dessus du centre avant KO
+Config.BLAST_BOTTOM = 60   -- profondeur sous le centre avant KO
+
+-- Partie
+Config.STOCKS = 3
+Config.CPU_BOTS = 1        -- nombre de bots CPU
+Config.RESPAWN_INVINCIBILITY = 2
+Config.GRAVITY = 140
+
+-- Caméra
+Config.CAMERA_FOLLOW = false  -- false = caméra totalement fixe sur l'arène (vue de côté)
+Config.CAMERA_MIN_DIST = 45
+Config.CAMERA_MAX_DIST = 100
+Config.CAMERA_FIXED_DIST = 90
+Config.CAMERA_FIXED_HEIGHT = 12 -- hauteur visée au-dessus du centre de la scène
+
+-- Déplacement
+Config.WALK_SPEED = 26
+Config.JUMP_POWER = 55
+Config.AIR_JUMPS = 1
+Config.AIR_JUMP_VELOCITY = 55
+Config.FAST_FALL_SPEED = 90
+
+-- Bouclier
+Config.SHIELD_MAX = 100
+Config.SHIELD_DRAIN = 18      -- par seconde
+Config.SHIELD_REGEN = 10      -- par seconde
+Config.SHIELD_BREAK_STUN = 2
+
+-- Attaques : dmg (%), base / growth (recul), angle (degrés), hitbox
+Config.ATTACKS = {
+	JabSide   = { dmg = 4,  base = 14, growth = 0.18, angle = 35,  offset = Vector2.new(3.5, 0),  size = Vector3.new(5, 5, 6), cooldown = 0.28 },
+	JabUp     = { dmg = 5,  base = 18, growth = 0.20, angle = 85,  offset = Vector2.new(0.5, 4),  size = Vector3.new(5, 5, 6), cooldown = 0.32 },
+	JabDown   = { dmg = 5,  base = 14, growth = 0.16, angle = 20,  offset = Vector2.new(3, -2),   size = Vector3.new(6, 3, 6), cooldown = 0.30 },
+	AirDown   = { dmg = 7,  base = 20, growth = 0.30, angle = -70, offset = Vector2.new(0, -3.5), size = Vector3.new(5, 4, 6), cooldown = 0.45 },
+	SmashSide = { dmg = 13, base = 30, growth = 1.00, angle = 38,  offset = Vector2.new(4, 0),    size = Vector3.new(6, 5, 6), cooldown = 0.70, startup = 0.12 },
+	SmashUp   = { dmg = 14, base = 30, growth = 0.95, angle = 88,  offset = Vector2.new(0, 4.5),  size = Vector3.new(6, 6, 6), cooldown = 0.70, startup = 0.12 },
+	SmashDown = { dmg = 12, base = 28, growth = 0.90, angle = 25,  offset = Vector2.new(0, -1.5), size = Vector3.new(11, 3, 6), cooldown = 0.75, startup = 0.12, bothSides = true },
+	Special   = { dmg = 6,  base = 12, growth = 0.12, angle = 20,  speed = 75, lifetime = 1.2, cooldown = 0.8 },
+}
+Config.SMASH_CHARGE_MAX = 1.0      -- secondes
+Config.SMASH_CHARGE_BONUS = 0.6    -- +60% dégâts/recul à pleine charge
+Config.HITSTUN_FACTOR = 0.007
+Config.HITSTUN_MAX = 1.5
+
+return Config
