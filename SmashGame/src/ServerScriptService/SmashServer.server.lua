@@ -13,6 +13,7 @@ local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
 local O = Config.ARENA_ORIGIN
 
 workspace.Gravity = Config.GRAVITY
+Players.RespawnTime = 2
 
 ----------------------------------------------------------------------
 -- Remotes + état partagé
@@ -199,7 +200,16 @@ local function humOf(f)
 	return f.model and f.model:FindFirstChildOfClass("Humanoid")
 end
 local function alive(f)
-	return f.stocks > 0 and rootOf(f) ~= nil
+	return f.stocks > 0 and not f.koing and rootOf(f) ~= nil
+end
+
+local function setMenu(f, on)
+	f.inMenu = on
+	f.info:SetAttribute("InMenu", on)
+end
+local function setInRound(f, on)
+	f.inRound = on
+	f.info:SetAttribute("InRound", on)
 end
 
 local function setShield(f, on)
@@ -281,11 +291,13 @@ local function setupCharacter(f, model)
 	end)
 	f.shielding = false
 	f.shieldPart = nil
-	if phase() == "Fight" and f.stocks > 0 then
+	f.koing = false
+	local fighting = phase() == "Fight" or phase() == "Countdown"
+	if f.inMenu or (fighting and not (f.inRound and f.stocks > 0)) then
+		park(f) -- menu ou spectateur
+	elseif fighting then
 		placeAt(f, respawnPos())
 		giveInvincibility(f, Config.RESPAWN_INVINCIBILITY)
-	elseif phase() == "Fight" then
-		park(f) -- arrivé en cours de manche : spectateur
 	else
 		placeAt(f, spawnPos(f.slot))
 	end
@@ -514,6 +526,20 @@ local function refreshVotes()
 end
 
 actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
+	if kind == "Play" then
+		local f = fighters["P" .. player.UserId]
+		if f and f.inMenu then
+			setMenu(f, false)
+			f.info:SetAttribute("Eliminated", false)
+			local ph = phase()
+			if ph == "Fight" or ph == "Countdown" then
+				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
+			else
+				placeAt(f, spawnPos(f.slot))
+			end
+		end
+		return
+	end
 	if kind == "Vote" then
 		local idx = tonumber(dir)
 		if phase() == "Vote" and idx and idx >= 0 and idx <= #Maps and idx % 1 == 0 then
@@ -523,7 +549,7 @@ actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
 		return
 	end
 	local f = fighters["P" .. player.UserId]
-	if f and typeof(kind) == "string" then
+	if f and typeof(kind) == "string" and f.inRound and not f.inMenu then
 		doAction(f, kind, dir, facing, charge)
 	end
 end)
@@ -542,22 +568,123 @@ end
 ----------------------------------------------------------------------
 -- KO
 ----------------------------------------------------------------------
-local function ko(f)
-	if f.stocks <= 0 then return end
-	local root = rootOf(f)
-	if root then
-		local b = curMap.blast
-		local p = root.Position
-		local cp = Vector3.new(math.clamp(p.X, O.X - b.x, O.X + b.x), math.clamp(p.Y, O.Y - b.bottom, O.Y + b.top), O.Z)
+-- petite plateforme de réapparition qui disparaît
+local function revivalPlatform(f)
+	local p = Instance.new("Part")
+	p.Name = "RevivalPlatform"
+	p.Anchored = true
+	p.Size = Vector3.new(8, 0.6, 8)
+	p.Material = Enum.Material.Neon
+	p.Color = f.info:GetAttribute("Color")
+	p.Transparency = 0.3
+	p.CFrame = CFrame.new(respawnPos() - Vector3.new(0, 3.3, 0))
+	p.Parent = workspace
+	Debris:AddItem(p, Config.RESPAWN_INVINCIBILITY)
+end
+
+local function respawnAfterKO(f)
+	revivalPlatform(f)
+	placeAt(f, respawnPos())
+	giveInvincibility(f, Config.RESPAWN_INVINCIBILITY)
+end
+
+local function eliminated(f)
+	park(f)
+	f.info:SetAttribute("Eliminated", true)
+	if f.player then
+		knockRemote:FireClient(f.player, "Eliminated")
+		-- retour au menu après un petit moment
+		task.delay(2.5, function()
+			if fighters[f.id] == f and f.stocks <= 0 then setMenu(f, true) end
+		end)
+	end
+end
+
+-- Animation de KO : le perso tourne, s'envole et disparaît, puis explosion / étoile
+local function koAnimation(f, model, root)
+	local b = curMap.blast
+	local p = root.Position
+	local cp = Vector3.new(math.clamp(p.X, O.X - b.x + 6, O.X + b.x - 6), math.clamp(p.Y, O.Y - b.bottom + 6, O.Y + b.top - 6), O.Z)
+	local starKO = p.Y > O.Y + b.top - 1 -- sorti par le haut : KO "étoile" vers le fond de l'écran
+	local dir = Vector3.new(cp.X - O.X, cp.Y - O.Y, 0)
+	dir = dir.Magnitude > 0.1 and dir.Unit or Vector3.new(0, 1, 0)
+	local color = f.info:GetAttribute("Color")
+
+	f.koing = true
+	setShield(f, false)
+	if f.player then knockRemote:FireClient(f.player, "KOStart") end
+	knockRemote:FireAllClients("KO", cp, color, f.name)
+	root.Anchored = true
+
+	local parts = {}
+	for _, d in ipairs(model:GetDescendants()) do
+		if (d:IsA("BasePart") and d ~= root) or d:IsA("Decal") then parts[d] = d.Transparency end
+	end
+
+	-- traînée de couleur derrière le perso
+	local trailFx = Instance.new("Part")
+	trailFx.Anchored = true
+	trailFx.CanCollide = false
+	trailFx.CanQuery = false
+	trailFx.Material = Enum.Material.Neon
+	trailFx.Color = color
+
+	local startPos = starKO and Vector3.new(cp.X, O.Y + b.top - 12, O.Z) or (cp - dir * 6)
+	local DURATION = 1.0
+	local t0 = os.clock()
+	while true do
+		local a = math.min((os.clock() - t0) / DURATION, 1)
+		if not model.Parent or f.model ~= model then break end
+		local cf
+		if starKO then
+			-- part loin derrière, en tournoyant, et rapetisse à l'écran
+			cf = CFrame.new(startPos + Vector3.new(0, a * 15, -a * 140)) * CFrame.Angles(a * 6, a * 25, a * 4)
+		else
+			-- éjecté hors de l'écran en vrille
+			cf = CFrame.new(startPos + dir * (a * a * 30)) * CFrame.Angles(a * 18, a * 12, a * 9)
+		end
+		model:PivotTo(cf)
+		for d, t in pairs(parts) do d.Transparency = t + (1 - t) * math.max(0, a - 0.4) / 0.6 end
+		if not starKO then
+			trailFx.Size = Vector3.new(1.2, 1.2, (cf.Position - startPos).Magnitude + 1)
+			trailFx.CFrame = CFrame.lookAt((cf.Position + startPos) / 2, cf.Position)
+			trailFx.Transparency = 0.2 + a * 0.8
+			trailFx.Parent = workspace
+		end
+		if a >= 1 then break end
+		RunService.Heartbeat:Wait()
+	end
+	trailFx:Destroy()
+
+	-- effet final
+	local endPos = model.Parent and model:GetPivot().Position or cp
+	if starKO then
+		local star = flash(CFrame.new(endPos), Vector3.new(2, 2, 2), Color3.fromRGB(255, 255, 200), 0.35)
+		star.Shape = Enum.PartType.Ball
+		local sparkle = Instance.new("Sparkles")
+		sparkle.SparkleColor = color
+		sparkle.Parent = star
+	else
 		local e = Instance.new("Explosion")
 		e.Position = cp
 		e.BlastPressure = 0
 		e.DestroyJointRadiusPercent = 0
-		e.BlastRadius = 12
+		e.BlastRadius = 14
 		e.Parent = workspace
-		flash(CFrame.lookAt(cp, O) * CFrame.new(0, 0, -20), Vector3.new(1.5, 1.5, 40), f.info:GetAttribute("Color"), 0.4)
+		flash(CFrame.lookAt(cp, O) * CFrame.new(0, 0, -25), Vector3.new(3, 3, 50), color, 0.5)
+		flash(CFrame.new(cp), Vector3.new(10, 10, 10), Color3.new(1, 1, 1), 0.15).Shape = Enum.PartType.Ball
 	end
 	knockRemote:FireAllClients("Shake", 1.2)
+
+	for d, t in pairs(parts) do
+		if d.Parent then d.Transparency = t end
+	end
+	f.koing = false
+	return f.model == model
+end
+
+local function ko(f, noAnim)
+	if f.stocks <= 0 or f.koing then return end
 	-- crédit du KO au dernier attaquant (si touché récemment)
 	if f.lastHitBy and fighters[f.lastHitBy.id] and os.clock() - (f.lastHitTime or 0) < 8 then
 		f.lastHitBy.kos += 1
@@ -569,12 +696,24 @@ local function ko(f)
 	f.shieldHp = Config.SHIELD_MAX
 	setShield(f, false)
 	sync(f)
-	if f.stocks > 0 then
-		placeAt(f, respawnPos())
-		giveInvincibility(f, Config.RESPAWN_INVINCIBILITY)
-	else
-		park(f)
-	end
+
+	local model, root = f.model, rootOf(f)
+	task.spawn(function()
+		local stillSame = true
+		if root and not noAnim then
+			stillSame = koAnimation(f, model, root)
+		end
+		if not stillSame then return end -- nouveau perso entre-temps
+		if f.stocks > 0 then
+			if phase() == "Fight" then
+				park(f)
+				task.wait(0.6)
+				if fighters[f.id] == f and phase() == "Fight" and f.model == model then respawnAfterKO(f) end
+			end
+		else
+			eliminated(f)
+		end
+	end)
 end
 
 ----------------------------------------------------------------------
@@ -582,13 +721,15 @@ end
 ----------------------------------------------------------------------
 local function onPlayer(player)
 	local f = newFighter("P" .. player.UserId, player.DisplayName, player)
+	setMenu(f, true) -- commence sur le menu
+	setInRound(f, false)
 	local function onChar(char)
 		task.spawn(function()
 			setupCharacter(f, char)
 			local hum = char:WaitForChild("Humanoid")
 			hum.Died:Connect(function()
 				-- reset volontaire = perte d'une vie
-				if phase() == "Fight" then ko(f) end
+				if phase() == "Fight" and f.inRound then ko(f, true) end
 			end)
 		end)
 	end
@@ -873,7 +1014,14 @@ end)
 ----------------------------------------------------------------------
 -- Manches
 ----------------------------------------------------------------------
-local function humanCount() return #Players:GetPlayers() end
+-- joueurs qui ont appuyé sur JOUER
+local function humanCount()
+	local n = 0
+	for _, f in pairs(fighters) do
+		if f.player and not f.inMenu then n += 1 end
+	end
+	return n
+end
 
 local function setupBots()
 	local want = Config.FILL_WITH_BOTS or humanCount() < 2
@@ -889,6 +1037,15 @@ end
 
 local function startRound()
 	for _, f in pairs(fighters) do
+		f.info:SetAttribute("Eliminated", false)
+		if f.player and f.inMenu then
+			setInRound(f, false)
+			f.stocks = 0
+			sync(f)
+			continue
+		end
+		setInRound(f, true)
+		f.koing = false
 		f.stocks = Config.STOCKS
 		f.damage = 0
 		f.kos = 0
@@ -903,7 +1060,9 @@ end
 
 local function results()
 	local list = {}
-	for _, f in pairs(fighters) do table.insert(list, f) end
+	for _, f in pairs(fighters) do
+		if f.inRound then table.insert(list, f) end
+	end
 	table.sort(list, function(a, b)
 		if a.stocks ~= b.stocks then return a.stocks > b.stocks end
 		if a.damage ~= b.damage then return a.damage < b.damage end
@@ -954,13 +1113,18 @@ task.spawn(function()
 				state:SetAttribute("TimeLeft", left)
 				if left <= 0 then timeUp = true break end
 			end
-			local alivers, total = 0, 0
+			local alivers, total, humansLeft = 0, 0, 0
 			for _, f in pairs(fighters) do
-				total += 1
-				if f.stocks > 0 then alivers += 1 end
+				if f.inRound then
+					total += 1
+					if f.stocks > 0 then
+						alivers += 1
+						if f.player then humansLeft += 1 end
+					end
+				end
 			end
-			if total >= 2 and alivers <= 1 then break end
-			if humanCount() == 0 then break end
+			if total >= 2 and alivers <= 1 then task.wait(1.2) break end -- laisser finir l'anim de KO
+			if humansLeft == 0 then task.wait(1.2) break end -- plus aucun joueur humain en vie
 		end
 
 		-- 5) résultats

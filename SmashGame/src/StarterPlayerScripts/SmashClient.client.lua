@@ -31,6 +31,8 @@ local smashStart = nil
 local shielding = false
 local shake = 0
 local recoveryReady = true
+local koLock = false -- pendant l'animation de KO, le serveur contrôle le perso
+local fx = {}        -- fonctions d'effets d'écran (définies plus bas avec le HUD)
 
 local function getChar()
 	local char = player.Character
@@ -147,10 +149,24 @@ end)
 ----------------------------------------------------------------------
 -- Messages du serveur
 ----------------------------------------------------------------------
-knockRemote.OnClientEvent:Connect(function(kind, a, b)
+knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 	local _, root, hum = getChar()
 	if kind == "Shake" then
 		shake = math.max(shake, a)
+		return
+	elseif kind == "KO" then
+		if fx.ko then fx.ko(a, b, c) end
+		return
+	elseif kind == "Eliminated" then
+		if fx.eliminated then fx.eliminated() end
+		return
+	elseif kind == "NextRound" then
+		if fx.toast then fx.toast("Tu rejoindras la prochaine manche !") end
+		return
+	elseif kind == "KOStart" then
+		koLock = true
+		held = {}
+		smashStart = nil
 		return
 	end
 	if not root then return end
@@ -161,6 +177,7 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b)
 		airJumps = Config.AIR_JUMPS
 		recoveryReady = true
 	elseif kind == "Reset" then
+		koLock = false
 		stunUntil = 0
 		hum.PlatformStand = false
 		root.AssemblyLinearVelocity = Vector3.zero
@@ -196,7 +213,7 @@ end
 local lastDown = false
 RunService.Stepped:Connect(function()
 	local _, root, hum = getChar()
-	if not root then return end
+	if not root or koLock or root.Anchored then return end
 
 	if held.Down and not lastDown then held.DownTime = os.clock() end
 	lastDown = held.Down
@@ -394,6 +411,9 @@ local function makeCard(info)
 		shieldBar.BackgroundColor3 = c
 		shieldBar.Size = UDim2.new((info:GetAttribute("Shield") or 1), -16, 0, 3)
 		card.BackgroundTransparency = st > 0 and 0.25 or 0.7
+		-- cacher ceux qui sont sur le menu
+		card.Visible = not info:GetAttribute("InMenu")
+			and (info:GetAttribute("InRound") or state:GetAttribute("Phase") ~= "Fight")
 	end
 	info.AttributeChanged:Connect(refresh)
 	refresh()
@@ -610,8 +630,10 @@ local function refreshVote()
 			vb.button.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 		end
 	end
-	voteFrame.Visible = isVote
-	help.Visible = not isVote
+	local me = state:FindFirstChild("P" .. player.UserId)
+	local inMenu = me and me:GetAttribute("InMenu")
+	voteFrame.Visible = isVote and not inMenu
+	help.Visible = not isVote and not inMenu
 	for i, vb in pairs(voteButtons) do
 		local n = state:GetAttribute("Vote" .. i) or 0
 		vb.count.Text = n .. (n > 1 and " votes" or " vote")
@@ -619,3 +641,205 @@ local function refreshVote()
 end
 state.AttributeChanged:Connect(refreshVote)
 refreshVote()
+
+----------------------------------------------------------------------
+-- Effets de KO à l'écran
+----------------------------------------------------------------------
+local whiteFlash = Instance.new("Frame")
+whiteFlash.Size = UDim2.new(1, 0, 1, 0)
+whiteFlash.BackgroundColor3 = Color3.new(1, 1, 1)
+whiteFlash.BackgroundTransparency = 1
+whiteFlash.BorderSizePixel = 0
+whiteFlash.ZIndex = 5
+whiteFlash.Parent = gui
+
+local koText = Instance.new("TextLabel")
+koText.BackgroundTransparency = 1
+koText.AnchorPoint = Vector2.new(0.5, 0.5)
+koText.Position = UDim2.new(0.5, 0, 0.45, 0)
+koText.Size = UDim2.new(0, 500, 0, 160)
+koText.Font = Enum.Font.FredokaOne
+koText.TextScaled = true
+koText.TextStrokeTransparency = 0
+koText.TextTransparency = 1
+koText.TextStrokeColor3 = Color3.new(0, 0, 0)
+koText.ZIndex = 6
+koText.Parent = gui
+
+local TweenService = game:GetService("TweenService")
+
+fx.ko = function(pos, color, name)
+	shake = math.max(shake, 1.5)
+	whiteFlash.BackgroundTransparency = 0.35
+	TweenService:Create(whiteFlash, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
+	koText.Text = "KO !\n" .. tostring(name)
+	koText.TextColor3 = color or Color3.new(1, 1, 1)
+	koText.TextTransparency = 0
+	koText.TextStrokeTransparency = 0
+	koText.Size = UDim2.new(0, 700, 0, 220)
+	TweenService:Create(koText, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.new(0, 500, 0, 160) }):Play()
+	task.delay(0.9, function()
+		TweenService:Create(koText, TweenInfo.new(0.4), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	end)
+end
+
+local toast = Instance.new("TextLabel")
+toast.BackgroundColor3 = Color3.new(0, 0, 0)
+toast.BackgroundTransparency = 0.3
+toast.AnchorPoint = Vector2.new(0.5, 0)
+toast.Position = UDim2.new(0.5, 0, 0, 100)
+toast.Size = UDim2.new(0, 420, 0, 40)
+toast.Font = Enum.Font.GothamBold
+toast.TextSize = 18
+toast.TextColor3 = Color3.new(1, 1, 1)
+toast.Visible = false
+toast.ZIndex = 7
+toast.Parent = gui
+Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 10)
+fx.toast = function(text)
+	toast.Text = text
+	toast.Visible = true
+	task.delay(3, function() if toast.Text == text then toast.Visible = false end end)
+end
+
+fx.eliminated = function()
+	koText.Text = "ÉLIMINÉ !"
+	koText.TextColor3 = Color3.fromRGB(255, 70, 70)
+	koText.TextTransparency = 0
+	koText.TextStrokeTransparency = 0
+	task.delay(2.2, function()
+		TweenService:Create(koText, TweenInfo.new(0.3), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	end)
+end
+
+----------------------------------------------------------------------
+-- Menu de départ
+----------------------------------------------------------------------
+local Lighting = game:GetService("Lighting")
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Parent = Lighting
+
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(1, 0, 1, 0)
+menu.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+menu.BackgroundTransparency = 0.35
+menu.BorderSizePixel = 0
+menu.ZIndex = 20
+menu.Visible = false
+menu.Parent = gui
+
+local menuTitle = Instance.new("TextLabel")
+menuTitle.BackgroundTransparency = 1
+menuTitle.AnchorPoint = Vector2.new(0.5, 0)
+menuTitle.Position = UDim2.new(0.5, 0, 0.12, 0)
+menuTitle.Size = UDim2.new(0.8, 0, 0, 110)
+menuTitle.Font = Enum.Font.FredokaOne
+menuTitle.TextScaled = true
+menuTitle.TextColor3 = Color3.fromRGB(255, 220, 80)
+menuTitle.TextStrokeTransparency = 0
+menuTitle.Text = "SMASH ARENA"
+menuTitle.ZIndex = 21
+menuTitle.Parent = menu
+local titleGrad = Instance.new("UIGradient", menuTitle)
+titleGrad.Color = ColorSequence.new(Color3.fromRGB(255, 240, 120), Color3.fromRGB(255, 120, 40))
+titleGrad.Rotation = 90
+
+local menuSub = Instance.new("TextLabel")
+menuSub.BackgroundTransparency = 1
+menuSub.AnchorPoint = Vector2.new(0.5, 0)
+menuSub.Position = UDim2.new(0.5, 0, 0.12, 115)
+menuSub.Size = UDim2.new(0.8, 0, 0, 30)
+menuSub.Font = Enum.Font.GothamBold
+menuSub.TextScaled = true
+menuSub.TextColor3 = Color3.fromRGB(220, 220, 235)
+menuSub.Text = "Éjecte tes adversaires hors de l'écran !"
+menuSub.ZIndex = 21
+menuSub.Parent = menu
+
+local playButton = Instance.new("TextButton")
+playButton.AnchorPoint = Vector2.new(0.5, 0.5)
+playButton.Position = UDim2.new(0.5, 0, 0.55, 0)
+playButton.Size = UDim2.new(0, 280, 0, 80)
+playButton.BackgroundColor3 = Color3.fromRGB(80, 200, 110)
+playButton.Font = Enum.Font.FredokaOne
+playButton.TextScaled = true
+playButton.TextColor3 = Color3.new(1, 1, 1)
+playButton.Text = "JOUER"
+playButton.ZIndex = 22
+playButton.Parent = menu
+Instance.new("UICorner", playButton).CornerRadius = UDim.new(0, 16)
+local playStroke = Instance.new("UIStroke", playButton)
+playStroke.Thickness = 4
+playStroke.Color = Color3.fromRGB(30, 110, 50)
+playStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local playPad = Instance.new("UIPadding", playButton)
+playPad.PaddingTop = UDim.new(0, 12)
+playPad.PaddingBottom = UDim.new(0, 12)
+
+local menuInfo = Instance.new("TextLabel")
+menuInfo.BackgroundTransparency = 1
+menuInfo.AnchorPoint = Vector2.new(0.5, 0)
+menuInfo.Position = UDim2.new(0.5, 0, 0.55, 60)
+menuInfo.Size = UDim2.new(0.9, 0, 0, 120)
+menuInfo.Font = Enum.Font.Gotham
+menuInfo.TextSize = 16
+menuInfo.TextColor3 = Color3.fromRGB(200, 200, 215)
+menuInfo.Text = "3 vies par manche • Vote pour la map • Affronte les bots CPU\n\nQ/D bouger • Espace sauter • J attaque • K smash • E projectile • Shift bouclier"
+menuInfo.TextWrapped = true
+menuInfo.ZIndex = 21
+menuInfo.Parent = menu
+
+local lastResult = Instance.new("TextLabel")
+lastResult.BackgroundTransparency = 1
+lastResult.AnchorPoint = Vector2.new(0.5, 1)
+lastResult.Position = UDim2.new(0.5, 0, 0.55, -50)
+lastResult.Size = UDim2.new(0.8, 0, 0, 30)
+lastResult.Font = Enum.Font.GothamBold
+lastResult.TextScaled = true
+lastResult.TextColor3 = Color3.fromRGB(255, 110, 110)
+lastResult.Text = ""
+lastResult.ZIndex = 21
+lastResult.Parent = menu
+
+-- petit effet de pulsation sur le bouton
+task.spawn(function()
+	while true do
+		if menu.Visible then
+			TweenService:Create(playButton, TweenInfo.new(0.6, Enum.EasingStyle.Sine), { Size = UDim2.new(0, 300, 0, 86) }):Play()
+			task.wait(0.6)
+			TweenService:Create(playButton, TweenInfo.new(0.6, Enum.EasingStyle.Sine), { Size = UDim2.new(0, 280, 0, 80) }):Play()
+			task.wait(0.6)
+		else
+			task.wait(0.3)
+		end
+	end
+end)
+
+playButton.MouseButton1Click:Connect(function()
+	actionRemote:FireServer("Play")
+end)
+
+local wasPlaying = false
+local function refreshMenu()
+	local me = state:FindFirstChild("P" .. player.UserId)
+	local inMenu = me == nil or me:GetAttribute("InMenu") == true
+	if inMenu and wasPlaying then
+		lastResult.Text = "Tu as perdu tes 3 vies ! Réessaie ?"
+	end
+	wasPlaying = not inMenu
+	menu.Visible = inMenu
+	TweenService:Create(blur, TweenInfo.new(0.4), { Size = inMenu and 16 or 0 }):Play()
+	refreshVote()
+end
+
+local function hookMe(me)
+	me.AttributeChanged:Connect(refreshMenu)
+	refreshMenu()
+end
+local meInfo = state:FindFirstChild("P" .. player.UserId)
+if meInfo then hookMe(meInfo) end
+state.ChildAdded:Connect(function(c)
+	if c.Name == "P" .. player.UserId then hookMe(c) end
+end)
+refreshMenu()
