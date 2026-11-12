@@ -200,6 +200,20 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 	elseif kind == "DmgNum" then
 		if fx.dmgNum then fx.dmgNum(a, b, c) end
 		return
+	elseif kind == "Dash" then
+		local _, r = getChar()
+		if r and not r.Anchored then
+			r.AssemblyLinearVelocity = Vector3.new(a * 110, 4, 0)
+			task.delay(0.24, function()
+				local v = r.AssemblyLinearVelocity
+				r.AssemblyLinearVelocity = Vector3.new(v.X * 0.25, v.Y, 0)
+			end)
+		end
+		return
+	elseif kind == "Dive" then
+		local _, r = getChar()
+		if r and not r.Anchored then r.AssemblyLinearVelocity = Vector3.new(0, -130, 0) end
+		return
 	elseif kind == "Pose" then
 		if fx.pose then fx.pose(a, b) end
 		return
@@ -313,7 +327,21 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 	camera.CameraType = Enum.CameraType.Scriptable
 	local targetFocus, targetDist = O + Vector3.new(0, 12, 0), Config.CAMERA_FIXED_DIST
 
-	if Config.CAMERA_FOLLOW then
+	local winnerIds = state:GetAttribute("Winner") or ""
+	if state:GetAttribute("Phase") == "End" and winnerIds ~= "" then
+		-- écran de victoire : zoom sur le(s) gagnant(s)
+		local sum, n = Vector3.zero, 0
+		for id in string.gmatch(winnerIds, "[^,]+") do
+			local info = state:FindFirstChild(id)
+			local ref = info and info:FindFirstChild("Character")
+			local r = ref and ref.Value and ref.Value:FindFirstChild("HumanoidRootPart")
+			if r then sum += r.Position n += 1 end
+		end
+		if n > 0 then
+			targetFocus = sum / n + Vector3.new(0, 1, 0)
+			targetDist = n > 1 and 22 or 13
+		end
+	elseif Config.CAMERA_FOLLOW then
 		local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
 		local n = 0
 		for _, info in ipairs(state:GetChildren()) do
@@ -554,6 +582,10 @@ local function makeCard(info)
 		local dmg = info:GetAttribute("Damage") or 0
 		local st = info:GetAttribute("Stocks") or 0
 		card.LayoutOrder = info:GetAttribute("Slot") or 0
+		local team = info:GetAttribute("Team") or 0
+		if state:GetAttribute("Mode") == "Teams" and team > 0 then
+			c = team == 1 and Color3.fromRGB(255, 70, 70) or Color3.fromRGB(70, 140, 255)
+		end
 		stroke.Color = c
 		pStroke.Color = c
 		grad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1):Lerp(c, 0.5))
@@ -697,8 +729,9 @@ voteFrame.BackgroundTransparency = 0.15
 voteFrame.Visible = false
 voteFrame.Parent = gui
 Instance.new("UICorner", voteFrame).CornerRadius = UDim.new(0, 14)
+voteFrame.Size = UDim2.new(0.9, 0, 0, 350)
 local sizeLimit = Instance.new("UISizeConstraint", voteFrame)
-sizeLimit.MaxSize = Vector2.new(1000, 290)
+sizeLimit.MaxSize = Vector2.new(1000, 350)
 
 local voteTitle = Instance.new("TextLabel")
 voteTitle.BackgroundTransparency = 1
@@ -714,7 +747,7 @@ local list = Instance.new("ScrollingFrame")
 list.BackgroundTransparency = 1
 list.BorderSizePixel = 0
 list.Position = UDim2.new(0, 12, 0, 60)
-list.Size = UDim2.new(1, -24, 1, -72)
+list.Size = UDim2.new(1, -24, 1, -132)
 list.ScrollingDirection = Enum.ScrollingDirection.X
 list.AutomaticCanvasSize = Enum.AutomaticSize.X
 list.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -820,6 +853,52 @@ local function refreshVote()
 end
 state.AttributeChanged:Connect(refreshVote)
 refreshVote()
+
+-- choix du mode : chacun pour soi / équipes
+local modeRow = Instance.new("Frame")
+modeRow.BackgroundTransparency = 1
+modeRow.AnchorPoint = Vector2.new(0.5, 1)
+modeRow.Position = UDim2.new(0.5, 0, 1, -10)
+modeRow.Size = UDim2.new(1, -24, 0, 48)
+modeRow.Parent = voteFrame
+local modeLayout = Instance.new("UIListLayout", modeRow)
+modeLayout.FillDirection = Enum.FillDirection.Horizontal
+modeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+modeLayout.Padding = UDim.new(0, 12)
+local modeButtons = {}
+local myMode = nil
+for _, m in ipairs({ { "FFA", "Chacun pour soi", Color3.fromRGB(230, 200, 60) }, { "Teams", "Équipes (Rouge vs Bleu)", Color3.fromRGB(90, 140, 255) } }) do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 280, 1, 0)
+	b.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Parent = modeRow
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+	local st = Instance.new("UIStroke", b)
+	st.Color = m[3]
+	st.Thickness = 2
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local pad = Instance.new("UIPadding", b)
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10)
+	b.MouseButton1Click:Connect(function()
+		myMode = m[1]
+		actionRemote:FireServer("VoteMode", m[1])
+		for id, mb in pairs(modeButtons) do mb.stroke.Thickness = id == myMode and 5 or 2 end
+	end)
+	modeButtons[m[1]] = { button = b, stroke = st, label = m[2] }
+end
+local function refreshModeVotes()
+	if state:GetAttribute("Phase") ~= "Vote" then
+		myMode = nil
+		for _, mb in pairs(modeButtons) do mb.stroke.Thickness = 2 end
+	end
+	modeButtons.FFA.button.Text = modeButtons.FFA.label .. "  (" .. (state:GetAttribute("VoteFFA") or 0) .. ")"
+	modeButtons.Teams.button.Text = modeButtons.Teams.label .. "  (" .. (state:GetAttribute("VoteTeams") or 0) .. ")"
+end
+state.AttributeChanged:Connect(refreshModeVotes)
+refreshModeVotes()
 
 ----------------------------------------------------------------------
 -- Effets de KO à l'écran
@@ -939,7 +1018,7 @@ menuSub.Parent = menu
 
 local playButton = Instance.new("TextButton")
 playButton.AnchorPoint = Vector2.new(0.5, 0.5)
-playButton.Position = UDim2.new(0.5, 0, 0.7, 0)
+playButton.Position = UDim2.new(0.5, 0, 0.62, 0)
 playButton.Size = UDim2.new(0, 280, 0, 80)
 playButton.BackgroundColor3 = Color3.fromRGB(80, 200, 110)
 playButton.Font = Enum.Font.FredokaOne
@@ -960,8 +1039,8 @@ playPad.PaddingBottom = UDim.new(0, 12)
 local menuInfo = Instance.new("TextLabel")
 menuInfo.BackgroundTransparency = 1
 menuInfo.AnchorPoint = Vector2.new(0.5, 0)
-menuInfo.Position = UDim2.new(0.5, 0, 0.7, 105)
-menuInfo.Size = UDim2.new(0.9, 0, 0, 120)
+menuInfo.Position = UDim2.new(0.5, 0, 0.62, 150)
+menuInfo.Size = UDim2.new(0.9, 0, 0, 70)
 menuInfo.Font = Enum.Font.Gotham
 menuInfo.TextSize = 16
 menuInfo.TextColor3 = Color3.fromRGB(200, 200, 215)
@@ -1030,7 +1109,7 @@ refreshMenu()
 local pickRow = Instance.new("Frame")
 pickRow.BackgroundTransparency = 1
 pickRow.AnchorPoint = Vector2.new(0.5, 0.5)
-pickRow.Position = UDim2.new(0.5, 0, 0.48, 0)
+pickRow.Position = UDim2.new(0.5, 0, 0.44, 0)
 pickRow.Size = UDim2.new(0.95, 0, 0, 170)
 pickRow.ZIndex = 21
 pickRow.Parent = menu
@@ -1143,6 +1222,10 @@ local JOINTS = {
 	RightLeg = { "RightHip", "Right Hip", 1 },
 	LeftLeg = { "LeftHip", "Left Hip", -1 },
 	Waist = { "Waist", nil, 0 },
+	RightElbow = { "RightElbow", nil, 0, 1 },
+	LeftElbow = { "LeftElbow", nil, 0, 1 },
+	RightKnee = { "RightKnee", nil, 0, -1 },
+	LeftKnee = { "LeftKnee", nil, 0, -1 },
 }
 local baseC0 = setmetatable({}, { __mode = "k" })
 local poseToken = setmetatable({}, { __mode = "k" })
@@ -1159,7 +1242,7 @@ local function jointOffset(jointKey, motor, deg)
 	local info = JOINTS[jointKey]
 	if jointKey == "Waist" then return CFrame.Angles(0, r, 0) end
 	if motor.Name == info[1] then
-		return CFrame.Angles(r, 0, 0) -- R15
+		return CFrame.Angles(r * (info[4] or 1), 0, 0) -- R15
 	end
 	return CFrame.Angles(0, 0, r * info[3]) -- R6
 end
@@ -1725,7 +1808,7 @@ end)
 ----------------------------------------------------------------------
 local trainButton = Instance.new("TextButton")
 trainButton.AnchorPoint = Vector2.new(0.5, 0.5)
-trainButton.Position = UDim2.new(0.5, 0, 0.7, 75)
+trainButton.Position = UDim2.new(0.5, 0, 0.62, 68)
 trainButton.Size = UDim2.new(0, 280, 0, 46)
 trainButton.BackgroundColor3 = Color3.fromRGB(70, 110, 200)
 trainButton.Font = Enum.Font.FredokaOne
@@ -1833,3 +1916,202 @@ RunService.Heartbeat:Connect(function()
 	panel.Visible = me ~= nil and me:GetAttribute("Training") == true
 	if panel.Visible then bagLabel.Text = "Sac : " .. bagDamage() .. "%" end
 end)
+
+----------------------------------------------------------------------
+-- Plateformes mobiles : même mouvement que le serveur, calculé localement (fluide)
+----------------------------------------------------------------------
+local CollectionService = game:GetService("CollectionService")
+RunService.Stepped:Connect(function()
+	local t = workspace:GetServerTimeNow()
+	for _, p in ipairs(CollectionService:GetTagged("SmashMoving")) do
+		local base, offset, period = p:GetAttribute("MoveBase"), p:GetAttribute("MoveOffset"), p:GetAttribute("MovePeriod")
+		if base and offset and period then
+			local w = 2 * math.pi / period
+			p.CFrame = CFrame.new(base + offset * math.sin(t * w))
+			p.AssemblyLinearVelocity = offset * w * math.cos(t * w)
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Écran de victoire : bannière + confettis
+----------------------------------------------------------------------
+local banner = Instance.new("Frame")
+banner.AnchorPoint = Vector2.new(0.5, 0.5)
+banner.Position = UDim2.new(-0.6, 0, 0.2, 0)
+banner.Size = UDim2.new(1.2, 0, 0, 110)
+banner.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
+banner.BorderSizePixel = 0
+banner.Rotation = -4
+banner.Visible = false
+banner.ZIndex = 8
+banner.Parent = gui
+local bannerGrad = Instance.new("UIGradient", banner)
+bannerGrad.Color = ColorSequence.new(Color3.fromRGB(255, 230, 90), Color3.fromRGB(255, 120, 30))
+local bannerText = Instance.new("TextLabel")
+bannerText.BackgroundTransparency = 1
+bannerText.Size = UDim2.new(1, 0, 1, 0)
+bannerText.Font = Enum.Font.FredokaOne
+bannerText.TextScaled = true
+bannerText.TextColor3 = Color3.new(1, 1, 1)
+bannerText.TextStrokeTransparency = 0
+bannerText.ZIndex = 9
+bannerText.Parent = banner
+local bPad = Instance.new("UIPadding", bannerText)
+bPad.PaddingTop, bPad.PaddingBottom = UDim.new(0, 14), UDim.new(0, 14)
+
+local confettiParts = {}
+local function clearConfetti()
+	for _, p in ipairs(confettiParts) do p:Destroy() end
+	confettiParts = {}
+end
+
+local function showVictory()
+	local ids = state:GetAttribute("Winner") or ""
+	if ids == "" then
+		banner.Visible = false
+		clearConfetti()
+		return
+	end
+	bannerText.Text = state:GetAttribute("Message") or "VICTOIRE !"
+	banner.Visible = true
+	banner.Position = UDim2.new(-0.6, 0, 0.2, 0)
+	TS:Create(banner, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, 0, 0.2, 0) }):Play()
+	sfx("Beep", 0.7, 0.8)
+	task.delay(0.15, function() sfx("Beep", 1.0, 0.8) end)
+	task.delay(0.3, function() sfx("Beep", 1.4, 0.9) end)
+	-- confettis au-dessus des gagnants
+	for id in string.gmatch(ids, "[^,]+") do
+		local info = state:FindFirstChild(id)
+		local ref = info and info:FindFirstChild("Character")
+		local r = ref and ref.Value and ref.Value:FindFirstChild("HumanoidRootPart")
+		if r then
+			local src = Instance.new("Part")
+			src.Anchored = true
+			src.CanCollide = false
+			src.CanQuery = false
+			src.Transparency = 1
+			src.Size = Vector3.new(12, 1, 4)
+			src.Position = r.Position + Vector3.new(0, 12, 0)
+			src.Parent = workspace
+			local e = Instance.new("ParticleEmitter")
+			e.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
+				ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 220, 60)),
+				ColorSequenceKeypoint.new(0.66, Color3.fromRGB(80, 220, 120)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 150, 255)),
+			})
+			e.Size = NumberSequence.new(0.35)
+			e.Lifetime = NumberRange.new(2, 3)
+			e.Speed = NumberRange.new(2, 6)
+			e.SpreadAngle = Vector2.new(60, 60)
+			e.EmissionDirection = Enum.NormalId.Bottom
+			e.Acceleration = Vector3.new(0, -12, 0)
+			e.RotSpeed = NumberRange.new(-200, 200)
+			e.Rotation = NumberRange.new(0, 360)
+			e.Rate = 60
+			e.LightEmission = 0.3
+			e.Parent = src
+			table.insert(confettiParts, src)
+		end
+	end
+end
+state:GetAttributeChangedSignal("Winner"):Connect(function()
+	clearConfetti()
+	showVictory()
+end)
+
+----------------------------------------------------------------------
+-- Menu : réglage des bots + classement
+----------------------------------------------------------------------
+local LEVELS = { "Mix", "Facile", "Moyen", "Difficile", "Expert" }
+local botRow = Instance.new("Frame")
+botRow.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+botRow.BackgroundTransparency = 0.2
+botRow.AnchorPoint = Vector2.new(0.5, 0)
+botRow.Position = UDim2.new(0.5, 0, 0.62, 100)
+botRow.Size = UDim2.fromOffset(420, 44)
+botRow.ZIndex = 22
+botRow.Parent = menu
+Instance.new("UICorner", botRow).CornerRadius = UDim.new(0, 10)
+local botLayout = Instance.new("UIListLayout", botRow)
+botLayout.FillDirection = Enum.FillDirection.Horizontal
+botLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+botLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+botLayout.Padding = UDim.new(0, 6)
+botLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function rowLabel(text, width, order)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Size = UDim2.fromOffset(width, 30)
+	l.Font = Enum.Font.GothamBold
+	l.TextScaled = true
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.Text = text
+	l.LayoutOrder = order
+	l.ZIndex = 23
+	l.Parent = botRow
+	return l
+end
+local function rowButton(text, width, order, onClick)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(width, 32)
+	b.BackgroundColor3 = Color3.fromRGB(60, 70, 120)
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = text
+	b.LayoutOrder = order
+	b.ZIndex = 23
+	b.Parent = botRow
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	local pad = Instance.new("UIPadding", b)
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 6), UDim.new(0, 6)
+	b.MouseButton1Click:Connect(onClick)
+	return b
+end
+local function sendBots(count, level)
+	actionRemote:FireServer("BotSettings", count, level)
+end
+rowLabel("Bots :", 60, 1)
+rowButton("-", 32, 2, function() sendBots((state:GetAttribute("BotCount") or 3) - 1, state:GetAttribute("BotLevel")) end)
+local countLabel = rowLabel("3", 30, 3)
+rowButton("+", 32, 4, function() sendBots((state:GetAttribute("BotCount") or 3) + 1, state:GetAttribute("BotLevel")) end)
+rowLabel("Niveau :", 70, 5)
+local levelButton = rowButton("Mix", 130, 6, function()
+	local cur = state:GetAttribute("BotLevel") or "Mix"
+	local idx = table.find(LEVELS, cur) or 1
+	sendBots(state:GetAttribute("BotCount") or 3, LEVELS[(idx % #LEVELS) + 1])
+end)
+local function refreshBotRow()
+	countLabel.Text = tostring(state:GetAttribute("BotCount") or 3)
+	levelButton.Text = state:GetAttribute("BotLevel") or "Mix"
+end
+state:GetAttributeChangedSignal("BotCount"):Connect(refreshBotRow)
+state:GetAttributeChangedSignal("BotLevel"):Connect(refreshBotRow)
+refreshBotRow()
+
+local board = Instance.new("TextLabel")
+board.AnchorPoint = Vector2.new(0, 0.5)
+board.Position = UDim2.new(0, 20, 0.5, 0)
+board.Size = UDim2.fromOffset(260, 260)
+board.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+board.BackgroundTransparency = 0.2
+board.Font = Enum.Font.Gotham
+board.TextSize = 15
+board.TextColor3 = Color3.new(1, 1, 1)
+board.TextXAlignment = Enum.TextXAlignment.Left
+board.TextYAlignment = Enum.TextYAlignment.Top
+board.TextWrapped = true
+board.ZIndex = 22
+board.Parent = menu
+Instance.new("UICorner", board).CornerRadius = UDim.new(0, 12)
+local boardPad = Instance.new("UIPadding", board)
+boardPad.PaddingLeft, boardPad.PaddingTop, boardPad.PaddingRight = UDim.new(0, 12), UDim.new(0, 10), UDim.new(0, 12)
+local function refreshBoard()
+	local lb = state:GetAttribute("Leaderboard") or ""
+	board.Text = "🏆 MEILLEURS JOUEURS\n\n" .. (lb ~= "" and lb or "Chargement...")
+end
+state:GetAttributeChangedSignal("Leaderboard"):Connect(refreshBoard)
+refreshBoard()

@@ -69,6 +69,8 @@ return Config
 ]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX1"><Properties><string name="Name">SmashMaps</string><ProtectedString name="Source"><![CDATA[-- SmashMaps (ModuleScript dans ReplicatedStorage)
 -- Liste des arènes. Coordonnées relatives à Config.ARENA_ORIGIN (Y = 0 = dessus de la scène principale).
 -- kind = "solid" (sol), "platform" (traversable par-dessous), "deco" (sans collision)
+-- move = { offset = Vector3, period = secondes } : la pièce fait des allers-retours
+-- hazards = pièges : { type = "geyser", x = ..., interval = ... } ou { type = "icicle", interval = ... }
 
 local V = Vector3.new
 local C = Color3.fromRGB
@@ -93,7 +95,8 @@ Maps[1] = {
 		{ kind = "deco", size = V(20, 10, 8), pos = V(0, -20, 0), color = C(170, 170, 190), material = M.Marble },
 		{ kind = "platform", size = V(16, 1, 10), pos = V(-17, 12, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
 		{ kind = "platform", size = V(16, 1, 10), pos = V(17, 12, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
-		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 23, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
+		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 23, 0), color = C(255, 220, 120), material = M.SmoothPlastic,
+			move = { offset = V(0, 6, 0), period = 7 } },
 		{ kind = "deco", size = V(3, 30, 3), pos = V(-40, -10, -30), color = C(240, 240, 250), material = M.Marble },
 		{ kind = "deco", size = V(3, 30, 3), pos = V(40, -10, -30), color = C(240, 240, 250), material = M.Marble },
 	},
@@ -133,7 +136,8 @@ Maps[3] = {
 		{ kind = "solid", size = V(34, 6, 16), pos = V(26, -3, 0), color = C(110, 190, 90), material = M.Grass },
 		{ kind = "deco", size = V(26, 14, 12), pos = V(-26, -13, 0), color = C(130, 95, 70), material = M.Rock },
 		{ kind = "deco", size = V(26, 14, 12), pos = V(26, -13, 0), color = C(130, 95, 70), material = M.Rock },
-		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 10, 0), color = C(160, 110, 70), material = M.Wood },
+		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 8, 0), color = C(160, 110, 70), material = M.Wood,
+			move = { offset = V(16, 0, 0), period = 9 } },
 		{ kind = "platform", size = V(12, 1, 10), pos = V(-26, 14, 0), color = C(160, 110, 70), material = M.Wood },
 		{ kind = "platform", size = V(12, 1, 10), pos = V(26, 14, 0), color = C(160, 110, 70), material = M.Wood },
 		{ kind = "deco", size = V(2, 10, 2), pos = V(-36, 5, -5), color = C(120, 80, 50), material = M.Wood },
@@ -162,6 +166,10 @@ Maps[4] = {
 		{ kind = "platform", size = V(11, 1, 10), pos = V(0, 18, 0), color = C(90, 70, 65), material = M.Basalt },
 		{ kind = "deco", size = V(300, 2, 120), pos = V(0, -36, 0), color = C(255, 90, 20), material = M.Neon },
 	},
+	hazards = {
+		{ type = "geyser", x = -12, interval = 9, offset = 0 },
+		{ type = "geyser", x = 12, interval = 9, offset = 4.5 },
+	},
 }
 
 Maps[5] = {
@@ -184,6 +192,9 @@ Maps[5] = {
 		{ kind = "deco", size = V(6, 18, 6), pos = V(-45, 2, -25), color = C(200, 235, 255), material = M.Ice },
 		{ kind = "deco", size = V(6, 24, 6), pos = V(48, 5, -30), color = C(200, 235, 255), material = M.Ice },
 	},
+	hazards = {
+		{ type = "icicle", interval = 5, minX = -30, maxX = 30 },
+	},
 }
 
 return Maps
@@ -198,21 +209,26 @@ local F = {}
 -- speed/jump : déplacement • airJumps : sauts en l'air
 -- weight : multiplicateur de recul SUBI (plus petit = plus lourd)
 -- power : multiplicateur de dégâts INFLIGÉS • scale : taille du perso
--- projSpeed / projPower / specialCooldown : réglages du projectile (E)
+-- special : attaque spéciale (E) -> "projectile", "dash" (Éclair), "quake" (Titan), "orb" (Mage, projectile lourd)
+-- projSpeed / projPower / specialCooldown : réglages de l'attaque spéciale
 ----------------------------------------------------------------------
 F.Characters = {
 	{ id = "Brawler", name = "Bagarreur", desc = "Équilibré, bon partout", color = C(255, 80, 80),
 		speed = 26, jump = 55, airJumps = 1, weight = 1.0, power = 1.0, scale = 1.0,
-		projSpeed = 75, projPower = 1.0, specialCooldown = 0.8 },
+		projSpeed = 75, projPower = 1.0, specialCooldown = 0.8, special = "projectile",
+		specialDesc = "Boule d'énergie" },
 	{ id = "Flash", name = "Éclair", desc = "Très rapide, 2 sauts en l'air, mais léger", color = C(255, 220, 60),
 		speed = 35, jump = 62, airJumps = 2, weight = 1.2, power = 0.85, scale = 0.85,
-		projSpeed = 90, projPower = 0.8, specialCooldown = 0.7 },
+		projSpeed = 90, projPower = 0.8, specialCooldown = 0.9, special = "dash",
+		specialDesc = "Dash éclair qui traverse et frappe" },
 	{ id = "Titan", name = "Titan", desc = "Lent mais frappe fort et dur à éjecter", color = C(120, 140, 160),
 		speed = 20, jump = 50, airJumps = 1, weight = 0.75, power = 1.3, scale = 1.25,
-		projSpeed = 60, projPower = 1.2, specialCooldown = 1.1 },
+		projSpeed = 60, projPower = 1.2, specialCooldown = 1.3, special = "quake",
+		specialDesc = "Séisme (en l'air : plonge au sol)" },
 	{ id = "Mage", name = "Mage", desc = "Projectiles rapides et puissants", color = C(170, 100, 255),
 		speed = 24, jump = 56, airJumps = 1, weight = 1.05, power = 0.9, scale = 1.0,
-		projSpeed = 110, projPower = 1.6, specialCooldown = 0.45 },
+		projSpeed = 110, projPower = 1.6, specialCooldown = 0.45, special = "orb",
+		specialDesc = "Orbe magique rapide" },
 }
 
 function F.get(id)
@@ -225,20 +241,25 @@ end
 ----------------------------------------------------------------------
 -- Poses d'attaque (angles en degrés, vers l'avant = positif)
 -- RightArm / LeftArm / RightLeg / LeftLeg : bascule avant-arrière • Waist : rotation du buste
+-- RightElbow / LeftElbow / RightKnee / LeftKnee : pliage (R15 seulement)
 -- windup = pose de préparation pendant le "startup" des smashs
 ----------------------------------------------------------------------
 F.Poses = {
-	JabSide   = { strike = { RightArm = 95, Waist = -25 } },
+	JabSide   = { windup = { RightArm = 20, RightElbow = 90 }, strike = { RightArm = 95, RightElbow = 0, LeftArm = -20, Waist = -25 } },
 	JabUp     = { strike = { RightArm = 175, LeftArm = 40 } },
-	JabDown   = { strike = { RightLeg = 70, LeftArm = 40 } },
-	AirDown   = { strike = { RightLeg = -10, LeftLeg = -10, RightArm = 150, LeftArm = 150 } },
-	SmashSide = { windup = { RightArm = -70, LeftArm = 30, Waist = 35 }, strike = { RightArm = 100, LeftArm = 100, Waist = -35 } },
+	JabDown   = { strike = { RightLeg = 70, RightKnee = 0, LeftKnee = 40, LeftArm = 40 } },
+	AirDown   = { windup = { RightKnee = 90, LeftKnee = 90 }, strike = { RightLeg = -10, LeftLeg = -10, RightKnee = 0, LeftKnee = 0, RightArm = 150, LeftArm = 150 } },
+	SmashSide = { windup = { RightArm = -70, LeftArm = 30, RightElbow = 60, Waist = 35, LeftKnee = 30 }, strike = { RightArm = 100, LeftArm = 100, RightElbow = 0, Waist = -35, LeftKnee = 0, RightLeg = -25 } },
 	SmashUp   = { windup = { RightArm = -40, LeftArm = -40 }, strike = { RightArm = 180, LeftArm = 180 } },
 	SmashDown = { windup = { RightLeg = 30 }, strike = { RightLeg = 80, LeftLeg = -50, RightArm = 60, LeftArm = 60 } },
 	Special   = { strike = { RightArm = 90, LeftArm = 90 } },
 	SpecialUp = { strike = { RightArm = 180, LeftArm = 180, RightLeg = 20 } },
 	Shield    = { strike = { RightArm = 70, LeftArm = 70 }, hold = true },
 	Ledge     = { strike = { RightArm = 170, LeftArm = 170 }, hold = true },
+	Hurt      = { strike = { RightArm = 140, LeftArm = 140, RightLeg = -30, LeftLeg = 30, Waist = 20 } },
+	Dash      = { strike = { RightArm = -60, LeftArm = -60, RightLeg = -40, LeftLeg = 40, Waist = 0 } },
+	Quake     = { windup = { RightArm = 175, LeftArm = 175, RightKnee = 60, LeftKnee = 60 }, strike = { RightArm = 40, LeftArm = 40, RightKnee = 70, LeftKnee = 70, RightLeg = 50, LeftLeg = 50 } },
+	Victory   = { strike = { RightArm = 175, LeftArm = 20, LeftElbow = 90, RightLeg = 10 }, hold = true },
 }
 
 ----------------------------------------------------------------------
@@ -282,6 +303,8 @@ local RunService = game:GetService("RunService")
 local PhysicsService = game:GetService("PhysicsService")
 local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local DataStoreService = game:GetService("DataStoreService")
 
 local Config = require(ReplicatedStorage:WaitForChild("SmashConfig"))
 local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
@@ -310,6 +333,14 @@ state:SetAttribute("Phase", "Waiting")
 state:SetAttribute("Message", "")
 state:SetAttribute("TimeLeft", 0)
 state:SetAttribute("Map", 1)
+state:SetAttribute("Mode", "FFA")          -- "FFA" (chacun pour soi) ou "Teams" (2 équipes)
+state:SetAttribute("BotCount", Config.BOT_COUNT or 3)
+state:SetAttribute("BotLevel", "Mix")      -- Mix, Facile, Moyen, Difficile, Expert
+state:SetAttribute("Winner", "")
+state:SetAttribute("Leaderboard", "")
+local TEAM_COLORS = { Color3.fromRGB(255, 70, 70), Color3.fromRGB(70, 140, 255) }
+local TEAM_NAMES = { "ROUGE", "BLEUE" }
+local function teamsMode() return state:GetAttribute("Mode") == "Teams" end
 state.Parent = ReplicatedStorage
 
 local function setMsg(m) state:SetAttribute("Message", m) end
@@ -341,6 +372,7 @@ end
 -- Maps
 ----------------------------------------------------------------------
 local arena, platformsFolder, solidsFolder
+local startHazards -- défini plus bas (pièges)
 local curMap = Maps[1]
 
 local function loadMap(index)
@@ -367,6 +399,12 @@ local function loadMap(index)
 		p.Position = O + d.pos
 		p.Color = d.color
 		p.Material = d.material or Enum.Material.SmoothPlastic
+		if d.move then
+			p:SetAttribute("MoveBase", p.Position)
+			p:SetAttribute("MoveOffset", d.move.offset)
+			p:SetAttribute("MovePeriod", d.move.period)
+			p:AddTag("SmashMoving")
+		end
 		if d.kind == "platform" then
 			p.Name = "Platform"
 			p.CollisionGroup = "Platforms"
@@ -427,6 +465,25 @@ local function loadMap(index)
 	for _, p in ipairs(platformsFolder:GetChildren()) do
 		local front = p.Position.Z + p.Size.Z / 2
 		p.Color = p.Color:Lerp(accent, 0.25)
+		if p:HasTag("SmashMoving") then
+			-- plateforme mobile : le liseré est soudé dessus pour bouger avec elle
+			local trim = Instance.new("Part")
+			trim.Name = "Detail"
+			trim.Anchored = false
+			trim.Massless = true
+			trim.CanCollide = false
+			trim.CanQuery = false
+			trim.CanTouch = false
+			trim.Material = Enum.Material.Neon
+			trim.Color = accent
+			trim.Size = Vector3.new(p.Size.X - 1, 0.3, p.Size.Z - 1)
+			trim.CFrame = p.CFrame * CFrame.new(0, -p.Size.Y / 2 - 0.15, 0)
+			local w = Instance.new("WeldConstraint")
+			w.Part0, w.Part1 = trim, p
+			w.Parent = trim
+			trim.Parent = p
+			continue
+		end
 		-- dessous lumineux de la couleur de la map
 		deco(Vector3.new(p.Size.X - 1, 0.3, p.Size.Z - 1), CFrame.new(p.Position - Vector3.new(0, p.Size.Y / 2 + 0.15, 0)), accent, Enum.Material.Neon, 0.2)
 		deco(Vector3.new(p.Size.X + 0.2, 0.3, 0.3), CFrame.new(p.Position.X, p.Position.Y + p.Size.Y / 2 - 0.1, front + 0.05), Color3.new(1, 1, 1), Enum.Material.Neon)
@@ -487,6 +544,7 @@ local function loadMap(index)
 	Lighting.FogStart = 150
 	Lighting.FogEnd = 600
 
+	if startHazards then startHazards() end
 	state:SetAttribute("Map", index)
 	state:SetAttribute("MapName", curMap.name)
 	state:SetAttribute("BlastX", curMap.blast.x)
@@ -702,7 +760,7 @@ local function setupCharacter(f, model)
 	local outline = model:FindFirstChild("SmashOutline") or Instance.new("Highlight")
 	outline.Name = "SmashOutline"
 	outline.FillTransparency = 1
-	outline.OutlineColor = f.info:GetAttribute("Color")
+	outline.OutlineColor = (teamsMode() and f.team) and TEAM_COLORS[f.team] or f.info:GetAttribute("Color")
 	outline.OutlineTransparency = 0
 	outline.DepthMode = Enum.HighlightDepthMode.Occluded
 	outline.Parent = model
@@ -758,12 +816,13 @@ end
 ----------------------------------------------------------------------
 -- Dégâts + recul
 ----------------------------------------------------------------------
-local freeze, impactBurst, smokeTrail
+local freeze, impactBurst, smokeTrail, dashAttack, quakeAttack
 
 local function applyKnockback(target, vel, hitstun)
 	local root = rootOf(target)
 	if not root then return end
 	target.stunUntil = os.clock() + hitstun
+	if hitstun > 0.3 and target.model then knockRemote:FireAllClients("Pose", target.model, "Hurt") end
 	if target.player then
 		knockRemote:FireClient(target.player, "Knock", vel, hitstun)
 	else
@@ -871,6 +930,7 @@ end
 
 local function hit(attacker, target, data, facing, mult, fromPos)
 	if target == attacker or not alive(target) then return end
+	if teamsMode() and attacker.team and attacker.team == target.team then return end -- pas de tir ami
 	if os.clock() < target.invincibleUntil then return end
 	local troot = rootOf(target)
 
@@ -929,7 +989,7 @@ local function charactersList(except)
 	return list
 end
 
-local function hitboxAt(attacker, data, facing, mult)
+local function hitboxAt(attacker, data, facing, mult, already)
 	local root = rootOf(attacker)
 	if not root then return end
 	local center = root.Position + Vector3.new(data.offset.X * facing, data.offset.Y, 0)
@@ -939,7 +999,7 @@ local function hitboxAt(attacker, data, facing, mult)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = charactersList(attacker)
-	local done = {}
+	local done = already or {}
 	for _, p in ipairs(workspace:GetPartBoundsInBox(cf, data.size, params)) do
 		local model = p:FindFirstAncestorOfClass("Model")
 		local target = model and fighterByModel[model]
@@ -950,7 +1010,7 @@ local function hitboxAt(attacker, data, facing, mult)
 	end
 end
 
-local function fireProjectile(attacker, facing)
+local function fireProjectile(attacker, facing, big)
 	local root = rootOf(attacker)
 	if not root then return end
 	local base = Config.ATTACKS.Special
@@ -960,9 +1020,14 @@ local function fireProjectile(attacker, facing)
 	data.base = base.base * attacker.char.projPower
 	local ball = Instance.new("Part")
 	ball.Shape = Enum.PartType.Ball
-	ball.Size = Vector3.new(2.2, 2.2, 2.2)
-	ball.Material = Enum.Material.Neon
-	ball.Color = attacker.info:GetAttribute("Color")
+	ball.Size = big and Vector3.new(3.2, 3.2, 3.2) or Vector3.new(2.2, 2.2, 2.2)
+	ball.Material = big and Enum.Material.ForceField or Enum.Material.Neon
+	ball.Color = big and attacker.char.color or attacker.info:GetAttribute("Color")
+	if big then
+		local sp = Instance.new("Sparkles")
+		sp.SparkleColor = attacker.char.color
+		sp.Parent = ball
+	end
 	ball.Anchored = true
 	ball.CanCollide = false
 	ball.CanQuery = false
@@ -995,6 +1060,103 @@ local function fireProjectile(attacker, facing)
 			conn:Disconnect()
 			ball:Destroy()
 		end
+	end)
+end
+
+----------------------------------------------------------------------
+-- Attaques spéciales propres à chaque personnage
+----------------------------------------------------------------------
+local DASH_DATA = { dmg = 9, base = 26, growth = 0.55, angle = 30, offset = Vector2.new(1.5, 0), size = Vector3.new(6, 5, 6) }
+local QUAKE_DATA = { dmg = 12, base = 30, growth = 0.8, angle = 62, offset = Vector2.new(0, -1.5), size = Vector3.new(20, 4, 6), bothSides = true }
+
+function dashAttack(f, facing)
+	local root = rootOf(f)
+	if not root then return end
+	knockRemote:FireAllClients("Pose", f.model, "Dash")
+	if f.player then
+		knockRemote:FireClient(f.player, "Dash", facing)
+	else
+		root.AssemblyLinearVelocity = Vector3.new(facing * 110, 4, 0)
+	end
+	-- traînée lumineuse
+	local trail = Instance.new("ParticleEmitter")
+	trail.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	trail.Color = ColorSequence.new(f.char.color)
+	trail.LightEmission = 1
+	trail.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 0) })
+	trail.Lifetime = NumberRange.new(0.25, 0.4)
+	trail.Rate = 120
+	trail.Speed = NumberRange.new(0, 1)
+	trail.Parent = root
+	Debris:AddItem(trail, 0.3)
+	local already = {}
+	task.spawn(function()
+		for _ = 1, 6 do
+			if not f.model or f.koing then break end
+			hitboxAt(f, DASH_DATA, facing, 1, already)
+			task.wait(0.04)
+		end
+		if not f.player and rootOf(f) then
+			local v = root.AssemblyLinearVelocity
+			root.AssemblyLinearVelocity = Vector3.new(v.X * 0.25, v.Y, 0)
+		end
+	end)
+end
+
+local function shockwave(f)
+	local root = rootOf(f)
+	if not root then return end
+	knockRemote:FireAllClients("Pose", f.model, "Quake")
+	hitboxAt(f, QUAKE_DATA, 1, 1)
+	knockRemote:FireAllClients("Shake", 1)
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = f.char.color
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 3, 3)
+	ring.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.8, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.3), { Size = Vector3.new(0.4, 24, 24), Transparency = 1 }):Play()
+	Debris:AddItem(ring, 0.35)
+	local dust = Instance.new("ParticleEmitter")
+	dust.Color = ColorSequence.new(Color3.fromRGB(160, 140, 120))
+	dust.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 5) })
+	dust.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+	dust.Lifetime = NumberRange.new(0.5, 0.8)
+	dust.Speed = NumberRange.new(15, 25)
+	dust.SpreadAngle = Vector2.new(10, 80)
+	dust.Rate = 0
+	dust.Parent = ring
+	dust:Emit(25)
+end
+
+function quakeAttack(f, airborne)
+	local root, hum = rootOf(f), humOf(f)
+	if not root then return end
+	if not airborne then
+		task.delay(0.15, function() shockwave(f) end)
+		knockRemote:FireAllClients("Pose", f.model, "Quake")
+		return
+	end
+	-- en l'air : plongée vers le sol puis séisme à l'atterrissage
+	if f.player then
+		knockRemote:FireClient(f.player, "Dive")
+	else
+		root.AssemblyLinearVelocity = Vector3.new(0, -130, 0)
+	end
+	task.spawn(function()
+		local t0 = os.clock()
+		while os.clock() - t0 < 1 do
+			task.wait(0.03)
+			if not f.model or f.koing or not hum.Parent then return end
+			if hum.FloorMaterial ~= Enum.Material.Air then break end
+		end
+		if os.clock() - t0 < 1 then shockwave(f) end
 	end)
 end
 
@@ -1035,8 +1197,15 @@ local function doAction(f, kind, dir, facing, charge)
 			name = "SpecialUp" -- le super saut lui-même est appliqué par le client / le bot
 		else
 			f.cooldownUntil = now + f.char.specialCooldown
-			knockRemote:FireAllClients("Pose", f.model, "Special")
-			fireProjectile(f, facing)
+			local sp = f.char.special
+			if sp == "dash" then
+				dashAttack(f, facing)
+			elseif sp == "quake" then
+				quakeAttack(f, airborne)
+			else
+				knockRemote:FireAllClients("Pose", f.model, "Special")
+				fireProjectile(f, facing, sp == "orb")
+			end
 			return
 		end
 	else
@@ -1085,12 +1254,19 @@ end
 -- Vote de map
 ----------------------------------------------------------------------
 local votes = {} -- player -> index (0 = aléatoire)
+local modeVotes = {} -- player -> "FFA" / "Teams"
 
 local function refreshVotes()
 	for i = 0, #Maps do state:SetAttribute("Vote" .. i, 0) end
 	for _, idx in pairs(votes) do
 		state:SetAttribute("Vote" .. idx, (state:GetAttribute("Vote" .. idx) or 0) + 1)
 	end
+	local ffa, teams = 0, 0
+	for _, m in pairs(modeVotes) do
+		if m == "Teams" then teams += 1 else ffa += 1 end
+	end
+	state:SetAttribute("VoteFFA", ffa)
+	state:SetAttribute("VoteTeams", teams)
 end
 
 actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
@@ -1142,6 +1318,25 @@ actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
 				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
 			else
 				placeAt(f, spawnPos(f.slot))
+			end
+		end
+		return
+	end
+	if kind == "VoteMode" then
+		if phase() == "Vote" and (dir == "FFA" or dir == "Teams") then
+			modeVotes[player] = dir
+			refreshVotes()
+		end
+		return
+	end
+	if kind == "BotSettings" then
+		local ph = phase()
+		if ph == "Waiting" or ph == "Vote" or ph == "End" or ph == "Training" then
+			local n = tonumber(dir)
+			if n then state:SetAttribute("BotCount", math.clamp(math.floor(n), 0, 5)) end
+			local lvl = facing
+			if lvl == "Mix" or lvl == "Facile" or lvl == "Moyen" or lvl == "Difficile" or lvl == "Expert" then
+				state:SetAttribute("BotLevel", lvl)
 			end
 		end
 		return
@@ -1325,7 +1520,89 @@ end
 ----------------------------------------------------------------------
 -- Joueurs
 ----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Statistiques sauvegardées (DataStore) + classement
+-- Dans Studio : Paramètres du jeu > Sécurité > "Enable Studio Access to API Services"
+----------------------------------------------------------------------
+local statsStore, winsBoard
+pcall(function()
+	statsStore = DataStoreService:GetDataStore("SmashStats_v1")
+	winsBoard = DataStoreService:GetOrderedDataStore("SmashWins_v1")
+end)
+local playerStats = {} -- player -> { wins, kos, matches }
+
+local function loadStats(player)
+	local data = { wins = 0, kos = 0, matches = 0 }
+	if statsStore then
+		local ok, saved = pcall(function() return statsStore:GetAsync("u" .. player.UserId) end)
+		if ok and type(saved) == "table" then
+			data.wins = tonumber(saved.wins) or 0
+			data.kos = tonumber(saved.kos) or 0
+			data.matches = tonumber(saved.matches) or 0
+		end
+	end
+	playerStats[player] = data
+	local ls = Instance.new("Folder")
+	ls.Name = "leaderstats"
+	for _, pair in ipairs({ { "Victoires", "wins" }, { "KO", "kos" }, { "Matchs", "matches" } }) do
+		local v = Instance.new("IntValue")
+		v.Name = pair[1]
+		v.Value = data[pair[2]]
+		v.Parent = ls
+	end
+	ls.Parent = player
+end
+
+local function refreshLeaderstats(player)
+	local data = playerStats[player]
+	local ls = player:FindFirstChild("leaderstats")
+	if not data or not ls then return end
+	ls.Victoires.Value = data.wins
+	ls.KO.Value = data.kos
+	ls.Matchs.Value = data.matches
+end
+
+local function saveStats(player)
+	local data = playerStats[player]
+	if not data then return end
+	if statsStore then
+		pcall(function() statsStore:SetAsync("u" .. player.UserId, data) end)
+	end
+	if winsBoard then
+		pcall(function() winsBoard:SetAsync(tostring(player.UserId), data.wins) end)
+	end
+end
+
+local nameCache = {}
+local function refreshLeaderboard()
+	if not winsBoard then
+		state:SetAttribute("Leaderboard", "(Active l'accès aux API dans Studio pour le classement)")
+		return
+	end
+	local ok, pages = pcall(function() return winsBoard:GetSortedAsync(false, 10) end)
+	if not ok then return end
+	local lines = {}
+	for i, entry in ipairs(pages:GetCurrentPage()) do
+		local uid = tonumber(entry.key)
+		local name = uid and nameCache[uid]
+		if uid and not name then
+			local okName, n = pcall(function() return Players:GetNameFromUserIdAsync(uid) end)
+			name = okName and n or ("#" .. uid)
+			nameCache[uid] = name
+		end
+		table.insert(lines, string.format("%d. %s — %d victoire%s", i, name or "?", entry.value, entry.value > 1 and "s" or ""))
+	end
+	state:SetAttribute("Leaderboard", #lines > 0 and table.concat(lines, "\n") or "Aucune victoire pour l'instant !")
+end
+task.spawn(function()
+	while true do
+		refreshLeaderboard()
+		task.wait(60)
+	end
+end)
+
 local function onPlayer(player)
+	task.spawn(loadStats, player)
 	local f = newFighter("P" .. player.UserId, player.DisplayName, player)
 	setMenu(f, true) -- commence sur le menu
 	setInRound(f, false)
@@ -1348,6 +1625,9 @@ Players.PlayerAdded:Connect(onPlayer)
 for _, p in ipairs(Players:GetPlayers()) do onPlayer(p) end
 Players.PlayerRemoving:Connect(function(player)
 	votes[player] = nil
+	modeVotes[player] = nil
+	task.spawn(saveStats, player)
+	task.delay(5, function() playerStats[player] = nil end)
 	local f = fighters["P" .. player.UserId]
 	if f then removeFighter(f) end
 	if phase() == "Vote" then refreshVotes() end
@@ -1553,7 +1833,7 @@ local function botThink(f)
 	-- cible la plus proche
 	local target, best = nil, math.huge
 	for _, o in pairs(fighters) do
-		if o ~= f and alive(o) and not rootOf(o).Anchored then
+		if o ~= f and alive(o) and not rootOf(o).Anchored and not (teamsMode() and o.team and o.team == f.team) then
 			local d = (rootOf(o).Position - pos).Magnitude
 			if d < best then best, target = d, o end
 		end
@@ -1908,19 +2188,49 @@ local function trainingCount()
 	return n
 end
 
+local function botDefFor(i)
+	local level = state:GetAttribute("BotLevel") or "Mix"
+	if level == "Mix" then
+		return Config.BOTS[((i - 1) % #Config.BOTS) + 1], false
+	end
+	for _, d in ipairs(Config.BOTS) do
+		if d.name == "CPU " .. level then return d, true end
+	end
+	return Config.BOTS[1], false
+end
+
 local function setupBots()
-	local want = Config.FILL_WITH_BOTS or humanCount() < 2
 	if fighters["BAG"] then despawnBot(fighters["BAG"]) end
-	for i, def in ipairs(Config.BOTS) do
-		local id = "CPU" .. i
-		if i > (Config.BOT_COUNT or #Config.BOTS) then
-			if fighters[id] then despawnBot(fighters[id]) end
-			continue
-		end
-		if want and not fighters[id] then
-			spawnBot(i, def)
-		elseif not want and fighters[id] then
-			despawnBot(fighters[id])
+	-- on recrée les bots à chaque manche (nouveau perso au hasard, réglages à jour)
+	for _, b in pairs(bots) do despawnBot(b) end
+	local want = Config.FILL_WITH_BOTS or humanCount() < 2
+	if not want then return end
+	local count = state:GetAttribute("BotCount") or 3
+	for i = 1, count do
+		local def, numbered = botDefFor(i)
+		def = table.clone(def)
+		if numbered then def.name = def.name .. " " .. i end
+		spawnBot(i, def)
+	end
+	task.wait(0.4)
+end
+
+local function assignTeams()
+	local list = {}
+	for _, f in pairs(fighters) do
+		if f.inRound then table.insert(list, f) end
+	end
+	-- humains d'abord (répartis), puis les bots
+	table.sort(list, function(a, b)
+		if (a.player ~= nil) ~= (b.player ~= nil) then return a.player ~= nil end
+		return a.slot < b.slot
+	end)
+	for i, f in ipairs(list) do
+		f.team = teamsMode() and (((i - 1) % 2) + 1) or nil
+		f.info:SetAttribute("Team", f.team or 0)
+		local outline = f.model and f.model:FindFirstChild("SmashOutline")
+		if outline then
+			outline.OutlineColor = f.team and TEAM_COLORS[f.team] or f.info:GetAttribute("Color")
 		end
 	end
 end
@@ -1950,6 +2260,7 @@ local function startRound()
 		placeAt(f, spawnPos(f.slot), true) -- figé pendant le compte à rebours
 		giveInvincibility(f, 1)
 	end
+	assignTeams()
 end
 
 -- libère tout le monde au "GO !"
@@ -1975,6 +2286,142 @@ local function results()
 		return a.kos > b.kos
 	end)
 	return list
+end
+
+----------------------------------------------------------------------
+-- Plateformes mobiles (même formule sur le serveur et les clients)
+----------------------------------------------------------------------
+local CollectionService = game:GetService("CollectionService")
+RunService.Heartbeat:Connect(function()
+	local t = workspace:GetServerTimeNow()
+	for _, p in ipairs(CollectionService:GetTagged("SmashMoving")) do
+		local base, offset, period = p:GetAttribute("MoveBase"), p:GetAttribute("MoveOffset"), p:GetAttribute("MovePeriod")
+		if base and offset and period then
+			local w = 2 * math.pi / period
+			p.CFrame = CFrame.new(base + offset * math.sin(t * w))
+			p.AssemblyLinearVelocity = offset * w * math.cos(t * w)
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Pièges (geysers de lave, stalactites)
+----------------------------------------------------------------------
+local hazardToken = nil
+
+local function envHit(pos, radiusBox, dmg, base, growth, angleDeg, fixedDir)
+	for _, f in pairs(fighters) do
+		local r = rootOf(f)
+		if r and alive(f) and f.inRound and os.clock() >= f.invincibleUntil then
+			local d = r.Position - pos
+			if math.abs(d.X) <= radiusBox.X / 2 and math.abs(d.Y) <= radiusBox.Y / 2 then
+				if f.shielding then
+					f.shieldHp -= dmg * 2
+				else
+					f.damage = math.min(999, f.damage + dmg)
+					sync(f)
+					local dir = fixedDir or math.sign(d.X)
+					if dir == 0 then dir = 1 end
+					local a = math.rad(angleDeg)
+					local power = (base + f.damage * growth) * f.char.weight
+					applyKnockback(f, Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power,
+						math.clamp(power * Config.HITSTUN_FACTOR, 0.2, Config.HITSTUN_MAX))
+					knockRemote:FireAllClients("DmgNum", r.Position, dmg, power > 70)
+				end
+			end
+		end
+	end
+end
+
+local function hazardPart(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	for k, v in pairs(props) do p[k] = v end
+	p.Parent = arena
+	return p
+end
+
+local function geyser(h)
+	local x = O.X + h.x
+	local top = O.Y
+	-- avertissement : le sol bouillonne
+	local warn = hazardPart({ Size = Vector3.new(7, 0.3, 8), Position = Vector3.new(x, top + 0.2, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 120, 30), Transparency = 0.4 })
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	bubbles.Color = ColorSequence.new(Color3.fromRGB(255, 160, 40))
+	bubbles.LightEmission = 1
+	bubbles.Size = NumberSequence.new(0.6)
+	bubbles.Lifetime = NumberRange.new(0.3, 0.6)
+	bubbles.Speed = NumberRange.new(4, 10)
+	bubbles.EmissionDirection = Enum.NormalId.Top
+	bubbles.Rate = 40
+	bubbles.Parent = warn
+	for _ = 1, 6 do
+		warn.Transparency = warn.Transparency == 0.4 and 0.1 or 0.4
+		task.wait(0.2)
+	end
+	warn:Destroy()
+	if not combat() then return end
+	-- éruption
+	local pillar = hazardPart({ Size = Vector3.new(6, 2, 6), Position = Vector3.new(x, top + 1, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 90, 20), Transparency = 0.15 })
+	TweenService:Create(pillar, TweenInfo.new(0.15), { Size = Vector3.new(6, 34, 6), Position = Vector3.new(x, top + 17, O.Z) }):Play()
+	knockRemote:FireAllClients("Shake", 0.6)
+	for _ = 1, 4 do
+		envHit(Vector3.new(x, top + 17, O.Z), Vector3.new(7, 34, 0), 12, 45, 0.6, 88)
+		task.wait(0.15)
+	end
+	TweenService:Create(pillar, TweenInfo.new(0.3), { Transparency = 1, Size = Vector3.new(2, 34, 2) }):Play()
+	Debris:AddItem(pillar, 0.35)
+end
+
+local function icicle(h)
+	local x = O.X + math.random(h.minX, h.maxX)
+	local top = O.Y
+	local shadow = hazardPart({ Size = Vector3.new(4, 0.3, 4), Position = Vector3.new(x, top + 0.2, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 60, 60), Transparency = 0.5 })
+	local ice = hazardPart({ Size = Vector3.new(2.5, 6, 2.5), Position = Vector3.new(x, top + 60, O.Z),
+		Material = Enum.Material.Ice, Color = Color3.fromRGB(200, 240, 255) })
+	task.wait(1)
+	shadow:Destroy()
+	if not combat() then ice:Destroy() return end
+	TweenService:Create(ice, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = Vector3.new(x, top + 3, O.Z) }):Play()
+	task.wait(0.45)
+	envHit(Vector3.new(x, top + 4, O.Z), Vector3.new(6, 8, 0), 10, 30, 0.55, 70)
+	local shards = Instance.new("ParticleEmitter")
+	shards.Color = ColorSequence.new(Color3.fromRGB(220, 245, 255))
+	shards.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	shards.Lifetime = NumberRange.new(0.3, 0.6)
+	shards.Speed = NumberRange.new(15, 30)
+	shards.SpreadAngle = Vector2.new(70, 70)
+	shards.EmissionDirection = Enum.NormalId.Top
+	shards.Acceleration = Vector3.new(0, -60, 0)
+	shards.Rate = 0
+	shards.Parent = ice
+	shards:Emit(20)
+	ice.Transparency = 1
+	Debris:AddItem(ice, 0.7)
+end
+
+function startHazards()
+	local token = {}
+	hazardToken = token
+	for _, h in ipairs(curMap.hazards or {}) do
+		task.spawn(function()
+			task.wait((h.offset or 0) + h.interval)
+			while hazardToken == token do
+				if combat() then
+					if h.type == "geyser" then geyser(h) elseif h.type == "icicle" then icicle(h) end
+				end
+				task.wait(h.interval)
+			end
+		end)
+	end
 end
 
 ----------------------------------------------------------------------
@@ -2044,6 +2491,7 @@ task.spawn(function()
 
 		-- 2) vote de la map
 		votes = {}
+		modeVotes = {}
 		refreshVotes()
 		state:SetAttribute("Phase", "Vote")
 		setMsg("")
@@ -2052,6 +2500,8 @@ task.spawn(function()
 			task.wait(1)
 		end
 		local idx = pickMap()
+		local ffaVotes, teamVotes = state:GetAttribute("VoteFFA") or 0, state:GetAttribute("VoteTeams") or 0
+		state:SetAttribute("Mode", teamVotes > ffaVotes and "Teams" or "FFA")
 		clearItems()
 		loadMap(idx)
 		setupBots()
@@ -2061,7 +2511,7 @@ task.spawn(function()
 		startRound()
 		state:SetAttribute("Phase", "Countdown")
 		state:SetAttribute("TimeLeft", Config.ROUND_TIME)
-		setMsg(curMap.name)
+		setMsg(curMap.name .. (teamsMode() and "\nÉQUIPES" or ""))
 		task.wait(1.2)
 		for i = 3, 1, -1 do setMsg(tostring(i)) task.wait(0.8) end
 		releaseAll()
@@ -2090,7 +2540,15 @@ task.spawn(function()
 					end
 				end
 			end
-			if total >= 2 and alivers <= 1 then task.wait(1.2) break end -- laisser finir l'anim de KO
+			if teamsMode() then
+				local teamsAlive = {}
+				for _, f in pairs(fighters) do
+					if f.inRound and f.stocks > 0 and f.team then teamsAlive[f.team] = true end
+				end
+				local n = 0
+				for _ in pairs(teamsAlive) do n += 1 end
+				if total >= 2 and n <= 1 then task.wait(1.2) break end
+			elseif total >= 2 and alivers <= 1 then task.wait(1.2) break end -- laisser finir l'anim de KO
 			if humansLeft == 0 then task.wait(1.2) break end -- plus aucun joueur humain en vie
 		end
 
@@ -2103,9 +2561,50 @@ task.spawn(function()
 			if i > 4 then break end
 			table.insert(lines, string.format("%d. %s  (%d vie%s, %d KO)", i, f.name, f.stocks, f.stocks > 1 and "s" or "", f.kos))
 		end
+		-- vainqueur(s)
+		local winners = {}
+		local winnerText = "Partie terminée"
+		if ranking[1] then
+			if teamsMode() and ranking[1].team then
+				local wt = ranking[1].team
+				for _, f in ipairs(ranking) do
+					if f.team == wt then table.insert(winners, f) end
+				end
+				winnerText = "🏆 ÉQUIPE " .. TEAM_NAMES[wt] .. " GAGNE !"
+			else
+				winners = { ranking[1] }
+				winnerText = "🏆 " .. ranking[1].name .. " GAGNE !"
+			end
+		end
+		local ids = {}
+		for _, w in ipairs(winners) do
+			table.insert(ids, w.id)
+			if w.model then knockRemote:FireAllClients("Pose", w.model, "Victory") end
+		end
+		setMsg(winnerText)
 		state:SetAttribute("Results", table.concat(lines, "\n"))
-		setMsg(ranking[1] and ("🏆 " .. ranking[1].name .. " GAGNE !") or "Partie terminée")
+		state:SetAttribute("Winner", table.concat(ids, ","))
+
+		-- statistiques
+		local isWinner = {}
+		for _, w in ipairs(winners) do isWinner[w] = true end
+		for _, f in pairs(fighters) do
+			if f.player and f.inRound and playerStats[f.player] then
+				local data = playerStats[f.player]
+				data.matches += 1
+				data.kos += f.kos
+				if isWinner[f] then data.wins += 1 end
+				refreshLeaderstats(f.player)
+				task.spawn(saveStats, f.player)
+			end
+		end
+		task.delay(3, refreshLeaderboard)
+
 		task.wait(Config.INTERMISSION)
+		for _, w in ipairs(winners) do
+			if w.model then knockRemote:FireAllClients("Pose", w.model, "ShieldEnd") end
+		end
+		state:SetAttribute("Winner", "")
 		state:SetAttribute("Results", "")
 	end
 end)
@@ -2311,6 +2810,20 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 	elseif kind == "DmgNum" then
 		if fx.dmgNum then fx.dmgNum(a, b, c) end
 		return
+	elseif kind == "Dash" then
+		local _, r = getChar()
+		if r and not r.Anchored then
+			r.AssemblyLinearVelocity = Vector3.new(a * 110, 4, 0)
+			task.delay(0.24, function()
+				local v = r.AssemblyLinearVelocity
+				r.AssemblyLinearVelocity = Vector3.new(v.X * 0.25, v.Y, 0)
+			end)
+		end
+		return
+	elseif kind == "Dive" then
+		local _, r = getChar()
+		if r and not r.Anchored then r.AssemblyLinearVelocity = Vector3.new(0, -130, 0) end
+		return
 	elseif kind == "Pose" then
 		if fx.pose then fx.pose(a, b) end
 		return
@@ -2424,7 +2937,21 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 	camera.CameraType = Enum.CameraType.Scriptable
 	local targetFocus, targetDist = O + Vector3.new(0, 12, 0), Config.CAMERA_FIXED_DIST
 
-	if Config.CAMERA_FOLLOW then
+	local winnerIds = state:GetAttribute("Winner") or ""
+	if state:GetAttribute("Phase") == "End" and winnerIds ~= "" then
+		-- écran de victoire : zoom sur le(s) gagnant(s)
+		local sum, n = Vector3.zero, 0
+		for id in string.gmatch(winnerIds, "[^,]+") do
+			local info = state:FindFirstChild(id)
+			local ref = info and info:FindFirstChild("Character")
+			local r = ref and ref.Value and ref.Value:FindFirstChild("HumanoidRootPart")
+			if r then sum += r.Position n += 1 end
+		end
+		if n > 0 then
+			targetFocus = sum / n + Vector3.new(0, 1, 0)
+			targetDist = n > 1 and 22 or 13
+		end
+	elseif Config.CAMERA_FOLLOW then
 		local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
 		local n = 0
 		for _, info in ipairs(state:GetChildren()) do
@@ -2665,6 +3192,10 @@ local function makeCard(info)
 		local dmg = info:GetAttribute("Damage") or 0
 		local st = info:GetAttribute("Stocks") or 0
 		card.LayoutOrder = info:GetAttribute("Slot") or 0
+		local team = info:GetAttribute("Team") or 0
+		if state:GetAttribute("Mode") == "Teams" and team > 0 then
+			c = team == 1 and Color3.fromRGB(255, 70, 70) or Color3.fromRGB(70, 140, 255)
+		end
 		stroke.Color = c
 		pStroke.Color = c
 		grad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1):Lerp(c, 0.5))
@@ -2808,8 +3339,9 @@ voteFrame.BackgroundTransparency = 0.15
 voteFrame.Visible = false
 voteFrame.Parent = gui
 Instance.new("UICorner", voteFrame).CornerRadius = UDim.new(0, 14)
+voteFrame.Size = UDim2.new(0.9, 0, 0, 350)
 local sizeLimit = Instance.new("UISizeConstraint", voteFrame)
-sizeLimit.MaxSize = Vector2.new(1000, 290)
+sizeLimit.MaxSize = Vector2.new(1000, 350)
 
 local voteTitle = Instance.new("TextLabel")
 voteTitle.BackgroundTransparency = 1
@@ -2825,7 +3357,7 @@ local list = Instance.new("ScrollingFrame")
 list.BackgroundTransparency = 1
 list.BorderSizePixel = 0
 list.Position = UDim2.new(0, 12, 0, 60)
-list.Size = UDim2.new(1, -24, 1, -72)
+list.Size = UDim2.new(1, -24, 1, -132)
 list.ScrollingDirection = Enum.ScrollingDirection.X
 list.AutomaticCanvasSize = Enum.AutomaticSize.X
 list.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -2931,6 +3463,52 @@ local function refreshVote()
 end
 state.AttributeChanged:Connect(refreshVote)
 refreshVote()
+
+-- choix du mode : chacun pour soi / équipes
+local modeRow = Instance.new("Frame")
+modeRow.BackgroundTransparency = 1
+modeRow.AnchorPoint = Vector2.new(0.5, 1)
+modeRow.Position = UDim2.new(0.5, 0, 1, -10)
+modeRow.Size = UDim2.new(1, -24, 0, 48)
+modeRow.Parent = voteFrame
+local modeLayout = Instance.new("UIListLayout", modeRow)
+modeLayout.FillDirection = Enum.FillDirection.Horizontal
+modeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+modeLayout.Padding = UDim.new(0, 12)
+local modeButtons = {}
+local myMode = nil
+for _, m in ipairs({ { "FFA", "Chacun pour soi", Color3.fromRGB(230, 200, 60) }, { "Teams", "Équipes (Rouge vs Bleu)", Color3.fromRGB(90, 140, 255) } }) do
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(0, 280, 1, 0)
+	b.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Parent = modeRow
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+	local st = Instance.new("UIStroke", b)
+	st.Color = m[3]
+	st.Thickness = 2
+	st.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	local pad = Instance.new("UIPadding", b)
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10)
+	b.MouseButton1Click:Connect(function()
+		myMode = m[1]
+		actionRemote:FireServer("VoteMode", m[1])
+		for id, mb in pairs(modeButtons) do mb.stroke.Thickness = id == myMode and 5 or 2 end
+	end)
+	modeButtons[m[1]] = { button = b, stroke = st, label = m[2] }
+end
+local function refreshModeVotes()
+	if state:GetAttribute("Phase") ~= "Vote" then
+		myMode = nil
+		for _, mb in pairs(modeButtons) do mb.stroke.Thickness = 2 end
+	end
+	modeButtons.FFA.button.Text = modeButtons.FFA.label .. "  (" .. (state:GetAttribute("VoteFFA") or 0) .. ")"
+	modeButtons.Teams.button.Text = modeButtons.Teams.label .. "  (" .. (state:GetAttribute("VoteTeams") or 0) .. ")"
+end
+state.AttributeChanged:Connect(refreshModeVotes)
+refreshModeVotes()
 
 ----------------------------------------------------------------------
 -- Effets de KO à l'écran
@@ -3050,7 +3628,7 @@ menuSub.Parent = menu
 
 local playButton = Instance.new("TextButton")
 playButton.AnchorPoint = Vector2.new(0.5, 0.5)
-playButton.Position = UDim2.new(0.5, 0, 0.7, 0)
+playButton.Position = UDim2.new(0.5, 0, 0.62, 0)
 playButton.Size = UDim2.new(0, 280, 0, 80)
 playButton.BackgroundColor3 = Color3.fromRGB(80, 200, 110)
 playButton.Font = Enum.Font.FredokaOne
@@ -3071,8 +3649,8 @@ playPad.PaddingBottom = UDim.new(0, 12)
 local menuInfo = Instance.new("TextLabel")
 menuInfo.BackgroundTransparency = 1
 menuInfo.AnchorPoint = Vector2.new(0.5, 0)
-menuInfo.Position = UDim2.new(0.5, 0, 0.7, 105)
-menuInfo.Size = UDim2.new(0.9, 0, 0, 120)
+menuInfo.Position = UDim2.new(0.5, 0, 0.62, 150)
+menuInfo.Size = UDim2.new(0.9, 0, 0, 70)
 menuInfo.Font = Enum.Font.Gotham
 menuInfo.TextSize = 16
 menuInfo.TextColor3 = Color3.fromRGB(200, 200, 215)
@@ -3141,7 +3719,7 @@ refreshMenu()
 local pickRow = Instance.new("Frame")
 pickRow.BackgroundTransparency = 1
 pickRow.AnchorPoint = Vector2.new(0.5, 0.5)
-pickRow.Position = UDim2.new(0.5, 0, 0.48, 0)
+pickRow.Position = UDim2.new(0.5, 0, 0.44, 0)
 pickRow.Size = UDim2.new(0.95, 0, 0, 170)
 pickRow.ZIndex = 21
 pickRow.Parent = menu
@@ -3254,6 +3832,10 @@ local JOINTS = {
 	RightLeg = { "RightHip", "Right Hip", 1 },
 	LeftLeg = { "LeftHip", "Left Hip", -1 },
 	Waist = { "Waist", nil, 0 },
+	RightElbow = { "RightElbow", nil, 0, 1 },
+	LeftElbow = { "LeftElbow", nil, 0, 1 },
+	RightKnee = { "RightKnee", nil, 0, -1 },
+	LeftKnee = { "LeftKnee", nil, 0, -1 },
 }
 local baseC0 = setmetatable({}, { __mode = "k" })
 local poseToken = setmetatable({}, { __mode = "k" })
@@ -3270,7 +3852,7 @@ local function jointOffset(jointKey, motor, deg)
 	local info = JOINTS[jointKey]
 	if jointKey == "Waist" then return CFrame.Angles(0, r, 0) end
 	if motor.Name == info[1] then
-		return CFrame.Angles(r, 0, 0) -- R15
+		return CFrame.Angles(r * (info[4] or 1), 0, 0) -- R15
 	end
 	return CFrame.Angles(0, 0, r * info[3]) -- R6
 end
@@ -3836,7 +4418,7 @@ end)
 ----------------------------------------------------------------------
 local trainButton = Instance.new("TextButton")
 trainButton.AnchorPoint = Vector2.new(0.5, 0.5)
-trainButton.Position = UDim2.new(0.5, 0, 0.7, 75)
+trainButton.Position = UDim2.new(0.5, 0, 0.62, 68)
 trainButton.Size = UDim2.new(0, 280, 0, 46)
 trainButton.BackgroundColor3 = Color3.fromRGB(70, 110, 200)
 trainButton.Font = Enum.Font.FredokaOne
@@ -3944,4 +4526,203 @@ RunService.Heartbeat:Connect(function()
 	panel.Visible = me ~= nil and me:GetAttribute("Training") == true
 	if panel.Visible then bagLabel.Text = "Sac : " .. bagDamage() .. "%" end
 end)
+
+----------------------------------------------------------------------
+-- Plateformes mobiles : même mouvement que le serveur, calculé localement (fluide)
+----------------------------------------------------------------------
+local CollectionService = game:GetService("CollectionService")
+RunService.Stepped:Connect(function()
+	local t = workspace:GetServerTimeNow()
+	for _, p in ipairs(CollectionService:GetTagged("SmashMoving")) do
+		local base, offset, period = p:GetAttribute("MoveBase"), p:GetAttribute("MoveOffset"), p:GetAttribute("MovePeriod")
+		if base and offset and period then
+			local w = 2 * math.pi / period
+			p.CFrame = CFrame.new(base + offset * math.sin(t * w))
+			p.AssemblyLinearVelocity = offset * w * math.cos(t * w)
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Écran de victoire : bannière + confettis
+----------------------------------------------------------------------
+local banner = Instance.new("Frame")
+banner.AnchorPoint = Vector2.new(0.5, 0.5)
+banner.Position = UDim2.new(-0.6, 0, 0.2, 0)
+banner.Size = UDim2.new(1.2, 0, 0, 110)
+banner.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
+banner.BorderSizePixel = 0
+banner.Rotation = -4
+banner.Visible = false
+banner.ZIndex = 8
+banner.Parent = gui
+local bannerGrad = Instance.new("UIGradient", banner)
+bannerGrad.Color = ColorSequence.new(Color3.fromRGB(255, 230, 90), Color3.fromRGB(255, 120, 30))
+local bannerText = Instance.new("TextLabel")
+bannerText.BackgroundTransparency = 1
+bannerText.Size = UDim2.new(1, 0, 1, 0)
+bannerText.Font = Enum.Font.FredokaOne
+bannerText.TextScaled = true
+bannerText.TextColor3 = Color3.new(1, 1, 1)
+bannerText.TextStrokeTransparency = 0
+bannerText.ZIndex = 9
+bannerText.Parent = banner
+local bPad = Instance.new("UIPadding", bannerText)
+bPad.PaddingTop, bPad.PaddingBottom = UDim.new(0, 14), UDim.new(0, 14)
+
+local confettiParts = {}
+local function clearConfetti()
+	for _, p in ipairs(confettiParts) do p:Destroy() end
+	confettiParts = {}
+end
+
+local function showVictory()
+	local ids = state:GetAttribute("Winner") or ""
+	if ids == "" then
+		banner.Visible = false
+		clearConfetti()
+		return
+	end
+	bannerText.Text = state:GetAttribute("Message") or "VICTOIRE !"
+	banner.Visible = true
+	banner.Position = UDim2.new(-0.6, 0, 0.2, 0)
+	TS:Create(banner, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, 0, 0.2, 0) }):Play()
+	sfx("Beep", 0.7, 0.8)
+	task.delay(0.15, function() sfx("Beep", 1.0, 0.8) end)
+	task.delay(0.3, function() sfx("Beep", 1.4, 0.9) end)
+	-- confettis au-dessus des gagnants
+	for id in string.gmatch(ids, "[^,]+") do
+		local info = state:FindFirstChild(id)
+		local ref = info and info:FindFirstChild("Character")
+		local r = ref and ref.Value and ref.Value:FindFirstChild("HumanoidRootPart")
+		if r then
+			local src = Instance.new("Part")
+			src.Anchored = true
+			src.CanCollide = false
+			src.CanQuery = false
+			src.Transparency = 1
+			src.Size = Vector3.new(12, 1, 4)
+			src.Position = r.Position + Vector3.new(0, 12, 0)
+			src.Parent = workspace
+			local e = Instance.new("ParticleEmitter")
+			e.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
+				ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 220, 60)),
+				ColorSequenceKeypoint.new(0.66, Color3.fromRGB(80, 220, 120)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 150, 255)),
+			})
+			e.Size = NumberSequence.new(0.35)
+			e.Lifetime = NumberRange.new(2, 3)
+			e.Speed = NumberRange.new(2, 6)
+			e.SpreadAngle = Vector2.new(60, 60)
+			e.EmissionDirection = Enum.NormalId.Bottom
+			e.Acceleration = Vector3.new(0, -12, 0)
+			e.RotSpeed = NumberRange.new(-200, 200)
+			e.Rotation = NumberRange.new(0, 360)
+			e.Rate = 60
+			e.LightEmission = 0.3
+			e.Parent = src
+			table.insert(confettiParts, src)
+		end
+	end
+end
+state:GetAttributeChangedSignal("Winner"):Connect(function()
+	clearConfetti()
+	showVictory()
+end)
+
+----------------------------------------------------------------------
+-- Menu : réglage des bots + classement
+----------------------------------------------------------------------
+local LEVELS = { "Mix", "Facile", "Moyen", "Difficile", "Expert" }
+local botRow = Instance.new("Frame")
+botRow.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+botRow.BackgroundTransparency = 0.2
+botRow.AnchorPoint = Vector2.new(0.5, 0)
+botRow.Position = UDim2.new(0.5, 0, 0.62, 100)
+botRow.Size = UDim2.fromOffset(420, 44)
+botRow.ZIndex = 22
+botRow.Parent = menu
+Instance.new("UICorner", botRow).CornerRadius = UDim.new(0, 10)
+local botLayout = Instance.new("UIListLayout", botRow)
+botLayout.FillDirection = Enum.FillDirection.Horizontal
+botLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+botLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+botLayout.Padding = UDim.new(0, 6)
+botLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function rowLabel(text, width, order)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Size = UDim2.fromOffset(width, 30)
+	l.Font = Enum.Font.GothamBold
+	l.TextScaled = true
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.Text = text
+	l.LayoutOrder = order
+	l.ZIndex = 23
+	l.Parent = botRow
+	return l
+end
+local function rowButton(text, width, order, onClick)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(width, 32)
+	b.BackgroundColor3 = Color3.fromRGB(60, 70, 120)
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = text
+	b.LayoutOrder = order
+	b.ZIndex = 23
+	b.Parent = botRow
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	local pad = Instance.new("UIPadding", b)
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 6), UDim.new(0, 6)
+	b.MouseButton1Click:Connect(onClick)
+	return b
+end
+local function sendBots(count, level)
+	actionRemote:FireServer("BotSettings", count, level)
+end
+rowLabel("Bots :", 60, 1)
+rowButton("-", 32, 2, function() sendBots((state:GetAttribute("BotCount") or 3) - 1, state:GetAttribute("BotLevel")) end)
+local countLabel = rowLabel("3", 30, 3)
+rowButton("+", 32, 4, function() sendBots((state:GetAttribute("BotCount") or 3) + 1, state:GetAttribute("BotLevel")) end)
+rowLabel("Niveau :", 70, 5)
+local levelButton = rowButton("Mix", 130, 6, function()
+	local cur = state:GetAttribute("BotLevel") or "Mix"
+	local idx = table.find(LEVELS, cur) or 1
+	sendBots(state:GetAttribute("BotCount") or 3, LEVELS[(idx % #LEVELS) + 1])
+end)
+local function refreshBotRow()
+	countLabel.Text = tostring(state:GetAttribute("BotCount") or 3)
+	levelButton.Text = state:GetAttribute("BotLevel") or "Mix"
+end
+state:GetAttributeChangedSignal("BotCount"):Connect(refreshBotRow)
+state:GetAttributeChangedSignal("BotLevel"):Connect(refreshBotRow)
+refreshBotRow()
+
+local board = Instance.new("TextLabel")
+board.AnchorPoint = Vector2.new(0, 0.5)
+board.Position = UDim2.new(0, 20, 0.5, 0)
+board.Size = UDim2.fromOffset(260, 260)
+board.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+board.BackgroundTransparency = 0.2
+board.Font = Enum.Font.Gotham
+board.TextSize = 15
+board.TextColor3 = Color3.new(1, 1, 1)
+board.TextXAlignment = Enum.TextXAlignment.Left
+board.TextYAlignment = Enum.TextYAlignment.Top
+board.TextWrapped = true
+board.ZIndex = 22
+board.Parent = menu
+Instance.new("UICorner", board).CornerRadius = UDim.new(0, 12)
+local boardPad = Instance.new("UIPadding", board)
+boardPad.PaddingLeft, boardPad.PaddingTop, boardPad.PaddingRight = UDim.new(0, 12), UDim.new(0, 10), UDim.new(0, 12)
+local function refreshBoard()
+	local lb = state:GetAttribute("Leaderboard") or ""
+	board.Text = "🏆 MEILLEURS JOUEURS\n\n" .. (lb ~= "" and lb or "Chargement...")
+end
+state:GetAttributeChangedSignal("Leaderboard"):Connect(refreshBoard)
+refreshBoard()
 ]]></ProtectedString></Properties></Item></Item></Item></roblox>

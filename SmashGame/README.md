@@ -23,6 +23,19 @@ Pour en ajouter une, copie un bloc `Maps[n] = {...}` et change les pièces.
 ## Personnages (module `SmashFighters`)
 Choisis-le dans le menu : Bagarreur (équilibré), Éclair (rapide, 2 sauts), Titan (lourd, fort), Mage (projectiles).
 
+## Attaques spéciales (E)
+Bagarreur : boule d'énergie • Éclair : dash qui traverse • Titan : séisme (en l'air : plonge) • Mage : orbe magique.
+
+## Modes
+Pendant le vote : « Chacun pour soi » ou « Équipes » (Rouge contre Bleu, pas de tir ami).
+
+## Pièges et plateformes mobiles
+Temple du Ciel et Îles Jumelles : plateformes qui bougent. Volcan : geysers de lave. Glacier : stalactites.
+
+## Statistiques et classement
+Victoires, KO et matchs sauvegardés (DataStore), visibles dans la liste des joueurs et dans le menu.
+Dans Studio : Accueil > Paramètres du jeu > Sécurité > activer « Enable Studio Access to API Services ».
+
 ## Objets
 Un objet tombe toutes les ~12 s : Soin (-35 %), Marteau (coups x1.6), Bottes (vitesse), Bombe (explose au contact).
 

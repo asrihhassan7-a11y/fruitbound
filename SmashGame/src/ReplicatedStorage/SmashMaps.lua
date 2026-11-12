@@ -1,6 +1,8 @@
 -- SmashMaps (ModuleScript dans ReplicatedStorage)
 -- Liste des arènes. Coordonnées relatives à Config.ARENA_ORIGIN (Y = 0 = dessus de la scène principale).
 -- kind = "solid" (sol), "platform" (traversable par-dessous), "deco" (sans collision)
+-- move = { offset = Vector3, period = secondes } : la pièce fait des allers-retours
+-- hazards = pièges : { type = "geyser", x = ..., interval = ... } ou { type = "icicle", interval = ... }
 
 local V = Vector3.new
 local C = Color3.fromRGB
@@ -25,7 +27,8 @@ Maps[1] = {
 		{ kind = "deco", size = V(20, 10, 8), pos = V(0, -20, 0), color = C(170, 170, 190), material = M.Marble },
 		{ kind = "platform", size = V(16, 1, 10), pos = V(-17, 12, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
 		{ kind = "platform", size = V(16, 1, 10), pos = V(17, 12, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
-		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 23, 0), color = C(255, 220, 120), material = M.SmoothPlastic },
+		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 23, 0), color = C(255, 220, 120), material = M.SmoothPlastic,
+			move = { offset = V(0, 6, 0), period = 7 } },
 		{ kind = "deco", size = V(3, 30, 3), pos = V(-40, -10, -30), color = C(240, 240, 250), material = M.Marble },
 		{ kind = "deco", size = V(3, 30, 3), pos = V(40, -10, -30), color = C(240, 240, 250), material = M.Marble },
 	},
@@ -65,7 +68,8 @@ Maps[3] = {
 		{ kind = "solid", size = V(34, 6, 16), pos = V(26, -3, 0), color = C(110, 190, 90), material = M.Grass },
 		{ kind = "deco", size = V(26, 14, 12), pos = V(-26, -13, 0), color = C(130, 95, 70), material = M.Rock },
 		{ kind = "deco", size = V(26, 14, 12), pos = V(26, -13, 0), color = C(130, 95, 70), material = M.Rock },
-		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 10, 0), color = C(160, 110, 70), material = M.Wood },
+		{ kind = "platform", size = V(14, 1, 10), pos = V(0, 8, 0), color = C(160, 110, 70), material = M.Wood,
+			move = { offset = V(16, 0, 0), period = 9 } },
 		{ kind = "platform", size = V(12, 1, 10), pos = V(-26, 14, 0), color = C(160, 110, 70), material = M.Wood },
 		{ kind = "platform", size = V(12, 1, 10), pos = V(26, 14, 0), color = C(160, 110, 70), material = M.Wood },
 		{ kind = "deco", size = V(2, 10, 2), pos = V(-36, 5, -5), color = C(120, 80, 50), material = M.Wood },
@@ -94,6 +98,10 @@ Maps[4] = {
 		{ kind = "platform", size = V(11, 1, 10), pos = V(0, 18, 0), color = C(90, 70, 65), material = M.Basalt },
 		{ kind = "deco", size = V(300, 2, 120), pos = V(0, -36, 0), color = C(255, 90, 20), material = M.Neon },
 	},
+	hazards = {
+		{ type = "geyser", x = -12, interval = 9, offset = 0 },
+		{ type = "geyser", x = 12, interval = 9, offset = 4.5 },
+	},
 }
 
 Maps[5] = {
@@ -115,6 +123,9 @@ Maps[5] = {
 		{ kind = "platform", size = V(12, 1, 10), pos = V(8, 20, 0), color = C(230, 245, 255), material = M.Glacier },
 		{ kind = "deco", size = V(6, 18, 6), pos = V(-45, 2, -25), color = C(200, 235, 255), material = M.Ice },
 		{ kind = "deco", size = V(6, 24, 6), pos = V(48, 5, -30), color = C(200, 235, 255), material = M.Ice },
+	},
+	hazards = {
+		{ type = "icicle", interval = 5, minX = -30, maxX = 30 },
 	},
 }
 

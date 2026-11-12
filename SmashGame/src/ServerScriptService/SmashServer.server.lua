@@ -7,6 +7,8 @@ local RunService = game:GetService("RunService")
 local PhysicsService = game:GetService("PhysicsService")
 local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local DataStoreService = game:GetService("DataStoreService")
 
 local Config = require(ReplicatedStorage:WaitForChild("SmashConfig"))
 local Maps = require(ReplicatedStorage:WaitForChild("SmashMaps"))
@@ -35,6 +37,14 @@ state:SetAttribute("Phase", "Waiting")
 state:SetAttribute("Message", "")
 state:SetAttribute("TimeLeft", 0)
 state:SetAttribute("Map", 1)
+state:SetAttribute("Mode", "FFA")          -- "FFA" (chacun pour soi) ou "Teams" (2 équipes)
+state:SetAttribute("BotCount", Config.BOT_COUNT or 3)
+state:SetAttribute("BotLevel", "Mix")      -- Mix, Facile, Moyen, Difficile, Expert
+state:SetAttribute("Winner", "")
+state:SetAttribute("Leaderboard", "")
+local TEAM_COLORS = { Color3.fromRGB(255, 70, 70), Color3.fromRGB(70, 140, 255) }
+local TEAM_NAMES = { "ROUGE", "BLEUE" }
+local function teamsMode() return state:GetAttribute("Mode") == "Teams" end
 state.Parent = ReplicatedStorage
 
 local function setMsg(m) state:SetAttribute("Message", m) end
@@ -66,6 +76,7 @@ end
 -- Maps
 ----------------------------------------------------------------------
 local arena, platformsFolder, solidsFolder
+local startHazards -- défini plus bas (pièges)
 local curMap = Maps[1]
 
 local function loadMap(index)
@@ -92,6 +103,12 @@ local function loadMap(index)
 		p.Position = O + d.pos
 		p.Color = d.color
 		p.Material = d.material or Enum.Material.SmoothPlastic
+		if d.move then
+			p:SetAttribute("MoveBase", p.Position)
+			p:SetAttribute("MoveOffset", d.move.offset)
+			p:SetAttribute("MovePeriod", d.move.period)
+			p:AddTag("SmashMoving")
+		end
 		if d.kind == "platform" then
 			p.Name = "Platform"
 			p.CollisionGroup = "Platforms"
@@ -152,6 +169,25 @@ local function loadMap(index)
 	for _, p in ipairs(platformsFolder:GetChildren()) do
 		local front = p.Position.Z + p.Size.Z / 2
 		p.Color = p.Color:Lerp(accent, 0.25)
+		if p:HasTag("SmashMoving") then
+			-- plateforme mobile : le liseré est soudé dessus pour bouger avec elle
+			local trim = Instance.new("Part")
+			trim.Name = "Detail"
+			trim.Anchored = false
+			trim.Massless = true
+			trim.CanCollide = false
+			trim.CanQuery = false
+			trim.CanTouch = false
+			trim.Material = Enum.Material.Neon
+			trim.Color = accent
+			trim.Size = Vector3.new(p.Size.X - 1, 0.3, p.Size.Z - 1)
+			trim.CFrame = p.CFrame * CFrame.new(0, -p.Size.Y / 2 - 0.15, 0)
+			local w = Instance.new("WeldConstraint")
+			w.Part0, w.Part1 = trim, p
+			w.Parent = trim
+			trim.Parent = p
+			continue
+		end
 		-- dessous lumineux de la couleur de la map
 		deco(Vector3.new(p.Size.X - 1, 0.3, p.Size.Z - 1), CFrame.new(p.Position - Vector3.new(0, p.Size.Y / 2 + 0.15, 0)), accent, Enum.Material.Neon, 0.2)
 		deco(Vector3.new(p.Size.X + 0.2, 0.3, 0.3), CFrame.new(p.Position.X, p.Position.Y + p.Size.Y / 2 - 0.1, front + 0.05), Color3.new(1, 1, 1), Enum.Material.Neon)
@@ -212,6 +248,7 @@ local function loadMap(index)
 	Lighting.FogStart = 150
 	Lighting.FogEnd = 600
 
+	if startHazards then startHazards() end
 	state:SetAttribute("Map", index)
 	state:SetAttribute("MapName", curMap.name)
 	state:SetAttribute("BlastX", curMap.blast.x)
@@ -427,7 +464,7 @@ local function setupCharacter(f, model)
 	local outline = model:FindFirstChild("SmashOutline") or Instance.new("Highlight")
 	outline.Name = "SmashOutline"
 	outline.FillTransparency = 1
-	outline.OutlineColor = f.info:GetAttribute("Color")
+	outline.OutlineColor = (teamsMode() and f.team) and TEAM_COLORS[f.team] or f.info:GetAttribute("Color")
 	outline.OutlineTransparency = 0
 	outline.DepthMode = Enum.HighlightDepthMode.Occluded
 	outline.Parent = model
@@ -483,12 +520,13 @@ end
 ----------------------------------------------------------------------
 -- Dégâts + recul
 ----------------------------------------------------------------------
-local freeze, impactBurst, smokeTrail
+local freeze, impactBurst, smokeTrail, dashAttack, quakeAttack
 
 local function applyKnockback(target, vel, hitstun)
 	local root = rootOf(target)
 	if not root then return end
 	target.stunUntil = os.clock() + hitstun
+	if hitstun > 0.3 and target.model then knockRemote:FireAllClients("Pose", target.model, "Hurt") end
 	if target.player then
 		knockRemote:FireClient(target.player, "Knock", vel, hitstun)
 	else
@@ -596,6 +634,7 @@ end
 
 local function hit(attacker, target, data, facing, mult, fromPos)
 	if target == attacker or not alive(target) then return end
+	if teamsMode() and attacker.team and attacker.team == target.team then return end -- pas de tir ami
 	if os.clock() < target.invincibleUntil then return end
 	local troot = rootOf(target)
 
@@ -654,7 +693,7 @@ local function charactersList(except)
 	return list
 end
 
-local function hitboxAt(attacker, data, facing, mult)
+local function hitboxAt(attacker, data, facing, mult, already)
 	local root = rootOf(attacker)
 	if not root then return end
 	local center = root.Position + Vector3.new(data.offset.X * facing, data.offset.Y, 0)
@@ -664,7 +703,7 @@ local function hitboxAt(attacker, data, facing, mult)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = charactersList(attacker)
-	local done = {}
+	local done = already or {}
 	for _, p in ipairs(workspace:GetPartBoundsInBox(cf, data.size, params)) do
 		local model = p:FindFirstAncestorOfClass("Model")
 		local target = model and fighterByModel[model]
@@ -675,7 +714,7 @@ local function hitboxAt(attacker, data, facing, mult)
 	end
 end
 
-local function fireProjectile(attacker, facing)
+local function fireProjectile(attacker, facing, big)
 	local root = rootOf(attacker)
 	if not root then return end
 	local base = Config.ATTACKS.Special
@@ -685,9 +724,14 @@ local function fireProjectile(attacker, facing)
 	data.base = base.base * attacker.char.projPower
 	local ball = Instance.new("Part")
 	ball.Shape = Enum.PartType.Ball
-	ball.Size = Vector3.new(2.2, 2.2, 2.2)
-	ball.Material = Enum.Material.Neon
-	ball.Color = attacker.info:GetAttribute("Color")
+	ball.Size = big and Vector3.new(3.2, 3.2, 3.2) or Vector3.new(2.2, 2.2, 2.2)
+	ball.Material = big and Enum.Material.ForceField or Enum.Material.Neon
+	ball.Color = big and attacker.char.color or attacker.info:GetAttribute("Color")
+	if big then
+		local sp = Instance.new("Sparkles")
+		sp.SparkleColor = attacker.char.color
+		sp.Parent = ball
+	end
 	ball.Anchored = true
 	ball.CanCollide = false
 	ball.CanQuery = false
@@ -720,6 +764,103 @@ local function fireProjectile(attacker, facing)
 			conn:Disconnect()
 			ball:Destroy()
 		end
+	end)
+end
+
+----------------------------------------------------------------------
+-- Attaques spéciales propres à chaque personnage
+----------------------------------------------------------------------
+local DASH_DATA = { dmg = 9, base = 26, growth = 0.55, angle = 30, offset = Vector2.new(1.5, 0), size = Vector3.new(6, 5, 6) }
+local QUAKE_DATA = { dmg = 12, base = 30, growth = 0.8, angle = 62, offset = Vector2.new(0, -1.5), size = Vector3.new(20, 4, 6), bothSides = true }
+
+function dashAttack(f, facing)
+	local root = rootOf(f)
+	if not root then return end
+	knockRemote:FireAllClients("Pose", f.model, "Dash")
+	if f.player then
+		knockRemote:FireClient(f.player, "Dash", facing)
+	else
+		root.AssemblyLinearVelocity = Vector3.new(facing * 110, 4, 0)
+	end
+	-- traînée lumineuse
+	local trail = Instance.new("ParticleEmitter")
+	trail.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	trail.Color = ColorSequence.new(f.char.color)
+	trail.LightEmission = 1
+	trail.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 0) })
+	trail.Lifetime = NumberRange.new(0.25, 0.4)
+	trail.Rate = 120
+	trail.Speed = NumberRange.new(0, 1)
+	trail.Parent = root
+	Debris:AddItem(trail, 0.3)
+	local already = {}
+	task.spawn(function()
+		for _ = 1, 6 do
+			if not f.model or f.koing then break end
+			hitboxAt(f, DASH_DATA, facing, 1, already)
+			task.wait(0.04)
+		end
+		if not f.player and rootOf(f) then
+			local v = root.AssemblyLinearVelocity
+			root.AssemblyLinearVelocity = Vector3.new(v.X * 0.25, v.Y, 0)
+		end
+	end)
+end
+
+local function shockwave(f)
+	local root = rootOf(f)
+	if not root then return end
+	knockRemote:FireAllClients("Pose", f.model, "Quake")
+	hitboxAt(f, QUAKE_DATA, 1, 1)
+	knockRemote:FireAllClients("Shake", 1)
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = f.char.color
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.4, 3, 3)
+	ring.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.8, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.3), { Size = Vector3.new(0.4, 24, 24), Transparency = 1 }):Play()
+	Debris:AddItem(ring, 0.35)
+	local dust = Instance.new("ParticleEmitter")
+	dust.Color = ColorSequence.new(Color3.fromRGB(160, 140, 120))
+	dust.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 5) })
+	dust.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+	dust.Lifetime = NumberRange.new(0.5, 0.8)
+	dust.Speed = NumberRange.new(15, 25)
+	dust.SpreadAngle = Vector2.new(10, 80)
+	dust.Rate = 0
+	dust.Parent = ring
+	dust:Emit(25)
+end
+
+function quakeAttack(f, airborne)
+	local root, hum = rootOf(f), humOf(f)
+	if not root then return end
+	if not airborne then
+		task.delay(0.15, function() shockwave(f) end)
+		knockRemote:FireAllClients("Pose", f.model, "Quake")
+		return
+	end
+	-- en l'air : plongée vers le sol puis séisme à l'atterrissage
+	if f.player then
+		knockRemote:FireClient(f.player, "Dive")
+	else
+		root.AssemblyLinearVelocity = Vector3.new(0, -130, 0)
+	end
+	task.spawn(function()
+		local t0 = os.clock()
+		while os.clock() - t0 < 1 do
+			task.wait(0.03)
+			if not f.model or f.koing or not hum.Parent then return end
+			if hum.FloorMaterial ~= Enum.Material.Air then break end
+		end
+		if os.clock() - t0 < 1 then shockwave(f) end
 	end)
 end
 
@@ -760,8 +901,15 @@ local function doAction(f, kind, dir, facing, charge)
 			name = "SpecialUp" -- le super saut lui-même est appliqué par le client / le bot
 		else
 			f.cooldownUntil = now + f.char.specialCooldown
-			knockRemote:FireAllClients("Pose", f.model, "Special")
-			fireProjectile(f, facing)
+			local sp = f.char.special
+			if sp == "dash" then
+				dashAttack(f, facing)
+			elseif sp == "quake" then
+				quakeAttack(f, airborne)
+			else
+				knockRemote:FireAllClients("Pose", f.model, "Special")
+				fireProjectile(f, facing, sp == "orb")
+			end
 			return
 		end
 	else
@@ -810,12 +958,19 @@ end
 -- Vote de map
 ----------------------------------------------------------------------
 local votes = {} -- player -> index (0 = aléatoire)
+local modeVotes = {} -- player -> "FFA" / "Teams"
 
 local function refreshVotes()
 	for i = 0, #Maps do state:SetAttribute("Vote" .. i, 0) end
 	for _, idx in pairs(votes) do
 		state:SetAttribute("Vote" .. idx, (state:GetAttribute("Vote" .. idx) or 0) + 1)
 	end
+	local ffa, teams = 0, 0
+	for _, m in pairs(modeVotes) do
+		if m == "Teams" then teams += 1 else ffa += 1 end
+	end
+	state:SetAttribute("VoteFFA", ffa)
+	state:SetAttribute("VoteTeams", teams)
 end
 
 actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
@@ -867,6 +1022,25 @@ actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
 				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
 			else
 				placeAt(f, spawnPos(f.slot))
+			end
+		end
+		return
+	end
+	if kind == "VoteMode" then
+		if phase() == "Vote" and (dir == "FFA" or dir == "Teams") then
+			modeVotes[player] = dir
+			refreshVotes()
+		end
+		return
+	end
+	if kind == "BotSettings" then
+		local ph = phase()
+		if ph == "Waiting" or ph == "Vote" or ph == "End" or ph == "Training" then
+			local n = tonumber(dir)
+			if n then state:SetAttribute("BotCount", math.clamp(math.floor(n), 0, 5)) end
+			local lvl = facing
+			if lvl == "Mix" or lvl == "Facile" or lvl == "Moyen" or lvl == "Difficile" or lvl == "Expert" then
+				state:SetAttribute("BotLevel", lvl)
 			end
 		end
 		return
@@ -1050,7 +1224,89 @@ end
 ----------------------------------------------------------------------
 -- Joueurs
 ----------------------------------------------------------------------
+----------------------------------------------------------------------
+-- Statistiques sauvegardées (DataStore) + classement
+-- Dans Studio : Paramètres du jeu > Sécurité > "Enable Studio Access to API Services"
+----------------------------------------------------------------------
+local statsStore, winsBoard
+pcall(function()
+	statsStore = DataStoreService:GetDataStore("SmashStats_v1")
+	winsBoard = DataStoreService:GetOrderedDataStore("SmashWins_v1")
+end)
+local playerStats = {} -- player -> { wins, kos, matches }
+
+local function loadStats(player)
+	local data = { wins = 0, kos = 0, matches = 0 }
+	if statsStore then
+		local ok, saved = pcall(function() return statsStore:GetAsync("u" .. player.UserId) end)
+		if ok and type(saved) == "table" then
+			data.wins = tonumber(saved.wins) or 0
+			data.kos = tonumber(saved.kos) or 0
+			data.matches = tonumber(saved.matches) or 0
+		end
+	end
+	playerStats[player] = data
+	local ls = Instance.new("Folder")
+	ls.Name = "leaderstats"
+	for _, pair in ipairs({ { "Victoires", "wins" }, { "KO", "kos" }, { "Matchs", "matches" } }) do
+		local v = Instance.new("IntValue")
+		v.Name = pair[1]
+		v.Value = data[pair[2]]
+		v.Parent = ls
+	end
+	ls.Parent = player
+end
+
+local function refreshLeaderstats(player)
+	local data = playerStats[player]
+	local ls = player:FindFirstChild("leaderstats")
+	if not data or not ls then return end
+	ls.Victoires.Value = data.wins
+	ls.KO.Value = data.kos
+	ls.Matchs.Value = data.matches
+end
+
+local function saveStats(player)
+	local data = playerStats[player]
+	if not data then return end
+	if statsStore then
+		pcall(function() statsStore:SetAsync("u" .. player.UserId, data) end)
+	end
+	if winsBoard then
+		pcall(function() winsBoard:SetAsync(tostring(player.UserId), data.wins) end)
+	end
+end
+
+local nameCache = {}
+local function refreshLeaderboard()
+	if not winsBoard then
+		state:SetAttribute("Leaderboard", "(Active l'accès aux API dans Studio pour le classement)")
+		return
+	end
+	local ok, pages = pcall(function() return winsBoard:GetSortedAsync(false, 10) end)
+	if not ok then return end
+	local lines = {}
+	for i, entry in ipairs(pages:GetCurrentPage()) do
+		local uid = tonumber(entry.key)
+		local name = uid and nameCache[uid]
+		if uid and not name then
+			local okName, n = pcall(function() return Players:GetNameFromUserIdAsync(uid) end)
+			name = okName and n or ("#" .. uid)
+			nameCache[uid] = name
+		end
+		table.insert(lines, string.format("%d. %s — %d victoire%s", i, name or "?", entry.value, entry.value > 1 and "s" or ""))
+	end
+	state:SetAttribute("Leaderboard", #lines > 0 and table.concat(lines, "\n") or "Aucune victoire pour l'instant !")
+end
+task.spawn(function()
+	while true do
+		refreshLeaderboard()
+		task.wait(60)
+	end
+end)
+
 local function onPlayer(player)
+	task.spawn(loadStats, player)
 	local f = newFighter("P" .. player.UserId, player.DisplayName, player)
 	setMenu(f, true) -- commence sur le menu
 	setInRound(f, false)
@@ -1073,6 +1329,9 @@ Players.PlayerAdded:Connect(onPlayer)
 for _, p in ipairs(Players:GetPlayers()) do onPlayer(p) end
 Players.PlayerRemoving:Connect(function(player)
 	votes[player] = nil
+	modeVotes[player] = nil
+	task.spawn(saveStats, player)
+	task.delay(5, function() playerStats[player] = nil end)
 	local f = fighters["P" .. player.UserId]
 	if f then removeFighter(f) end
 	if phase() == "Vote" then refreshVotes() end
@@ -1278,7 +1537,7 @@ local function botThink(f)
 	-- cible la plus proche
 	local target, best = nil, math.huge
 	for _, o in pairs(fighters) do
-		if o ~= f and alive(o) and not rootOf(o).Anchored then
+		if o ~= f and alive(o) and not rootOf(o).Anchored and not (teamsMode() and o.team and o.team == f.team) then
 			local d = (rootOf(o).Position - pos).Magnitude
 			if d < best then best, target = d, o end
 		end
@@ -1633,19 +1892,49 @@ local function trainingCount()
 	return n
 end
 
+local function botDefFor(i)
+	local level = state:GetAttribute("BotLevel") or "Mix"
+	if level == "Mix" then
+		return Config.BOTS[((i - 1) % #Config.BOTS) + 1], false
+	end
+	for _, d in ipairs(Config.BOTS) do
+		if d.name == "CPU " .. level then return d, true end
+	end
+	return Config.BOTS[1], false
+end
+
 local function setupBots()
-	local want = Config.FILL_WITH_BOTS or humanCount() < 2
 	if fighters["BAG"] then despawnBot(fighters["BAG"]) end
-	for i, def in ipairs(Config.BOTS) do
-		local id = "CPU" .. i
-		if i > (Config.BOT_COUNT or #Config.BOTS) then
-			if fighters[id] then despawnBot(fighters[id]) end
-			continue
-		end
-		if want and not fighters[id] then
-			spawnBot(i, def)
-		elseif not want and fighters[id] then
-			despawnBot(fighters[id])
+	-- on recrée les bots à chaque manche (nouveau perso au hasard, réglages à jour)
+	for _, b in pairs(bots) do despawnBot(b) end
+	local want = Config.FILL_WITH_BOTS or humanCount() < 2
+	if not want then return end
+	local count = state:GetAttribute("BotCount") or 3
+	for i = 1, count do
+		local def, numbered = botDefFor(i)
+		def = table.clone(def)
+		if numbered then def.name = def.name .. " " .. i end
+		spawnBot(i, def)
+	end
+	task.wait(0.4)
+end
+
+local function assignTeams()
+	local list = {}
+	for _, f in pairs(fighters) do
+		if f.inRound then table.insert(list, f) end
+	end
+	-- humains d'abord (répartis), puis les bots
+	table.sort(list, function(a, b)
+		if (a.player ~= nil) ~= (b.player ~= nil) then return a.player ~= nil end
+		return a.slot < b.slot
+	end)
+	for i, f in ipairs(list) do
+		f.team = teamsMode() and (((i - 1) % 2) + 1) or nil
+		f.info:SetAttribute("Team", f.team or 0)
+		local outline = f.model and f.model:FindFirstChild("SmashOutline")
+		if outline then
+			outline.OutlineColor = f.team and TEAM_COLORS[f.team] or f.info:GetAttribute("Color")
 		end
 	end
 end
@@ -1675,6 +1964,7 @@ local function startRound()
 		placeAt(f, spawnPos(f.slot), true) -- figé pendant le compte à rebours
 		giveInvincibility(f, 1)
 	end
+	assignTeams()
 end
 
 -- libère tout le monde au "GO !"
@@ -1700,6 +1990,142 @@ local function results()
 		return a.kos > b.kos
 	end)
 	return list
+end
+
+----------------------------------------------------------------------
+-- Plateformes mobiles (même formule sur le serveur et les clients)
+----------------------------------------------------------------------
+local CollectionService = game:GetService("CollectionService")
+RunService.Heartbeat:Connect(function()
+	local t = workspace:GetServerTimeNow()
+	for _, p in ipairs(CollectionService:GetTagged("SmashMoving")) do
+		local base, offset, period = p:GetAttribute("MoveBase"), p:GetAttribute("MoveOffset"), p:GetAttribute("MovePeriod")
+		if base and offset and period then
+			local w = 2 * math.pi / period
+			p.CFrame = CFrame.new(base + offset * math.sin(t * w))
+			p.AssemblyLinearVelocity = offset * w * math.cos(t * w)
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Pièges (geysers de lave, stalactites)
+----------------------------------------------------------------------
+local hazardToken = nil
+
+local function envHit(pos, radiusBox, dmg, base, growth, angleDeg, fixedDir)
+	for _, f in pairs(fighters) do
+		local r = rootOf(f)
+		if r and alive(f) and f.inRound and os.clock() >= f.invincibleUntil then
+			local d = r.Position - pos
+			if math.abs(d.X) <= radiusBox.X / 2 and math.abs(d.Y) <= radiusBox.Y / 2 then
+				if f.shielding then
+					f.shieldHp -= dmg * 2
+				else
+					f.damage = math.min(999, f.damage + dmg)
+					sync(f)
+					local dir = fixedDir or math.sign(d.X)
+					if dir == 0 then dir = 1 end
+					local a = math.rad(angleDeg)
+					local power = (base + f.damage * growth) * f.char.weight
+					applyKnockback(f, Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power,
+						math.clamp(power * Config.HITSTUN_FACTOR, 0.2, Config.HITSTUN_MAX))
+					knockRemote:FireAllClients("DmgNum", r.Position, dmg, power > 70)
+				end
+			end
+		end
+	end
+end
+
+local function hazardPart(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	for k, v in pairs(props) do p[k] = v end
+	p.Parent = arena
+	return p
+end
+
+local function geyser(h)
+	local x = O.X + h.x
+	local top = O.Y
+	-- avertissement : le sol bouillonne
+	local warn = hazardPart({ Size = Vector3.new(7, 0.3, 8), Position = Vector3.new(x, top + 0.2, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 120, 30), Transparency = 0.4 })
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	bubbles.Color = ColorSequence.new(Color3.fromRGB(255, 160, 40))
+	bubbles.LightEmission = 1
+	bubbles.Size = NumberSequence.new(0.6)
+	bubbles.Lifetime = NumberRange.new(0.3, 0.6)
+	bubbles.Speed = NumberRange.new(4, 10)
+	bubbles.EmissionDirection = Enum.NormalId.Top
+	bubbles.Rate = 40
+	bubbles.Parent = warn
+	for _ = 1, 6 do
+		warn.Transparency = warn.Transparency == 0.4 and 0.1 or 0.4
+		task.wait(0.2)
+	end
+	warn:Destroy()
+	if not combat() then return end
+	-- éruption
+	local pillar = hazardPart({ Size = Vector3.new(6, 2, 6), Position = Vector3.new(x, top + 1, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 90, 20), Transparency = 0.15 })
+	TweenService:Create(pillar, TweenInfo.new(0.15), { Size = Vector3.new(6, 34, 6), Position = Vector3.new(x, top + 17, O.Z) }):Play()
+	knockRemote:FireAllClients("Shake", 0.6)
+	for _ = 1, 4 do
+		envHit(Vector3.new(x, top + 17, O.Z), Vector3.new(7, 34, 0), 12, 45, 0.6, 88)
+		task.wait(0.15)
+	end
+	TweenService:Create(pillar, TweenInfo.new(0.3), { Transparency = 1, Size = Vector3.new(2, 34, 2) }):Play()
+	Debris:AddItem(pillar, 0.35)
+end
+
+local function icicle(h)
+	local x = O.X + math.random(h.minX, h.maxX)
+	local top = O.Y
+	local shadow = hazardPart({ Size = Vector3.new(4, 0.3, 4), Position = Vector3.new(x, top + 0.2, O.Z),
+		Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 60, 60), Transparency = 0.5 })
+	local ice = hazardPart({ Size = Vector3.new(2.5, 6, 2.5), Position = Vector3.new(x, top + 60, O.Z),
+		Material = Enum.Material.Ice, Color = Color3.fromRGB(200, 240, 255) })
+	task.wait(1)
+	shadow:Destroy()
+	if not combat() then ice:Destroy() return end
+	TweenService:Create(ice, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = Vector3.new(x, top + 3, O.Z) }):Play()
+	task.wait(0.45)
+	envHit(Vector3.new(x, top + 4, O.Z), Vector3.new(6, 8, 0), 10, 30, 0.55, 70)
+	local shards = Instance.new("ParticleEmitter")
+	shards.Color = ColorSequence.new(Color3.fromRGB(220, 245, 255))
+	shards.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+	shards.Lifetime = NumberRange.new(0.3, 0.6)
+	shards.Speed = NumberRange.new(15, 30)
+	shards.SpreadAngle = Vector2.new(70, 70)
+	shards.EmissionDirection = Enum.NormalId.Top
+	shards.Acceleration = Vector3.new(0, -60, 0)
+	shards.Rate = 0
+	shards.Parent = ice
+	shards:Emit(20)
+	ice.Transparency = 1
+	Debris:AddItem(ice, 0.7)
+end
+
+function startHazards()
+	local token = {}
+	hazardToken = token
+	for _, h in ipairs(curMap.hazards or {}) do
+		task.spawn(function()
+			task.wait((h.offset or 0) + h.interval)
+			while hazardToken == token do
+				if combat() then
+					if h.type == "geyser" then geyser(h) elseif h.type == "icicle" then icicle(h) end
+				end
+				task.wait(h.interval)
+			end
+		end)
+	end
 end
 
 ----------------------------------------------------------------------
@@ -1769,6 +2195,7 @@ task.spawn(function()
 
 		-- 2) vote de la map
 		votes = {}
+		modeVotes = {}
 		refreshVotes()
 		state:SetAttribute("Phase", "Vote")
 		setMsg("")
@@ -1777,6 +2204,8 @@ task.spawn(function()
 			task.wait(1)
 		end
 		local idx = pickMap()
+		local ffaVotes, teamVotes = state:GetAttribute("VoteFFA") or 0, state:GetAttribute("VoteTeams") or 0
+		state:SetAttribute("Mode", teamVotes > ffaVotes and "Teams" or "FFA")
 		clearItems()
 		loadMap(idx)
 		setupBots()
@@ -1786,7 +2215,7 @@ task.spawn(function()
 		startRound()
 		state:SetAttribute("Phase", "Countdown")
 		state:SetAttribute("TimeLeft", Config.ROUND_TIME)
-		setMsg(curMap.name)
+		setMsg(curMap.name .. (teamsMode() and "\nÉQUIPES" or ""))
 		task.wait(1.2)
 		for i = 3, 1, -1 do setMsg(tostring(i)) task.wait(0.8) end
 		releaseAll()
@@ -1815,7 +2244,15 @@ task.spawn(function()
 					end
 				end
 			end
-			if total >= 2 and alivers <= 1 then task.wait(1.2) break end -- laisser finir l'anim de KO
+			if teamsMode() then
+				local teamsAlive = {}
+				for _, f in pairs(fighters) do
+					if f.inRound and f.stocks > 0 and f.team then teamsAlive[f.team] = true end
+				end
+				local n = 0
+				for _ in pairs(teamsAlive) do n += 1 end
+				if total >= 2 and n <= 1 then task.wait(1.2) break end
+			elseif total >= 2 and alivers <= 1 then task.wait(1.2) break end -- laisser finir l'anim de KO
 			if humansLeft == 0 then task.wait(1.2) break end -- plus aucun joueur humain en vie
 		end
 
@@ -1828,9 +2265,50 @@ task.spawn(function()
 			if i > 4 then break end
 			table.insert(lines, string.format("%d. %s  (%d vie%s, %d KO)", i, f.name, f.stocks, f.stocks > 1 and "s" or "", f.kos))
 		end
+		-- vainqueur(s)
+		local winners = {}
+		local winnerText = "Partie terminée"
+		if ranking[1] then
+			if teamsMode() and ranking[1].team then
+				local wt = ranking[1].team
+				for _, f in ipairs(ranking) do
+					if f.team == wt then table.insert(winners, f) end
+				end
+				winnerText = "🏆 ÉQUIPE " .. TEAM_NAMES[wt] .. " GAGNE !"
+			else
+				winners = { ranking[1] }
+				winnerText = "🏆 " .. ranking[1].name .. " GAGNE !"
+			end
+		end
+		local ids = {}
+		for _, w in ipairs(winners) do
+			table.insert(ids, w.id)
+			if w.model then knockRemote:FireAllClients("Pose", w.model, "Victory") end
+		end
+		setMsg(winnerText)
 		state:SetAttribute("Results", table.concat(lines, "\n"))
-		setMsg(ranking[1] and ("🏆 " .. ranking[1].name .. " GAGNE !") or "Partie terminée")
+		state:SetAttribute("Winner", table.concat(ids, ","))
+
+		-- statistiques
+		local isWinner = {}
+		for _, w in ipairs(winners) do isWinner[w] = true end
+		for _, f in pairs(fighters) do
+			if f.player and f.inRound and playerStats[f.player] then
+				local data = playerStats[f.player]
+				data.matches += 1
+				data.kos += f.kos
+				if isWinner[f] then data.wins += 1 end
+				refreshLeaderstats(f.player)
+				task.spawn(saveStats, f.player)
+			end
+		end
+		task.delay(3, refreshLeaderboard)
+
 		task.wait(Config.INTERMISSION)
+		for _, w in ipairs(winners) do
+			if w.model then knockRemote:FireAllClients("Pose", w.model, "ShieldEnd") end
+		end
+		state:SetAttribute("Winner", "")
 		state:SetAttribute("Results", "")
 	end
 end)
