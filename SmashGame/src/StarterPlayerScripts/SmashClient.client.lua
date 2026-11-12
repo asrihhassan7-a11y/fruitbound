@@ -106,6 +106,11 @@ local function jump()
 end
 
 local function press(action)
+	-- compte à rebours : aucune action possible
+	if state:GetAttribute("Phase") == "Countdown" then
+		if action == "Smash" then smashStart = nil end
+		return
+	end
 	if fx.onPress and fx.onPress(action) then return end
 	if action == "Jump" then
 		jump()
@@ -133,6 +138,7 @@ local function press(action)
 end
 
 local function release(action)
+	if state:GetAttribute("Phase") == "Countdown" then return end
 	if action == "Smash" and smashStart then
 		local charge = math.min(os.clock() - smashStart, Config.SMASH_CHARGE_MAX)
 		smashStart = nil

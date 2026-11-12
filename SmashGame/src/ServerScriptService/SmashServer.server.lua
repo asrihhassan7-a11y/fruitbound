@@ -428,6 +428,8 @@ local function setupCharacter(f, model)
 	local fighting = phase() == "Fight" or phase() == "Countdown" or phase() == "Training"
 	if f.inMenu or (fighting and not (f.inRound and f.stocks > 0)) then
 		park(f) -- menu ou spectateur
+	elseif phase() == "Countdown" then
+		placeAt(f, spawnPos(f.slot), true)
 	elseif fighting then
 		placeAt(f, respawnPos())
 		giveInvincibility(f, Config.RESPAWN_INVINCIBILITY)
@@ -1645,8 +1647,19 @@ local function startRound()
 		f.lastHitBy = nil
 		setShield(f, false)
 		sync(f)
-		placeAt(f, spawnPos(f.slot))
+		placeAt(f, spawnPos(f.slot), true) -- figé pendant le compte à rebours
 		giveInvincibility(f, 1)
+	end
+end
+
+-- libère tout le monde au "GO !"
+local function releaseAll()
+	for _, f in pairs(fighters) do
+		local r = rootOf(f)
+		if r and f.inRound and f.stocks > 0 and not f.koing then
+			r.Anchored = false
+			if f.player then knockRemote:FireClient(f.player, "Reset") end
+		end
 	end
 end
 
@@ -1750,6 +1763,7 @@ task.spawn(function()
 		setMsg(curMap.name)
 		task.wait(1.2)
 		for i = 3, 1, -1 do setMsg(tostring(i)) task.wait(0.8) end
+		releaseAll()
 		state:SetAttribute("Phase", "Fight")
 		nextItemAt = os.clock() + Fighters.ITEM_INTERVAL
 		setMsg("GO !")
