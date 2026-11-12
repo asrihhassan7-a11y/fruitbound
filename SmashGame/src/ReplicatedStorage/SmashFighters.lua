@@ -85,7 +85,12 @@ F.Sounds = {
 	Beep = "rbxasset://sounds/electronicpingshort.wav",
 	KO = "rbxasset://sounds/Rocket shot.wav",
 	Pickup = "rbxasset://sounds/electronicpingshort.wav",
+	-- interface : survol et clic des boutons (remplace par tes propres "rbxassetid://..." si tu veux)
+	UIHover = "rbxasset://sounds/electronicpingshort.wav",
+	UIClick = "rbxasset://sounds/clickfast.wav",
+	UIConfirm = "rbxasset://sounds/electronicpingshort.wav",
 }
+F.UISoundVolume = 0.5
 
 -- Musique : mets l'ID d'une musique de la boutique Créateur (ex : "rbxassetid://1234567").
 -- Une musique par map possible avec le champ `music` dans SmashMaps.

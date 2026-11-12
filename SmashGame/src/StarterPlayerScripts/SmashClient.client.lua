@@ -2305,3 +2305,80 @@ local function refreshBoard()
 end
 state:GetAttributeChangedSignal("Leaderboard"):Connect(refreshBoard)
 refreshBoard()
+
+----------------------------------------------------------------------
+-- Sons et animation des boutons (survol + clic) sur toute l'interface
+----------------------------------------------------------------------
+local ContentProvider = game:GetService("ContentProvider")
+local uiSounds = {}
+for _, key in ipairs({ "UIHover", "UIClick", "UIConfirm" }) do
+	local id = Fighters.Sounds[key]
+	if id and id ~= "" then
+		local snd = Instance.new("Sound")
+		snd.SoundId = id
+		snd.Volume = Fighters.UISoundVolume or 0.5
+		snd.Parent = SoundService
+		uiSounds[key] = snd
+	end
+end
+task.spawn(function()
+	local list = {}
+	for _, snd in pairs(uiSounds) do table.insert(list, snd) end
+	pcall(function() ContentProvider:PreloadAsync(list) end)
+end)
+
+local lastHover = 0
+local function uiSound(key, pitch, volume)
+	local base = uiSounds[key]
+	if not base then return end
+	local snd = base:Clone()
+	snd.PlaybackSpeed = pitch
+	snd.Volume = (Fighters.UISoundVolume or 0.5) * (volume or 1)
+	snd.Parent = SoundService
+	snd:Play()
+	game:GetService("Debris"):AddItem(snd, 2)
+end
+
+-- boutons "importants" : son de validation spécial
+local confirmButtons = {}
+confirmButtons[playButton] = true
+confirmButtons[trainButton] = true
+
+local hooked = setmetatable({}, { __mode = "k" })
+local function hookButton(b)
+	if hooked[b] or not b:IsA("GuiButton") then return end
+	hooked[b] = true
+	local scale = b:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+	scale.Parent = b
+	local hoverInfo = TweenInfo.new(0.12, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	b.MouseEnter:Connect(function()
+		TS:Create(scale, hoverInfo, { Scale = 1.06 }):Play()
+		if os.clock() - lastHover > 0.05 then
+			lastHover = os.clock()
+			-- petite variation de hauteur : plus vivant
+			uiSound("UIHover", 2.3 + math.random() * 0.25, 0.35)
+		end
+	end)
+	b.MouseLeave:Connect(function()
+		TS:Create(scale, TweenInfo.new(0.12), { Scale = 1 }):Play()
+	end)
+	b.MouseButton1Down:Connect(function()
+		TS:Create(scale, TweenInfo.new(0.06), { Scale = 0.94 }):Play()
+	end)
+	b.MouseButton1Up:Connect(function()
+		TS:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.06 }):Play()
+	end)
+	b.Activated:Connect(function()
+		if confirmButtons[b] then
+			-- double note montante, très satisfaisant
+			uiSound("UIConfirm", 1.2, 0.9)
+			task.delay(0.08, function() uiSound("UIConfirm", 1.8, 0.9) end)
+		else
+			uiSound("UIClick", 1.1 + math.random() * 0.1, 1)
+			uiSound("UIHover", 1.6, 0.5)
+		end
+	end)
+end
+
+for _, d in ipairs(gui:GetDescendants()) do hookButton(d) end
+gui.DescendantAdded:Connect(hookButton)
