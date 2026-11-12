@@ -347,6 +347,19 @@ local function giveInvincibility(f, t)
 	end
 end
 
+-- Les bots doivent rester simulés par le serveur. Ancrer puis désancrer une pièce
+-- remet la propriété réseau en automatique (souvent donnée au joueur proche),
+-- et le recul appliqué par le serveur n'a alors plus d'effet.
+local function serverOwn(f)
+	if f.player then return end
+	local root = f.model and f.model:FindFirstChild("HumanoidRootPart")
+	if root and not root.Anchored and root:IsDescendantOf(workspace) then
+		pcall(function()
+			if root:GetNetworkOwner() ~= nil or root:GetNetworkOwnershipAuto() then root:SetNetworkOwner(nil) end
+		end)
+	end
+end
+
 local function placeAt(f, pos, anchored)
 	local root = rootOf(f)
 	if not root then return end
@@ -361,7 +374,7 @@ local function placeAt(f, pos, anchored)
 		local hum = humOf(f)
 		if hum then hum.PlatformStand = false end
 	end
-	if anchored then root.Anchored = true end
+	if anchored then root.Anchored = true else serverOwn(f) end
 end
 
 local function park(f)
@@ -480,6 +493,8 @@ local function applyKnockback(target, vel, hitstun)
 		knockRemote:FireClient(target.player, "Knock", vel, hitstun)
 	else
 		local hum = humOf(target)
+		if root.Anchored and not target.koing then root.Anchored = false end -- encore figé par le hitstop
+		serverOwn(target)
 		if hum then hum.PlatformStand = true end
 		root.AssemblyLinearVelocity = vel
 	end
@@ -495,7 +510,10 @@ function freeze(f, duration)
 		root.Anchored = true
 		f.frozen = true
 		task.delay(duration, function()
-			if f.frozen and root.Parent and not f.koing then root.Anchored = false end
+			if f.frozen and root.Parent and not f.koing then
+				root.Anchored = false
+				serverOwn(f)
+			end
 			f.frozen = false
 		end)
 	end
@@ -1106,6 +1124,11 @@ local function spawnBot(i, def)
 	f.info:SetAttribute("DisplayName", def.bag and def.name or (def.name .. " (" .. f.char.name .. ")"))
 	f.isBot = true
 	f.ai = def
+	if def.bag then
+		setInRound(f, true)
+		f.stocks = 99
+		sync(f)
+	end
 	f.airJumps = f.char.airJumps
 	f.recovery = true
 	f.nextThink = 0
@@ -1173,6 +1196,7 @@ end
 local function botThink(f)
 	local root, hum = rootOf(f), humOf(f)
 	if not root or not hum or root.Anchored then return end
+	serverOwn(f)
 	if f.animStep then f.animStep() end
 	local now = os.clock()
 	local pos = root.Position
@@ -1224,6 +1248,7 @@ local function botThink(f)
 					task.delay(0.35 + ai.think, function()
 						if f.model and root.Parent and not f.koing then
 							root.Anchored = false
+							serverOwn(f)
 							root.CFrame = CFrame.new(edgeX - side * 2.5, top + 3.2, O.Z)
 							root.AssemblyLinearVelocity = Vector3.zero
 							knockRemote:FireAllClients("Pose", f.model, "ShieldEnd")
@@ -1658,6 +1683,7 @@ local function releaseAll()
 		local r = rootOf(f)
 		if r and f.inRound and f.stocks > 0 and not f.koing then
 			r.Anchored = false
+			serverOwn(f)
 			if f.player then knockRemote:FireClient(f.player, "Reset") end
 		end
 	end
