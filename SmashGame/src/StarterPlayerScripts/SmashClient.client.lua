@@ -2382,3 +2382,18 @@ end
 
 for _, d in ipairs(gui:GetDescendants()) do hookButton(d) end
 gui.DescendantAdded:Connect(hookButton)
+
+----------------------------------------------------------------------
+-- Nouveau personnage : on remet à zéro tout l'état local (évite de rester bloqué)
+----------------------------------------------------------------------
+player.CharacterAdded:Connect(function()
+	koLock = false
+	stunUntil = 0
+	frozenToken = nil
+	hanging = nil
+	shielding = false
+	smashStart = nil
+	held = {}
+	airJumps = maxAirJumps()
+	recoveryReady = true
+end)

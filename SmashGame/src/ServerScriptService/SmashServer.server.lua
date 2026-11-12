@@ -1054,7 +1054,13 @@ actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
 			if ph == "Fight" or ph == "Countdown" then
 				knockRemote:FireClient(player, "NextRound") -- spectateur jusqu'à la prochaine manche
 			else
-				placeAt(f, spawnPos(f.slot))
+				-- nouveau personnage tout neuf, posé sur la map (évite de rester bloqué)
+				f.koing = false
+				f.stocks = 0
+				task.spawn(function()
+					local ok = pcall(function() player:LoadCharacter() end)
+					if not ok then placeAt(f, spawnPos(f.slot)) end
+				end)
 			end
 		end
 		return
@@ -2212,8 +2218,28 @@ local function runTraining()
 	end
 end
 
+-- débloque les joueurs restés figés/hors map en dehors des combats
+local function unstickPlayers()
+	local ph = phase()
+	if ph ~= "Waiting" and ph ~= "Vote" then return end
+	for _, f in pairs(fighters) do
+		if f.player and not f.inMenu and not f.training then
+			local r = rootOf(f)
+			if r and (r.Anchored or (r.Position - O).Magnitude > 300) then
+				f.koing = false
+				placeAt(f, spawnPos(f.slot))
+			end
+		end
+	end
+end
 task.spawn(function()
 	while true do
+		task.wait(1)
+		pcall(unstickPlayers)
+	end
+end)
+
+local function roundOnce()
 		-- 1) attendre un joueur (ou faire de l'entraînement)
 		state:SetAttribute("Phase", "Waiting")
 		setMsg("En attente de joueurs...")
@@ -2343,5 +2369,24 @@ task.spawn(function()
 		end
 		state:SetAttribute("Winner", "")
 		state:SetAttribute("Results", "")
+end
+
+task.spawn(function()
+	while true do
+		local ok, err = pcall(roundOnce)
+		if not ok then
+			-- une erreur ne doit jamais bloquer le jeu : on la signale et on relance une manche
+			warn("[Smash] Erreur pendant la manche, on relance :", err)
+			pcall(function()
+				clearItems()
+				state:SetAttribute("Winner", "")
+				state:SetAttribute("Results", "")
+				for _, f in pairs(fighters) do
+					f.koing = false
+					if f.player and f.stocks <= 0 and not f.training then setMenu(f, true) end
+				end
+			end)
+			task.wait(2)
+		end
 	end
 end)
