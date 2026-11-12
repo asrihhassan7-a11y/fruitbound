@@ -17,7 +17,7 @@ Avec Rojo : `rojo serve` dans ce dossier.
 3. **Résultats** : classement par vies restantes, puis % le plus bas, puis KO.
 
 ## Maps (module `SmashMaps`)
-Temple du Ciel · Plateau Final · Îles Jumelles · Volcan · Glacier.
+Temple du Ciel · Plateau Final · Îles Jumelles · Volcan · Glacier · Cité Néon · Forêt Enchantée · Plage Tropicale · Château Hanté · Station Spatiale (gravité faible) · Temple Sakura · Désert Antique.
 Pour en ajouter une, copie un bloc `Maps[n] = {...}` et change les pièces.
 
 ## Personnages (module `SmashFighters`)

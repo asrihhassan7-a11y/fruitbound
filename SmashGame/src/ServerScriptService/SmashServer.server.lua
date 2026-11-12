@@ -95,14 +95,46 @@ local function loadMap(index)
 	decoFolder.Parent = arena
 
 	for _, d in ipairs(curMap.parts) do
-		local p = Instance.new("Part")
+		local p = Instance.new(d.shape == "Wedge" and "WedgePart" or "Part")
 		p.Anchored = true
 		p.TopSurface = Enum.SurfaceType.Smooth
 		p.BottomSurface = Enum.SurfaceType.Smooth
+		if d.shape == "Ball" then p.Shape = Enum.PartType.Ball
+		elseif d.shape == "Cylinder" then p.Shape = Enum.PartType.Cylinder end
 		p.Size = d.size
-		p.Position = O + d.pos
+		local rot = d.rot or Vector3.zero
+		p.CFrame = CFrame.new(O + d.pos) * CFrame.Angles(math.rad(rot.X), math.rad(rot.Y), math.rad(rot.Z))
 		p.Color = d.color
 		p.Material = d.material or Enum.Material.SmoothPlastic
+		p.Transparency = d.transparency or 0
+		p.Reflectance = d.reflect or 0
+		if d.light then
+			local l = Instance.new("PointLight")
+			l.Color = d.light.color or d.color
+			l.Range = d.light.range or 12
+			l.Brightness = d.light.brightness or 1.5
+			l.Parent = p
+		end
+		if d.fire then
+			local fire = Instance.new("Fire")
+			fire.Size = d.fire
+			fire.Heat = d.fire
+			fire.Color = d.color
+			fire.SecondaryColor = Color3.fromRGB(255, 240, 120)
+			fire.Parent = p
+		end
+		if d.particles then
+			local e = Instance.new("ParticleEmitter")
+			e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			e.Color = ColorSequence.new(d.particles)
+			e.LightEmission = 1
+			e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+			e.Lifetime = NumberRange.new(1, 2)
+			e.Speed = NumberRange.new(1, 3)
+			e.SpreadAngle = Vector2.new(180, 180)
+			e.Rate = 6
+			e.Parent = p
+		end
 		if d.move then
 			p:SetAttribute("MoveBase", p.Position)
 			p:SetAttribute("MoveOffset", d.move.offset)
@@ -248,6 +280,7 @@ local function loadMap(index)
 	Lighting.FogStart = 150
 	Lighting.FogEnd = 600
 
+	workspace.Gravity = curMap.gravity or Config.GRAVITY
 	if startHazards then startHazards() end
 	state:SetAttribute("Map", index)
 	state:SetAttribute("MapName", curMap.name)

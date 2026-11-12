@@ -1573,6 +1573,196 @@ local function buildBackground()
 			EmissionDirection = Enum.NormalId.Top, SpreadAngle = Vector2.new(20, 20),
 			LightEmission = 1, Texture = "rbxasset://textures/particles/sparkles_main.dds",
 		})
+	elseif style == "city" then
+		-- skyline lointaine
+		for i = 1, 22 do
+			local h = rng:NextNumber(40, 120)
+			bgPart({
+				Size = Vector3.new(rng:NextNumber(10, 20), h, 4),
+				Color = Color3.fromRGB(15, 12, 30),
+				CFrame = CFrame.new(O + Vector3.new(-220 + i * 20, -60 + h / 2, -84)),
+			})
+			if i % 2 == 0 then
+				local sign = bgPart({
+					Size = Vector3.new(6, 2, 0.4),
+					Material = Enum.Material.Neon,
+					Color = (i % 4 == 0) and Color3.fromRGB(255, 60, 180) or Color3.fromRGB(60, 220, 255),
+					CFrame = CFrame.new(O + Vector3.new(-220 + i * 20, -60 + h - 8, -81.5)),
+				})
+				addMover(sign, "twinkle", { speed = rng:NextNumber(0.5, 2) })
+			end
+		end
+		-- voitures volantes
+		for i = 1, 6 do
+			local car = bgPart({
+				Size = Vector3.new(3, 1, 1.5),
+				Material = Enum.Material.Neon,
+				Color = (i % 2 == 0) and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(255, 240, 200),
+				CFrame = CFrame.new(O + Vector3.new(rng:NextNumber(-180, 180), 25 + i * 9, -55 - i * 3)),
+			})
+			addMover(car, "drift", { speed = (i % 2 == 0 and 1 or -1) * rng:NextNumber(15, 30) })
+		end
+		-- pluie
+		emitter(bgPart({ Size = Vector3.new(220, 1, 60), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 70, -10)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(150, 170, 255)),
+			Size = NumberSequence.new(0.12), Transparency = NumberSequence.new(0.4),
+			Rate = 200, Lifetime = NumberRange.new(1.2, 1.6), Speed = NumberRange.new(80, 100),
+			EmissionDirection = Enum.NormalId.Bottom, LightEmission = 0.3,
+		})
+		-- lune
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(30, 30, 30), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(230, 220, 255), CFrame = CFrame.new(O + Vector3.new(60, 70, -88)) })
+	elseif style == "forest" then
+		for i = 1, 16 do
+			local x = -200 + i * 25 + rng:NextNumber(-6, 6)
+			local h = rng:NextNumber(60, 110)
+			bgPart({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 5, 5), Color = Color3.fromRGB(35, 25, 20),
+				CFrame = CFrame.new(O + Vector3.new(x, -40 + h / 2, -80)) * CFrame.Angles(0, 0, math.rad(90)) })
+			bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(30, 30, 30) * rng:NextNumber(0.8, 1.3),
+				Color = Color3.fromRGB(20, 55, 40), CFrame = CFrame.new(O + Vector3.new(x, -40 + h, -80)) })
+		end
+		-- lucioles
+		emitter(bgPart({ Size = Vector3.new(160, 40, 50), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 10, -20)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(200, 255, 120)),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.5), NumberSequenceKeypoint.new(1, 0) }),
+			Rate = 25, Lifetime = NumberRange.new(4, 7), Speed = NumberRange.new(0.5, 2),
+			SpreadAngle = Vector2.new(180, 180), LightEmission = 1,
+			Texture = "rbxasset://textures/particles/sparkles_main.dds",
+		})
+		-- rayons de lune
+		for i = 1, 3 do
+			local ray = bgPart({ Size = Vector3.new(8, 160, 0.4), Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(180, 255, 220), Transparency = 0.85,
+				CFrame = CFrame.new(O + Vector3.new(-60 + i * 40, 30, -60)) * CFrame.Angles(0, 0, math.rad(20)) })
+			addMover(ray, "pulse", { amount = 0.06 })
+		end
+	elseif style == "beach" then
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(40, 40, 40), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 240, 170), CFrame = CFrame.new(O + Vector3.new(-60, 60, -88)) })
+		-- vagues
+		for i = 1, 5 do
+			local wave = bgPart({ Size = Vector3.new(400, 0.6, 3), Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(220, 245, 255), Transparency = 0.5,
+				CFrame = CFrame.new(O + Vector3.new(0, -17.3, -10 - i * 14)) })
+			addMover(wave, "wave", { amount = 1.2, speed = 0.6 + i * 0.1 })
+		end
+		-- îlots au loin
+		for i = 1, 3 do
+			bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(50, 20, 50), Color = Color3.fromRGB(80, 160, 90),
+				Material = Enum.Material.Grass, CFrame = CFrame.new(O + Vector3.new(-120 + i * 90, -20, -80)) })
+		end
+		-- nuages
+		for i = 1, 8 do
+			local base = O + Vector3.new(rng:NextNumber(-160, 160), rng:NextNumber(40, 80), rng:NextNumber(-85, -60))
+			for j = 1, 3 do
+				local puff = bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(12, 12, 12) * (j == 2 and 1.3 or 1),
+					Color = Color3.new(1, 1, 1), Transparency = 0.25,
+					CFrame = CFrame.new(base + Vector3.new((j - 2) * 9, (j == 2) and 3 or 0, 0)) })
+				addMover(puff, "drift", { speed = 3 })
+			end
+		end
+		-- mouettes
+		emitter(bgPart({ Size = Vector3.new(200, 1, 1), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 50, -50)) }), {
+			Color = ColorSequence.new(Color3.new(1, 1, 1)), Size = NumberSequence.new(0.8),
+			Rate = 1, Lifetime = NumberRange.new(15, 20), Speed = NumberRange.new(5, 8),
+			EmissionDirection = Enum.NormalId.Right, SpreadAngle = Vector2.new(10, 10),
+		})
+	elseif style == "spooky" then
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(45, 45, 45), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 250, 220), CFrame = CFrame.new(O + Vector3.new(40, 60, -88)) })
+		-- collines
+		for i = 1, 5 do
+			bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(80, 50, 30), Color = Color3.fromRGB(20, 12, 30),
+				CFrame = CFrame.new(O + Vector3.new(-200 + i * 80, -45, -82)) })
+		end
+		-- chauves-souris
+		for i = 1, 10 do
+			local bat = bgPart({ Size = Vector3.new(2.5, 0.5, 0.5), Color = Color3.fromRGB(10, 5, 15),
+				CFrame = CFrame.new(O + Vector3.new(rng:NextNumber(-150, 150), rng:NextNumber(20, 70), rng:NextNumber(-70, -40))) })
+			addMover(bat, "drift", { speed = rng:NextNumber(8, 16) * (i % 2 == 0 and 1 or -1) })
+		end
+		-- fantômes
+		for i = 1, 4 do
+			local ghost = bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(5, 5, 5), Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(200, 220, 255), Transparency = 0.6,
+				CFrame = CFrame.new(O + Vector3.new(-90 + i * 45, rng:NextNumber(10, 40), -45)) })
+			addMover(ghost, "wave", { amount = 4, speed = 0.3 + i * 0.1 })
+		end
+		emitter(bgPart({ Size = Vector3.new(200, 1, 60), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, -25, -20)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(120, 90, 160)),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 6), NumberSequenceKeypoint.new(1, 14) }),
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0.75), NumberSequenceKeypoint.new(1, 1) }),
+			Rate = 6, Lifetime = NumberRange.new(6, 9), Speed = NumberRange.new(1, 3),
+			EmissionDirection = Enum.NormalId.Top,
+		})
+	elseif style == "space" then
+		for i = 1, 120 do
+			local star = bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(1, 1, 1) * rng:NextNumber(0.4, 1.3),
+				Material = Enum.Material.Neon, Color = Color3.new(1, 1, 1),
+				CFrame = CFrame.new(O + Vector3.new(rng:NextNumber(-220, 220), rng:NextNumber(-80, 120), rng:NextNumber(-88, -60))) })
+			addMover(star, "twinkle", { speed = rng:NextNumber(0.5, 3) })
+		end
+		-- la Terre
+		local earth = bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(120, 120, 120), Material = Enum.Material.SmoothPlastic,
+			Color = Color3.fromRGB(50, 110, 210), CFrame = CFrame.new(O + Vector3.new(-40, -95, -88)) })
+		addMover(earth, "spin", { speed = 0.02 })
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(126, 126, 126), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(120, 200, 255), Transparency = 0.85, CFrame = CFrame.new(O + Vector3.new(-40, -95, -89)) })
+		for i = 1, 6 do
+			bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(30, 8, 30) * rng:NextNumber(0.6, 1.2),
+				Color = Color3.fromRGB(70, 160, 80), Material = Enum.Material.Grass,
+				CFrame = CFrame.new(O + Vector3.new(-40 + rng:NextNumber(-45, 45), -95 + rng:NextNumber(10, 55), -30)) })
+		end
+		-- astéroïdes
+		for i = 1, 8 do
+			local rock = bgPart({ Size = Vector3.new(4, 3, 3) * rng:NextNumber(0.5, 1.5), Material = Enum.Material.Rock,
+				Color = Color3.fromRGB(110, 100, 95),
+				CFrame = CFrame.new(O + Vector3.new(rng:NextNumber(-180, 180), rng:NextNumber(30, 90), rng:NextNumber(-70, -45))) })
+			addMover(rock, "drift", { speed = rng:NextNumber(4, 10) })
+		end
+	elseif style == "sakura" then
+		-- mont enneigé
+		bgPart({ Shape = Enum.PartType.Block, Size = Vector3.new(120, 120, 4), Color = Color3.fromRGB(150, 130, 170),
+			CFrame = CFrame.new(O + Vector3.new(40, -40, -86)) * CFrame.Angles(0, 0, math.rad(45)) })
+		bgPart({ Shape = Enum.PartType.Block, Size = Vector3.new(36, 36, 4.2), Color = Color3.fromRGB(255, 255, 255),
+			CFrame = CFrame.new(O + Vector3.new(40, 30, -85.8)) * CFrame.Angles(0, 0, math.rad(45)) })
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(35, 35, 35), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 120, 100), CFrame = CFrame.new(O + Vector3.new(-50, 40, -88)) })
+		-- pétales qui tombent
+		emitter(bgPart({ Size = Vector3.new(200, 1, 60), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 60, -10)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(255, 180, 210), Color3.fromRGB(255, 220, 235)),
+			Size = NumberSequence.new(0.5), Rate = 35, Lifetime = NumberRange.new(8, 12), Speed = NumberRange.new(3, 6),
+			EmissionDirection = Enum.NormalId.Bottom, SpreadAngle = Vector2.new(40, 40),
+			Acceleration = Vector3.new(3, -0.5, 0), RotSpeed = NumberRange.new(-120, 120), Rotation = NumberRange.new(0, 360),
+			LightEmission = 0.2,
+		})
+		for i = 1, 6 do
+			local cloud = bgPart({ Size = Vector3.new(40, 2, 6), Color = Color3.fromRGB(255, 230, 240), Transparency = 0.4,
+				CFrame = CFrame.new(O + Vector3.new(-150 + i * 50, rng:NextNumber(20, 60), -75)) })
+			addMover(cloud, "drift", { speed = 2 })
+		end
+	elseif style == "desert" then
+		bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(50, 50, 50), Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 230, 150), CFrame = CFrame.new(O + Vector3.new(70, 65, -88)) })
+		-- dunes
+		for i = 1, 6 do
+			bgPart({ Shape = Enum.PartType.Ball, Size = Vector3.new(100, 40, 30), Color = Color3.fromRGB(235, 195, 130),
+				Material = Enum.Material.Sand, CFrame = CFrame.new(O + Vector3.new(-250 + i * 85, -48, -84)) })
+		end
+		-- tempête de sable
+		emitter(bgPart({ Size = Vector3.new(1, 60, 60), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(-120, 10, -15)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(230, 200, 150)),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 6) }),
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.8), NumberSequenceKeypoint.new(1, 1) }),
+			Rate = 25, Lifetime = NumberRange.new(5, 7), Speed = NumberRange.new(40, 60),
+			EmissionDirection = Enum.NormalId.Right, SpreadAngle = Vector2.new(5, 10),
+		})
+		-- vautours
+		for i = 1, 3 do
+			local bird = bgPart({ Size = Vector3.new(3, 0.4, 0.6), Color = Color3.fromRGB(50, 35, 30),
+				CFrame = CFrame.new(O + Vector3.new(-40 + i * 30, 60 + i * 5, -60)) })
+			addMover(bird, "wave", { amount = 6, speed = 0.25 })
+		end
 	elseif style == "snow" then
 		for i = 1, 8 do
 			local peak = bgPart({
