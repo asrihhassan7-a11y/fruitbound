@@ -10,6 +10,7 @@ local Maps = {}
 
 Maps[1] = {
 	name = "Temple du Ciel",
+	bg = "clouds", -- style du fond animé (clouds, stars, sunset, lava, snow)
 	desc = "Classique : une scène et 3 plateformes",
 	icon = C(120, 200, 255),
 	blast = { x = 95, top = 85, bottom = 60 },
@@ -32,6 +33,7 @@ Maps[1] = {
 
 Maps[2] = {
 	name = "Plateau Final",
+	bg = "stars", -- style du fond animé (clouds, stars, sunset, lava, snow)
 	desc = "Plat, sans plateformes : duel pur",
 	icon = C(160, 90, 255),
 	blast = { x = 100, top = 85, bottom = 60 },
@@ -50,6 +52,7 @@ Maps[2] = {
 
 Maps[3] = {
 	name = "Îles Jumelles",
+	bg = "sunset", -- style du fond animé (clouds, stars, sunset, lava, snow)
 	desc = "Deux îles séparées par un vide",
 	icon = C(90, 220, 120),
 	blast = { x = 110, top = 85, bottom = 55 },
@@ -74,6 +77,7 @@ Maps[3] = {
 
 Maps[4] = {
 	name = "Volcan",
+	bg = "lava", -- style du fond animé (clouds, stars, sunset, lava, snow)
 	desc = "Petite scène, plateformes en escalier",
 	icon = C(255, 100, 40),
 	blast = { x = 85, top = 85, bottom = 40 },
@@ -94,6 +98,7 @@ Maps[4] = {
 
 Maps[5] = {
 	name = "Glacier",
+	bg = "snow", -- style du fond animé (clouds, stars, sunset, lava, snow)
 	desc = "Grande scène gelée et plateformes hautes",
 	icon = C(180, 240, 255),
 	blast = { x = 100, top = 90, bottom = 60 },

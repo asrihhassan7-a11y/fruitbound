@@ -39,6 +39,7 @@ state.Parent = ReplicatedStorage
 
 local function setMsg(m) state:SetAttribute("Message", m) end
 local function phase() return state:GetAttribute("Phase") end
+local function combat() local ph = phase() return ph == "Fight" or ph == "Training" end
 
 ----------------------------------------------------------------------
 -- Groupes de collision : les combattants se traversent
@@ -107,6 +108,55 @@ local function loadMap(index)
 		end
 	end
 
+	-- détails de la scène : bords lumineux + blocs en façade
+	local accent = curMap.icon or Color3.new(1, 1, 1)
+	local function deco(size, cf, color, material, transparency)
+		local d = Instance.new("Part")
+		d.Name = "Detail"
+		d.Anchored = true
+		d.CanCollide = false
+		d.CanQuery = false
+		d.CanTouch = false
+		d.CastShadow = false
+		d.Size = size
+		d.CFrame = cf
+		d.Color = color
+		d.Material = material
+		d.Transparency = transparency or 0
+		d.Parent = decoFolder
+		return d
+	end
+	for _, p in ipairs(solidsFolder:GetChildren()) do
+		local top = p.Position.Y + p.Size.Y / 2
+		local front = p.Position.Z + p.Size.Z / 2
+		-- liseré lumineux sur le bord avant et les côtés
+		deco(Vector3.new(p.Size.X + 0.2, 0.35, 0.35), CFrame.new(p.Position.X, top - 0.1, front + 0.05), accent, Enum.Material.Neon)
+		deco(Vector3.new(0.35, p.Size.Y, 0.35), CFrame.new(p.Position.X - p.Size.X / 2, p.Position.Y, front + 0.05), accent, Enum.Material.Neon)
+		deco(Vector3.new(0.35, p.Size.Y, 0.35), CFrame.new(p.Position.X + p.Size.X / 2, p.Position.Y, front + 0.05), accent, Enum.Material.Neon)
+		-- motif de dalles en façade
+		local n = math.floor(p.Size.X / 6)
+		for i = 0, n - 1 do
+			local x = p.Position.X - p.Size.X / 2 + 3 + i * (p.Size.X - 6) / math.max(n - 1, 1)
+			local shade = (i % 2 == 0) and 0.12 or 0.22
+			deco(Vector3.new(4.6, p.Size.Y * 0.55, 0.2), CFrame.new(x, p.Position.Y - p.Size.Y * 0.1, front + 0.1),
+				p.Color:Lerp(Color3.new(0, 0, 0), shade), p.Material)
+		end
+		-- petite lueur sur le dessus
+		local glow = Instance.new("SurfaceLight")
+		glow.Face = Enum.NormalId.Top
+		glow.Color = accent
+		glow.Brightness = 0.6
+		glow.Range = 8
+		glow.Parent = p
+	end
+	for _, p in ipairs(platformsFolder:GetChildren()) do
+		local front = p.Position.Z + p.Size.Z / 2
+		p.Color = p.Color:Lerp(accent, 0.25)
+		-- dessous lumineux de la couleur de la map
+		deco(Vector3.new(p.Size.X - 1, 0.3, p.Size.Z - 1), CFrame.new(p.Position - Vector3.new(0, p.Size.Y / 2 + 0.15, 0)), accent, Enum.Material.Neon, 0.2)
+		deco(Vector3.new(p.Size.X + 0.2, 0.3, 0.3), CFrame.new(p.Position.X, p.Position.Y + p.Size.Y / 2 - 0.1, front + 0.05), Color3.new(1, 1, 1), Enum.Material.Neon)
+	end
+
 	-- fond pour la vue de côté
 	local back = Instance.new("Part")
 	back.Name = "Backdrop"
@@ -120,6 +170,40 @@ local function loadMap(index)
 	back.Parent = decoFolder
 
 	arena.Parent = workspace
+
+	-- effets de lumière (bloom, couleurs, atmosphère)
+	local function effect(class, name)
+		local e = Lighting:FindFirstChild(name)
+		if not e then
+			e = Instance.new(class)
+			e.Name = name
+			e.Parent = Lighting
+		end
+		return e
+	end
+	local bloom = effect("BloomEffect", "SmashBloom")
+	bloom.Intensity = 0.8
+	bloom.Size = 28
+	bloom.Threshold = 0.85
+	local cc = effect("ColorCorrectionEffect", "SmashColor")
+	cc.Contrast = 0.15
+	cc.Saturation = 0.25
+	cc.Brightness = 0.03
+	cc.TintColor = Color3.new(1, 1, 1):Lerp(curMap.theme.fog, 0.12)
+	local rays = effect("SunRaysEffect", "SmashRays")
+	rays.Intensity = 0.06
+	rays.Spread = 0.6
+	local atmo = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
+	atmo.Density = 0.25
+	atmo.Offset = 0.1
+	atmo.Color = curMap.theme.fog
+	atmo.Decay = curMap.theme.backdrop
+	atmo.Glare = 0.2
+	atmo.Haze = 1.5
+	atmo.Parent = Lighting
+	Lighting.Brightness = 2.5
+	Lighting.EnvironmentDiffuseScale = 0.6
+	Lighting.EnvironmentSpecularScale = 0.6
 
 	Lighting.ClockTime = curMap.theme.clock
 	Lighting.Ambient = curMap.theme.ambient
@@ -215,6 +299,11 @@ local function setMenu(f, on)
 	f.inMenu = on
 	f.info:SetAttribute("InMenu", on)
 end
+local joinTraining
+local function setTraining(f, on)
+	f.training = on
+	f.info:SetAttribute("Training", on)
+end
 local function setInRound(f, on)
 	f.inRound = on
 	f.info:SetAttribute("InRound", on)
@@ -262,6 +351,7 @@ local function placeAt(f, pos, anchored)
 	local root = rootOf(f)
 	if not root then return end
 	root.Anchored = false
+	f.frozen = false
 	f.model:PivotTo(CFrame.new(pos) * CFrame.Angles(0, math.rad(pos.X > O.X and -90 or 90), 0))
 	root.AssemblyLinearVelocity = Vector3.zero
 	f.stunUntil = 0
@@ -320,6 +410,14 @@ local function setupCharacter(f, model)
 	task.wait(0.1) -- laisser Roblox placer le perso avant de le téléporter
 	applyScale(f)
 	applyStats(f)
+	-- contour de la couleur du combattant
+	local outline = model:FindFirstChild("SmashOutline") or Instance.new("Highlight")
+	outline.Name = "SmashOutline"
+	outline.FillTransparency = 1
+	outline.OutlineColor = f.info:GetAttribute("Color")
+	outline.OutlineTransparency = 0
+	outline.DepthMode = Enum.HighlightDepthMode.Occluded
+	outline.Parent = model
 	setGroup(model, "Fighters")
 	model.DescendantAdded:Connect(function(d)
 		if d:IsA("BasePart") and d.Name ~= "SmashShield" then d.CollisionGroup = "Fighters" end
@@ -327,7 +425,7 @@ local function setupCharacter(f, model)
 	f.shielding = false
 	f.shieldPart = nil
 	f.koing = false
-	local fighting = phase() == "Fight" or phase() == "Countdown"
+	local fighting = phase() == "Fight" or phase() == "Countdown" or phase() == "Training"
 	if f.inMenu or (fighting and not (f.inRound and f.stocks > 0)) then
 		park(f) -- menu ou spectateur
 	elseif fighting then
@@ -370,6 +468,8 @@ end
 ----------------------------------------------------------------------
 -- Dégâts + recul
 ----------------------------------------------------------------------
+local freeze, impactBurst, smokeTrail
+
 local function applyKnockback(target, vel, hitstun)
 	local root = rootOf(target)
 	if not root then return end
@@ -381,6 +481,97 @@ local function applyKnockback(target, vel, hitstun)
 		if hum then hum.PlatformStand = true end
 		root.AssemblyLinearVelocity = vel
 	end
+end
+
+-- figer un combattant (hitstop)
+function freeze(f, duration)
+	local root = rootOf(f)
+	if not root then return end
+	if f.player then
+		knockRemote:FireClient(f.player, "Freeze", duration)
+	elseif not root.Anchored then
+		root.Anchored = true
+		f.frozen = true
+		task.delay(duration, function()
+			if f.frozen and root.Parent and not f.koing then root.Anchored = false end
+			f.frozen = false
+		end)
+	end
+end
+
+-- gerbe d'étincelles à l'impact
+function impactBurst(pos, color, big)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.new(1, 1, 1)
+	p.Position = pos
+	p.Parent = workspace
+	local e = Instance.new("ParticleEmitter")
+	e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	e.Color = ColorSequence.new(Color3.new(1, 1, 0.8), color)
+	e.LightEmission = 1
+	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, big and 1.6 or 1), NumberSequenceKeypoint.new(1, 0) })
+	e.Lifetime = NumberRange.new(0.2, 0.45)
+	e.Speed = NumberRange.new(big and 35 or 20, big and 60 or 35)
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.Drag = 6
+	e.Rate = 0
+	e.Parent = p
+	e:Emit(big and 30 or 12)
+	-- anneau de choc
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = Color3.new(1, 1, 1)
+	ring.Transparency = 0.3
+	ring.Size = Vector3.new(0.3, 2, 2)
+	ring.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.rad(90), 0)
+	ring.Parent = workspace
+	game:GetService("TweenService"):Create(ring, TweenInfo.new(0.2), {
+		Size = Vector3.new(0.3, big and 14 or 8, big and 14 or 8), Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 0.25)
+	Debris:AddItem(p, 1)
+end
+
+-- traînée de fumée derrière un combattant éjecté fort
+function smokeTrail(f, duration, power)
+	local root = rootOf(f)
+	if not root then return end
+	local old = root:FindFirstChild("SmashSmoke")
+	if old then old:Destroy() end
+	local e = Instance.new("ParticleEmitter")
+	e.Name = "SmashSmoke"
+	e.Color = ColorSequence.new(Color3.fromRGB(230, 230, 230), Color3.fromRGB(120, 120, 120))
+	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.5), NumberSequenceKeypoint.new(1, 4) })
+	e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	e.Lifetime = NumberRange.new(0.5, 0.9)
+	e.Speed = NumberRange.new(0, 1)
+	e.Rate = math.clamp(power * 0.6, 30, 90)
+	e.LockedToPart = false
+	e.Parent = root
+	if power > 100 then
+		local fire = Instance.new("ParticleEmitter")
+		fire.Name = "SmashSmokeFire"
+		fire.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		fire.Color = ColorSequence.new(Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 60, 20))
+		fire.LightEmission = 1
+		fire.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.2), NumberSequenceKeypoint.new(1, 0) })
+		fire.Lifetime = NumberRange.new(0.2, 0.4)
+		fire.Rate = 60
+		fire.Speed = NumberRange.new(0, 2)
+		fire.Parent = root
+		Debris:AddItem(fire, duration)
+	end
+	Debris:AddItem(e, duration)
 end
 
 local function hit(attacker, target, data, facing, mult, fromPos)
@@ -413,11 +604,25 @@ local function hit(attacker, target, data, facing, mult, fromPos)
 	local a = math.rad(data.angle)
 	local vel = Vector3.new(math.cos(a) * dir, math.sin(a), 0) * power
 	local hitstun = math.clamp(power * Config.HITSTUN_FACTOR, 0.15, Config.HITSTUN_MAX)
-	applyKnockback(target, vel, hitstun)
+
+	-- arrêt sur image (hitstop) : les deux combattants se figent un instant
+	local stop = math.clamp(0.04 + power * 0.0009, 0.05, 0.15)
+	target.stunUntil = os.clock() + stop + hitstun
+	freeze(attacker, stop)
+	freeze(target, stop)
+	task.delay(stop, function()
+		if alive(target) and target.model then
+			applyKnockback(target, vel, hitstun)
+			if power > 55 then smokeTrail(target, hitstun + 0.3, power) end
+		end
+	end)
 
 	local big = power > 70
+	local hitPos = troot.Position
 	flash(troot.CFrame, Vector3.new(3, 3, 3) * (big and 2 or 1), Color3.fromRGB(255, 240, 150), 0.1)
+	impactBurst(hitPos, attacker.info:GetAttribute("Color"), big)
 	hitSound(troot, big)
+	knockRemote:FireAllClients("DmgNum", hitPos, math.floor(data.dmg * mult * atkMult + 0.5), big)
 	if big then knockRemote:FireAllClients("Shake", math.clamp(power / 100, 0.3, 1.5)) end
 end
 
@@ -500,7 +705,7 @@ end
 
 -- Exécute une action (utilisé par les joueurs ET les bots)
 local function doAction(f, kind, dir, facing, charge)
-	if phase() ~= "Fight" then return end
+	if not combat() then return end
 	local root, hum = rootOf(f), humOf(f)
 	if not root or not hum or f.stocks <= 0 then return end
 	local now = os.clock()
@@ -551,6 +756,27 @@ local function doAction(f, kind, dir, facing, charge)
 	end
 	f.cooldownUntil = now + data.cooldown
 	knockRemote:FireAllClients("Pose", f.model, name)
+	-- les bots proches peuvent réagir (bouclier / esquive)
+	for _, o in pairs(fighters) do
+		if o ~= f and o.isBot and o.ai and (o.ai.dodge or 0) > 0 and alive(o) then
+			local orr, ohum = rootOf(o), humOf(o)
+			local d = orr.Position - root.Position
+			if d.Magnitude < 9 and math.sign(d.X) == facing and os.clock() >= o.stunUntil and math.random() < o.ai.dodge then
+				if ohum.FloorMaterial ~= Enum.Material.Air and o.shieldHp > 30 and math.random() < 0.6 then
+					setShield(o, true)
+					knockRemote:FireAllClients("Pose", o.model, "Shield")
+					task.delay(0.4, function()
+						setShield(o, false)
+						knockRemote:FireAllClients("Pose", o.model, "ShieldEnd")
+					end)
+				else
+					-- esquive : petit bond en arrière + invincibilité courte
+					orr.AssemblyLinearVelocity = Vector3.new(facing * 30, 35, 0)
+					o.invincibleUntil = math.max(o.invincibleUntil, os.clock() + 0.3)
+				end
+			end
+		end
+	end
 	if data.startup then
 		task.delay(data.startup, function()
 			if f.model and os.clock() >= f.stunUntil then hitboxAt(f, data, facing, mult) end
@@ -576,6 +802,37 @@ actionRemote.OnServerEvent:Connect(function(player, kind, dir, facing, charge)
 	if kind == "Pick" then
 		local f = fighters["P" .. player.UserId]
 		if f and f.inMenu and typeof(dir) == "string" then setChar(f, dir) end
+		return
+	end
+	if kind == "Training" then
+		local f = fighters["P" .. player.UserId]
+		local ph = phase()
+		if f and f.inMenu and (ph == "Waiting" or ph == "Training") then
+			setMenu(f, false)
+			setTraining(f, true)
+			applyScale(f)
+			applyStats(f)
+			if ph == "Training" then joinTraining(f) end
+		end
+		return
+	end
+	if kind == "LeaveTraining" then
+		local f = fighters["P" .. player.UserId]
+		if f and f.training then
+			setTraining(f, false)
+			setInRound(f, false)
+			setMenu(f, true)
+			park(f)
+		end
+		return
+	end
+	if kind == "BagDamage" then
+		local f = fighters["P" .. player.UserId]
+		local bag = fighters["BAG"]
+		if f and f.training and bag and typeof(dir) == "number" then
+			bag.damage = math.clamp(math.floor(dir), 0, 999)
+			sync(bag)
+		end
 		return
 	end
 	if kind == "Play" then
@@ -759,10 +1016,10 @@ local function ko(f, noAnim)
 		end
 		if not stillSame then return end -- nouveau perso entre-temps
 		if f.stocks > 0 then
-			if phase() == "Fight" then
+			if combat() then
 				park(f)
 				task.wait(0.6)
-				if fighters[f.id] == f and phase() == "Fight" and f.model == model then respawnAfterKO(f) end
+				if fighters[f.id] == f and combat() and f.model == model then respawnAfterKO(f) end
 			end
 		else
 			eliminated(f)
@@ -783,7 +1040,7 @@ local function onPlayer(player)
 			local hum = char:WaitForChild("Humanoid")
 			hum.Died:Connect(function()
 				-- reset volontaire = perte d'une vie
-				if phase() == "Fight" and f.inRound then ko(f, true) end
+				if combat() and f.inRound then ko(f, true) end
 			end)
 		end)
 	end
@@ -840,11 +1097,11 @@ local function playAnims(f)
 end
 
 local function spawnBot(i, def)
-	local id = "CPU" .. i
+	local id = def.id or ("CPU" .. i)
 	if fighters[id] then return fighters[id] end
 	local f = newFighter(id, def.name, nil)
-	setChar(f, Fighters.Characters[math.random(1, #Fighters.Characters)].id)
-	f.info:SetAttribute("DisplayName", def.name .. " (" .. f.char.name .. ")")
+	setChar(f, def.bag and "Brawler" or Fighters.Characters[math.random(1, #Fighters.Characters)].id)
+	f.info:SetAttribute("DisplayName", def.bag and def.name or (def.name .. " (" .. f.char.name .. ")"))
 	f.isBot = true
 	f.ai = def
 	f.airJumps = f.char.airJumps
@@ -852,7 +1109,7 @@ local function spawnBot(i, def)
 	f.nextThink = 0
 	local ok, model = pcall(function()
 		local desc = Instance.new("HumanoidDescription")
-		local c = f.char.color
+		local c = def.bag and Color3.fromRGB(190, 160, 90) or f.char.color
 		desc.HeadColor, desc.TorsoColor = c, c
 		desc.LeftArmColor, desc.RightArmColor = c, c
 		desc.LeftLegColor, desc.RightLegColor = Color3.fromRGB(40, 40, 40), Color3.fromRGB(40, 40, 40)
@@ -945,16 +1202,43 @@ local function botThink(f)
 		f.airJumps = f.char.airJumps
 		f.recovery = true
 	end
-	if phase() ~= "Fight" then hum:Move(Vector3.zero) return end
+	if not combat() then hum:Move(Vector3.zero) return end
+	if ai.bag then hum:Move(Vector3.zero) return end -- le sac de frappe ne fait rien
 
 	local vel = root.AssemblyLinearVelocity
+
+	-- accroche au bord de la scène
+	if ai.ledge and vel.Y < 5 and now >= (f.ledgeCooldown or 0) then
+		for _, p in ipairs(solidsFolder:GetChildren()) do
+			local top = p.Position.Y + p.Size.Y / 2
+			for _, side in ipairs({ -1, 1 }) do
+				local edgeX = p.Position.X + side * p.Size.X / 2
+				local outside = (pos.X - edgeX) * side > -0.5
+				if outside and math.abs(pos.X - edgeX) < 3.5 and pos.Y < top + 1 and pos.Y > top - 7 then
+					f.ledgeCooldown = now + 1
+					root.Anchored = true
+					root.CFrame = CFrame.new(edgeX + side * 1.2, top - 2.2, O.Z) * CFrame.Angles(0, math.rad(side > 0 and 90 or -90), 0)
+					knockRemote:FireAllClients("Pose", f.model, "Ledge")
+					task.delay(0.35 + ai.think, function()
+						if f.model and root.Parent and not f.koing then
+							root.Anchored = false
+							root.CFrame = CFrame.new(edgeX - side * 2.5, top + 3.2, O.Z)
+							root.AssemblyLinearVelocity = Vector3.zero
+							knockRemote:FireAllClients("Pose", f.model, "ShieldEnd")
+						end
+					end)
+					return
+				end
+			end
+		end
+	end
 
 	-- récupération : plus de sol en dessous -> revenir vers la scène
 	if not groundBelow(pos + Vector3.new(0, 1, 0), 120) then
 		local tx = nearestStageX(pos.X)
 		local d = math.sign(tx - pos.X)
 		hum:Move(Vector3.new(d, 0, 0))
-		if vel.Y < 0 and pos.Y < O.Y + 6 then
+		if vel.Y < 0 and (pos.Y < O.Y + 6 or (ai.dodge or 0) > 0.3) then
 			if not botJump(f, root, hum, d * Config.WALK_SPEED) and f.recovery and pos.Y < O.Y - 2 then
 				f.recovery = false
 				root.AssemblyLinearVelocity = Vector3.new(d * 28, Config.RECOVERY_VELOCITY, 0)
@@ -1016,7 +1300,8 @@ local function botThink(f)
 
 	local aimOk = math.random() < ai.aim
 	if math.abs(dx) < 6 and math.abs(dy) < 4 then
-		if math.random() < ai.smash then
+		local smashChance = ai.smash + ((ai.finisher and target.damage > 90) and 0.4 or 0)
+		if math.random() < smashChance then
 			doAction(f, "Smash", "Side", aimOk and facing or -facing, math.random() * Config.SMASH_CHARGE_MAX)
 		elseif dy < -1 and math.random() < 0.3 then
 			doAction(f, "Smash", "Down", facing, 0.3)
@@ -1060,7 +1345,7 @@ RunService.Heartbeat:Connect(function(dt)
 			local p, b = root.Position, curMap.blast
 			local out = math.abs(p.X - O.X) > b.x or p.Y > O.Y + b.top or p.Y < O.Y - b.bottom
 			if out then
-				if phase() == "Fight" and f.stocks > 0 then ko(f) else placeAt(f, respawnPos()) end
+				if combat() and f.stocks > 0 then ko(f) else placeAt(f, respawnPos()) end
 			end
 		end
 	end
@@ -1270,7 +1555,7 @@ end
 
 local nextItemAt = math.huge
 RunService.Heartbeat:Connect(function()
-	if phase() ~= "Fight" then return end
+	if not combat() then return end
 	local now = os.clock()
 	if now >= nextItemAt then
 		nextItemAt = now + Fighters.ITEM_INTERVAL * (0.7 + math.random() * 0.6)
@@ -1308,15 +1593,28 @@ end)
 local function humanCount()
 	local n = 0
 	for _, f in pairs(fighters) do
-		if f.player and not f.inMenu then n += 1 end
+		if f.player and not f.inMenu and not f.training then n += 1 end
+	end
+	return n
+end
+
+local function trainingCount()
+	local n = 0
+	for _, f in pairs(fighters) do
+		if f.player and f.training then n += 1 end
 	end
 	return n
 end
 
 local function setupBots()
 	local want = Config.FILL_WITH_BOTS or humanCount() < 2
+	if fighters["BAG"] then despawnBot(fighters["BAG"]) end
 	for i, def in ipairs(Config.BOTS) do
 		local id = "CPU" .. i
+		if i > (Config.BOT_COUNT or #Config.BOTS) then
+			if fighters[id] then despawnBot(fighters[id]) end
+			continue
+		end
 		if want and not fighters[id] then
 			spawnBot(i, def)
 		elseif not want and fighters[id] then
@@ -1328,7 +1626,7 @@ end
 local function startRound()
 	for _, f in pairs(fighters) do
 		f.info:SetAttribute("Eliminated", false)
-		if f.player and f.inMenu then
+		if f.player and (f.inMenu or f.training) then
 			setInRound(f, false)
 			f.stocks = 0
 			sync(f)
@@ -1365,12 +1663,70 @@ local function results()
 	return list
 end
 
+----------------------------------------------------------------------
+-- Mode entraînement : sac de frappe, vies infinies, % du sac réglable
+----------------------------------------------------------------------
+function joinTraining(f)
+	setInRound(f, true)
+	f.stocks = 99
+	f.damage = 0
+	f.koing = false
+	sync(f)
+	placeAt(f, spawnPos(1))
+	giveInvincibility(f, 1)
+end
+
+local function runTraining()
+	state:SetAttribute("Phase", "Training")
+	setMsg("ENTRAÎNEMENT")
+	task.delay(1.5, function() if state:GetAttribute("Message") == "ENTRAÎNEMENT" then setMsg("") end end)
+	clearItems()
+	for id, b in pairs(bots) do despawnBot(b) end
+	for _, f in pairs(fighters) do
+		if f.player and f.training then joinTraining(f) end
+	end
+	local bag = spawnBot(0, { id = "BAG", name = Config.TRAINING_BAG_NAME, bag = true, think = 1, aggro = 0, smash = 0, special = 0, aim = 1 })
+	task.wait(0.5)
+	if bag then
+		setInRound(bag, true)
+		bag.stocks = 99
+		sync(bag)
+		placeAt(bag, spawnPos(2))
+	end
+	nextItemAt = os.clock() + Fighters.ITEM_INTERVAL
+	while trainingCount() > 0 and humanCount() == 0 do
+		for _, f in pairs(fighters) do
+			if f.inRound and f.stocks < 50 then
+				f.stocks = 99
+				sync(f)
+			end
+		end
+		task.wait(0.3)
+	end
+	-- fin : quelqu'un a lancé une vraie partie -> les joueurs en entraînement la rejoignent
+	clearItems()
+	if fighters["BAG"] then despawnBot(fighters["BAG"]) end
+	for _, f in pairs(fighters) do
+		if f.player and f.training then
+			setTraining(f, false)
+			setInRound(f, false)
+		end
+	end
+end
+
 task.spawn(function()
 	while true do
-		-- 1) attendre un joueur
+		-- 1) attendre un joueur (ou faire de l'entraînement)
 		state:SetAttribute("Phase", "Waiting")
 		setMsg("En attente de joueurs...")
-		while humanCount() == 0 do task.wait(1) end
+		while humanCount() == 0 do
+			if trainingCount() > 0 then
+				runTraining()
+				state:SetAttribute("Phase", "Waiting")
+				setMsg("En attente de joueurs...")
+			end
+			task.wait(0.5)
+		end
 
 		-- 2) vote de la map
 		votes = {}

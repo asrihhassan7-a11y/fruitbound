@@ -106,6 +106,7 @@ local function jump()
 end
 
 local function press(action)
+	if fx.onPress and fx.onPress(action) then return end
 	if action == "Jump" then
 		jump()
 	elseif action == "Attack" then
@@ -117,7 +118,7 @@ local function press(action)
 		if dirInput() == "Up" and root then
 			-- super saut de récupération (une fois par passage en l'air)
 			if hum.FloorMaterial == Enum.Material.Air and recoveryReady and os.clock() >= stunUntil
-				and state:GetAttribute("Phase") == "Fight" then
+				and (state:GetAttribute("Phase") == "Fight" or state:GetAttribute("Phase") == "Training") then
 				recoveryReady = false
 				root.AssemblyLinearVelocity = Vector3.new(moveAxis() * 25, Config.RECOVERY_VELOCITY, 0)
 				actionRemote:FireServer("Special", "Up", facing)
@@ -187,6 +188,12 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 	elseif kind == "NextRound" then
 		if fx.toast then fx.toast("Tu rejoindras la prochaine manche !") end
 		return
+	elseif kind == "Freeze" then
+		if fx.freeze then fx.freeze(a) end
+		return
+	elseif kind == "DmgNum" then
+		if fx.dmgNum then fx.dmgNum(a, b, c) end
+		return
 	elseif kind == "Pose" then
 		if fx.pose then fx.pose(a, b) end
 		return
@@ -195,12 +202,14 @@ knockRemote.OnClientEvent:Connect(function(kind, a, b, c)
 		if fx.toast then fx.toast(a) end
 		return
 	elseif kind == "KOStart" then
+		if fx.clearLocal and root then fx.clearLocal(root) end
 		koLock = true
 		held = {}
 		smashStart = nil
 		return
 	end
 	if not root then return end
+	if fx.clearLocal then fx.clearLocal(root) end
 	if kind == "Knock" then
 		stunUntil = os.clock() + b
 		hum.PlatformStand = true
@@ -319,7 +328,7 @@ RunService:BindToRenderStep("SmashCamera", Enum.RenderPriority.Camera.Value + 1,
 			local cy = math.clamp((minY + maxY) / 2 + 3, O.Y, O.Y + 45)
 			targetFocus = Vector3.new(cx, cy, O.Z)
 			local spread = math.max(maxX - minX, (maxY - minY) * 1.6)
-			targetDist = math.clamp(spread * 0.8 + 18, Config.CAMERA_MIN_DIST, Config.CAMERA_MAX_DIST)
+			targetDist = math.clamp(spread * 0.7 + 14, Config.CAMERA_MIN_DIST, Config.CAMERA_MAX_DIST)
 		end
 	end
 
@@ -385,47 +394,154 @@ help.Parent = gui
 Instance.new("UICorner", help).CornerRadius = UDim.new(0, 8)
 
 local cards = {}
+local TS = game:GetService("TweenService")
 local function makeCard(info)
 	local card = Instance.new("Frame")
-	card.Size = UDim2.new(0, 150, 1, 0)
-	card.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	card.BackgroundTransparency = 0.25
+	card.Size = UDim2.new(0, 190, 1, 0)
+	card.BackgroundTransparency = 1
 	card.Parent = bar
-	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-	local stroke = Instance.new("UIStroke", card)
+
+	-- contenu (décalé quand on tremble)
+	local body = Instance.new("Frame")
+	body.Size = UDim2.new(1, 0, 1, 0)
+	body.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	body.BackgroundTransparency = 0.2
+	body.Parent = card
+	Instance.new("UICorner", body).CornerRadius = UDim.new(0, 12)
+	local stroke = Instance.new("UIStroke", body)
 	stroke.Thickness = 3
+	local grad = Instance.new("UIGradient", body)
+	grad.Rotation = 90
+	grad.Transparency = NumberSequence.new(0, 0.3)
+
+	-- portrait
+	local portrait = Instance.new("Frame")
+	portrait.Position = UDim2.new(0, 8, 0, 8)
+	portrait.Size = UDim2.fromOffset(52, 52)
+	portrait.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+	portrait.Parent = body
+	Instance.new("UICorner", portrait).CornerRadius = UDim.new(1, 0)
+	local pStroke = Instance.new("UIStroke", portrait)
+	pStroke.Thickness = 2
+	local img = Instance.new("ImageLabel")
+	img.BackgroundTransparency = 1
+	img.Size = UDim2.new(1, 0, 1, 0)
+	img.Parent = portrait
+	Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
+	local initial = Instance.new("TextLabel")
+	initial.BackgroundTransparency = 1
+	initial.Size = UDim2.new(1, 0, 1, 0)
+	initial.Font = Enum.Font.FredokaOne
+	initial.TextScaled = true
+	initial.TextColor3 = Color3.new(1, 1, 1)
+	initial.Parent = portrait
+	local uid = tonumber(string.match(info.Name, "^P(%d+)$"))
+	if uid then
+		img.Image = "rbxthumb://type=AvatarHeadShot&id=" .. uid .. "&w=150&h=150"
+	end
 
 	local name = Instance.new("TextLabel")
 	name.BackgroundTransparency = 1
-	name.Size = UDim2.new(1, -10, 0, 22)
-	name.Position = UDim2.new(0, 5, 0, 4)
+	name.Position = UDim2.new(0, 66, 0, 6)
+	name.Size = UDim2.new(1, -72, 0, 18)
 	name.Font = Enum.Font.GothamBold
 	name.TextScaled = true
+	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.TextColor3 = Color3.new(1, 1, 1)
-	name.Parent = card
+	name.Parent = body
 
 	local pct = Instance.new("TextLabel")
 	pct.BackgroundTransparency = 1
-	pct.Size = UDim2.new(1, -10, 0, 52)
-	pct.Position = UDim2.new(0, 5, 0, 26)
+	pct.Position = UDim2.new(0, 64, 0, 22)
+	pct.Size = UDim2.new(1, -70, 0, 50)
 	pct.Font = Enum.Font.FredokaOne
 	pct.TextScaled = true
+	pct.TextXAlignment = Enum.TextXAlignment.Left
 	pct.TextStrokeTransparency = 0
-	pct.Parent = card
+	pct.Parent = body
 
-	local stocks = Instance.new("TextLabel")
-	stocks.BackgroundTransparency = 1
-	stocks.Size = UDim2.new(1, -10, 0, 20)
-	stocks.Position = UDim2.new(0, 5, 0, 80)
-	stocks.Font = Enum.Font.GothamBold
-	stocks.TextScaled = true
-	stocks.Parent = card
+	-- icônes de vies
+	local lives = Instance.new("Frame")
+	lives.BackgroundTransparency = 1
+	lives.Position = UDim2.new(0, 10, 0, 76)
+	lives.Size = UDim2.new(1, -20, 0, 18)
+	lives.Parent = body
+	local livesLayout = Instance.new("UIListLayout", lives)
+	livesLayout.FillDirection = Enum.FillDirection.Horizontal
+	livesLayout.Padding = UDim.new(0, 5)
+	livesLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
 	local shieldBar = Instance.new("Frame")
 	shieldBar.BorderSizePixel = 0
-	shieldBar.Position = UDim2.new(0, 8, 1, -6)
-	shieldBar.Size = UDim2.new(1, -16, 0, 3)
-	shieldBar.Parent = card
+	shieldBar.Position = UDim2.new(0, 10, 1, -7)
+	shieldBar.Size = UDim2.new(1, -20, 0, 3)
+	shieldBar.Parent = body
+
+	local lastDmg = info:GetAttribute("Damage") or 0
+	local lastStocks = -1
+	local flashUntil = 0
+
+	local function pctColor(dmg)
+		local t = math.clamp(dmg / 150, 0, 1)
+		return Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 220, 60), math.min(t * 2, 1)):Lerp(Color3.fromRGB(200, 20, 20), math.max(t * 2 - 1, 0))
+	end
+
+	local function rebuildLives(st, c)
+		for _, ch in ipairs(lives:GetChildren()) do
+			if ch:IsA("GuiObject") then ch:Destroy() end
+		end
+		if st >= 50 then
+			local inf = Instance.new("TextLabel")
+			inf.BackgroundTransparency = 1
+			inf.Size = UDim2.fromOffset(30, 18)
+			inf.Font = Enum.Font.FredokaOne
+			inf.TextScaled = true
+			inf.TextColor3 = c
+			inf.Text = "∞"
+			inf.Parent = lives
+			return
+		end
+		if st <= 0 then
+			local out = Instance.new("TextLabel")
+			out.BackgroundTransparency = 1
+			out.Size = UDim2.fromOffset(100, 18)
+			out.Font = Enum.Font.GothamBold
+			out.TextScaled = true
+			out.TextXAlignment = Enum.TextXAlignment.Left
+			out.TextColor3 = Color3.fromRGB(255, 90, 90)
+			out.Text = "ÉLIMINÉ"
+			out.Parent = lives
+			return
+		end
+		for _ = 1, st do
+			local icon = Instance.new("Frame")
+			icon.Size = UDim2.fromOffset(16, 16)
+			icon.BackgroundColor3 = c
+			icon.Parent = lives
+			Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
+			local is = Instance.new("UIStroke", icon)
+			is.Color = Color3.new(1, 1, 1)
+			is.Thickness = 1.5
+			local shine = Instance.new("Frame")
+			shine.BackgroundColor3 = Color3.new(1, 1, 1)
+			shine.BackgroundTransparency = 0.4
+			shine.Position = UDim2.fromOffset(3, 3)
+			shine.Size = UDim2.fromOffset(5, 5)
+			shine.Parent = icon
+			Instance.new("UICorner", shine).CornerRadius = UDim.new(1, 0)
+		end
+	end
+
+	local function shakeCard(strength)
+		task.spawn(function()
+			for i = 1, 6 do
+				local k = (7 - i) / 6
+				body.Position = UDim2.fromOffset((math.random() - 0.5) * 2 * strength * k, (math.random() - 0.5) * 2 * strength * k)
+				task.wait(0.03)
+			end
+			body.Position = UDim2.new(0, 0, 0, 0)
+		end)
+	end
 
 	local function refresh()
 		local c = info:GetAttribute("Color") or Color3.new(1, 1, 1)
@@ -433,18 +549,44 @@ local function makeCard(info)
 		local st = info:GetAttribute("Stocks") or 0
 		card.LayoutOrder = info:GetAttribute("Slot") or 0
 		stroke.Color = c
+		pStroke.Color = c
+		grad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1):Lerp(c, 0.5))
+		if not uid then
+			portrait.BackgroundColor3 = c:Lerp(Color3.new(0, 0, 0), 0.3)
+			local nm = info:GetAttribute("CharName") or info:GetAttribute("DisplayName") or "?"
+			initial.Text = string.upper(string.sub(nm, 1, 1))
+		end
 		name.Text = info:GetAttribute("DisplayName") or info.Name
 		pct.Text = dmg .. "%"
-		local t = math.clamp(dmg / 150, 0, 1)
-		pct.TextColor3 = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(255, 220, 60), math.min(t * 2, 1)):Lerp(Color3.fromRGB(200, 20, 20), math.max(t * 2 - 1, 0))
-		stocks.Text = st > 0 and string.rep("● ", st) or "ÉLIMINÉ"
-		stocks.TextColor3 = c
+
+		-- touché : le % tremble et devient rouge
+		if dmg > lastDmg then
+			local gained = dmg - lastDmg
+			shakeCard(math.clamp(gained * 0.8, 4, 14))
+			flashUntil = os.clock() + 0.35
+			pct.TextColor3 = Color3.fromRGB(255, 40, 40)
+			pct.Size = UDim2.new(1, -60, 0, 58)
+			TS:Create(pct, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Size = UDim2.new(1, -70, 0, 50) }):Play()
+			task.delay(0.36, function()
+				if os.clock() >= flashUntil then
+					TS:Create(pct, TweenInfo.new(0.2), { TextColor3 = pctColor(info:GetAttribute("Damage") or 0) }):Play()
+				end
+			end)
+		elseif os.clock() >= flashUntil then
+			pct.TextColor3 = pctColor(dmg)
+		end
+		lastDmg = dmg
+
+		if st ~= lastStocks then
+			rebuildLives(st, c)
+			lastStocks = st
+		end
 		shieldBar.BackgroundColor3 = c
-		shieldBar.Size = UDim2.new((info:GetAttribute("Shield") or 1), -16, 0, 3)
-		card.BackgroundTransparency = st > 0 and 0.25 or 0.7
+		shieldBar.Size = UDim2.new((info:GetAttribute("Shield") or 1), -20, 0, 3)
+		body.BackgroundTransparency = st > 0 and 0.2 or 0.65
 		-- cacher ceux qui sont sur le menu
 		card.Visible = not info:GetAttribute("InMenu")
-			and (info:GetAttribute("InRound") or state:GetAttribute("Phase") ~= "Fight")
+			and (info:GetAttribute("InRound") or (state:GetAttribute("Phase") ~= "Fight" and state:GetAttribute("Phase") ~= "Training"))
 	end
 	info.AttributeChanged:Connect(refresh)
 	refresh()
@@ -812,7 +954,7 @@ playPad.PaddingBottom = UDim.new(0, 12)
 local menuInfo = Instance.new("TextLabel")
 menuInfo.BackgroundTransparency = 1
 menuInfo.AnchorPoint = Vector2.new(0.5, 0)
-menuInfo.Position = UDim2.new(0.5, 0, 0.7, 50)
+menuInfo.Position = UDim2.new(0.5, 0, 0.7, 105)
 menuInfo.Size = UDim2.new(0.9, 0, 0, 120)
 menuInfo.Font = Enum.Font.Gotham
 menuInfo.TextSize = 16
@@ -1185,3 +1327,503 @@ if UserInputService.TouchEnabled then
 	if me then me.AttributeChanged:Connect(refreshTouch) end
 	refreshTouch()
 end
+
+----------------------------------------------------------------------
+-- Fond animé (local, propre à chaque map)
+----------------------------------------------------------------------
+local bgFolder
+local bgMovers = {}
+
+local function bgPart(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Material = Enum.Material.SmoothPlastic
+	for k, v in pairs(props) do p[k] = v end
+	p.Parent = bgFolder
+	return p
+end
+
+local function emitter(parent, props)
+	local e = Instance.new("ParticleEmitter")
+	for k, v in pairs(props) do e[k] = v end
+	e.Parent = parent
+	return e
+end
+
+local function addMover(part, kind, data)
+	data.part = part
+	data.kind = kind
+	data.base = part.CFrame
+	data.t = math.random() * 100
+	table.insert(bgMovers, data)
+end
+
+local function buildBackground()
+	if bgFolder then bgFolder:Destroy() end
+	bgMovers = {}
+	bgFolder = Instance.new("Folder")
+	bgFolder.Name = "LocalBackground"
+	bgFolder.Parent = workspace
+
+	local map = Maps[state:GetAttribute("Map") or 1]
+	if not map then return end
+	local accent = map.icon or Color3.new(1, 1, 1)
+	local style = map.bg or "clouds"
+	local rng = Random.new(42)
+
+	-- anneaux lumineux qui tournent derrière la scène (toutes les maps)
+	for i = 1, 2 do
+		local ring = bgPart({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.6, 70 + i * 30, 70 + i * 30),
+			Material = Enum.Material.Neon,
+			Color = accent,
+			Transparency = 0.85,
+			CFrame = CFrame.new(O + Vector3.new(0, 15, -80 - i * 2)) * CFrame.Angles(0, math.rad(90), 0),
+		})
+		addMover(ring, "spin", { speed = (i == 1 and 0.15 or -0.1) })
+	end
+
+	if style == "clouds" or style == "sunset" then
+		local cloudColor = style == "sunset" and Color3.fromRGB(255, 190, 160) or Color3.fromRGB(255, 255, 255)
+		for i = 1, 14 do
+			local base = O + Vector3.new(rng:NextNumber(-160, 160), rng:NextNumber(-40, 60), rng:NextNumber(-80, -40))
+			local scale = rng:NextNumber(0.7, 1.6)
+			for j = 1, 3 do
+				local puff = bgPart({
+					Shape = Enum.PartType.Ball,
+					Size = Vector3.new(14, 14, 14) * scale * (j == 2 and 1.3 or 1),
+					Color = cloudColor,
+					Transparency = 0.35,
+					CFrame = CFrame.new(base + Vector3.new((j - 2) * 9 * scale, (j == 2 and 3 or 0), 0)),
+				})
+				addMover(puff, "drift", { speed = 2 + (i % 3) })
+			end
+		end
+		if style == "sunset" then
+			local sun = bgPart({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(60, 60, 60),
+				Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(255, 200, 120),
+				CFrame = CFrame.new(O + Vector3.new(30, -5, -86)),
+			})
+			addMover(sun, "pulse", { amount = 0.05 })
+			-- oiseaux / feuilles
+			emitter(bgPart({ Size = Vector3.new(200, 1, 1), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 30, -30)) }), {
+				Color = ColorSequence.new(Color3.fromRGB(90, 160, 70)),
+				Size = NumberSequence.new(0.6),
+				Rate = 4, Lifetime = NumberRange.new(10, 14), Speed = NumberRange.new(3, 6),
+				SpreadAngle = Vector2.new(30, 30), Acceleration = Vector3.new(2, -1, 0),
+				RotSpeed = NumberRange.new(-90, 90), LightEmission = 0.2,
+			})
+		end
+	elseif style == "stars" then
+		for i = 1, 90 do
+			local star = bgPart({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(1, 1, 1) * rng:NextNumber(0.5, 1.6),
+				Material = Enum.Material.Neon,
+				Color = (i % 4 == 0) and accent or Color3.new(1, 1, 1),
+				CFrame = CFrame.new(O + Vector3.new(rng:NextNumber(-200, 200), rng:NextNumber(-60, 110), rng:NextNumber(-88, -60))),
+			})
+			addMover(star, "twinkle", { speed = rng:NextNumber(1, 4) })
+		end
+		-- planète
+		local planet = bgPart({
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(50, 50, 50),
+			Material = Enum.Material.Neon,
+			Color = accent:Lerp(Color3.new(0, 0, 0), 0.4),
+			CFrame = CFrame.new(O + Vector3.new(-70, 55, -85)),
+		})
+		addMover(planet, "bob", { amount = 2, speed = 0.3 })
+		-- étoiles filantes
+		emitter(bgPart({ Size = Vector3.new(250, 1, 1), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 90, -70)) }), {
+			Color = ColorSequence.new(Color3.new(1, 1, 1)),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) }),
+			Rate = 0.8, Lifetime = NumberRange.new(1.2, 1.8), Speed = NumberRange.new(60, 80),
+			EmissionDirection = Enum.NormalId.Bottom, SpreadAngle = Vector2.new(25, 0),
+			LightEmission = 1, Texture = "rbxasset://textures/particles/sparkles_main.dds",
+		})
+	elseif style == "lava" then
+		-- volcans au loin
+		for i = -1, 1 do
+			local volcano = bgPart({
+				Shape = Enum.PartType.Block,
+				Size = Vector3.new(70, 70, 70),
+				Color = Color3.fromRGB(45, 30, 30),
+				Material = Enum.Material.Basalt,
+				CFrame = CFrame.new(O + Vector3.new(i * 110, -30, -85)) * CFrame.Angles(0, 0, math.rad(45)),
+			})
+			local glow = bgPart({
+				Size = Vector3.new(12, 3, 12),
+				Material = Enum.Material.Neon,
+				Color = Color3.fromRGB(255, 110, 30),
+				CFrame = CFrame.new(O + Vector3.new(i * 110, 19, -85)),
+			})
+			addMover(glow, "pulse", { amount = 0.15 })
+			emitter(glow, {
+				Color = ColorSequence.new(Color3.fromRGB(80, 70, 70)),
+				Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 4), NumberSequenceKeypoint.new(1, 14) }),
+				Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) }),
+				Rate = 3, Lifetime = NumberRange.new(5, 7), Speed = NumberRange.new(6, 10),
+				EmissionDirection = Enum.NormalId.Top, Acceleration = Vector3.new(3, 0, 0),
+			})
+			local _ = volcano
+		end
+		-- braises qui montent
+		emitter(bgPart({ Size = Vector3.new(220, 1, 40), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, -34, -20)) }), {
+			Color = ColorSequence.new(Color3.fromRGB(255, 160, 40), Color3.fromRGB(255, 60, 20)),
+			Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) }),
+			Rate = 40, Lifetime = NumberRange.new(3, 6), Speed = NumberRange.new(6, 14),
+			EmissionDirection = Enum.NormalId.Top, SpreadAngle = Vector2.new(20, 20),
+			LightEmission = 1, Texture = "rbxasset://textures/particles/sparkles_main.dds",
+		})
+	elseif style == "snow" then
+		for i = 1, 8 do
+			local peak = bgPart({
+				Size = Vector3.new(50, 50, 50) * rng:NextNumber(0.8, 1.4),
+				Color = Color3.fromRGB(220, 235, 250),
+				Material = Enum.Material.Glacier,
+				CFrame = CFrame.new(O + Vector3.new(-180 + i * 45, -45, -86)) * CFrame.Angles(0, 0, math.rad(45)),
+			})
+			local _ = peak
+		end
+		-- neige qui tombe
+		emitter(bgPart({ Size = Vector3.new(220, 1, 60), Transparency = 1, CFrame = CFrame.new(O + Vector3.new(0, 70, -10)) }), {
+			Color = ColorSequence.new(Color3.new(1, 1, 1)),
+			Size = NumberSequence.new(0.35),
+			Rate = 80, Lifetime = NumberRange.new(8, 10), Speed = NumberRange.new(6, 9),
+			EmissionDirection = Enum.NormalId.Bottom, SpreadAngle = Vector2.new(15, 15),
+			Acceleration = Vector3.new(2, 0, 0), LightEmission = 0.5,
+		})
+		-- aurore boréale
+		for i = 1, 3 do
+			local aurora = bgPart({
+				Size = Vector3.new(160, 14, 0.5),
+				Material = Enum.Material.Neon,
+				Color = (i == 2) and Color3.fromRGB(120, 255, 200) or Color3.fromRGB(90, 200, 255),
+				Transparency = 0.7,
+				CFrame = CFrame.new(O + Vector3.new(0, 70 + i * 10, -84)) * CFrame.Angles(0, 0, math.rad(i * 4 - 8)),
+			})
+			addMover(aurora, "wave", { amount = 5, speed = 0.4 + i * 0.1 })
+		end
+	end
+end
+
+RunService.RenderStepped:Connect(function(dt)
+	for _, m in ipairs(bgMovers) do
+		local p = m.part
+		if p.Parent then
+			m.t += dt
+			if m.kind == "spin" then
+				p.CFrame = m.base * CFrame.Angles(m.t * m.speed, 0, 0)
+			elseif m.kind == "drift" then
+				local x = (m.base.Position.X - O.X + m.t * m.speed + 180) % 360 - 180
+				p.CFrame = CFrame.new(O.X + x, m.base.Position.Y, m.base.Position.Z)
+			elseif m.kind == "twinkle" then
+				p.Transparency = 0.5 + 0.5 * math.sin(m.t * m.speed)
+			elseif m.kind == "pulse" then
+				p.Transparency = m.amount + m.amount * math.sin(m.t * 2)
+			elseif m.kind == "bob" then
+				p.CFrame = m.base + Vector3.new(0, math.sin(m.t * m.speed) * m.amount, 0)
+			elseif m.kind == "wave" then
+				p.CFrame = m.base * CFrame.new(math.sin(m.t * m.speed) * m.amount * 3, math.sin(m.t * m.speed * 1.3) * m.amount, 0)
+			end
+		end
+	end
+end)
+
+state:GetAttributeChangedSignal("Map"):Connect(buildBackground)
+buildBackground()
+
+----------------------------------------------------------------------
+-- Arrêt sur image local (hitstop) + accroche au bord
+----------------------------------------------------------------------
+local frozenToken = nil
+local hanging = nil
+local ledgeCooldown = 0
+
+fx.clearLocal = function(root)
+	if (frozenToken or hanging) and root then root.Anchored = false end
+	frozenToken = nil
+	hanging = nil
+end
+
+fx.freeze = function(duration)
+	local _, root = getChar()
+	if not root or koLock then return end
+	local token = {}
+	frozenToken = token
+	local vel = root.AssemblyLinearVelocity
+	root.Anchored = true
+	task.delay(duration, function()
+		if frozenToken == token then
+			frozenToken = nil
+			if not hanging and not koLock then
+				root.Anchored = false
+				root.AssemblyLinearVelocity = vel
+			end
+		end
+	end)
+end
+
+local function ledgeRot(dirX)
+	return CFrame.Angles(0, math.rad(dirX > 0 and -90 or 90), 0)
+end
+
+local function releaseLedge(climb, jumpUp)
+	local char, root = getChar()
+	if not hanging or not root then hanging = nil return end
+	local h = hanging
+	hanging = nil
+	ledgeCooldown = os.clock() + 0.6
+	root.Anchored = false
+	if climb then
+		root.CFrame = CFrame.new(h.edgeX - h.side * 2.5, h.top + 3.2, O.Z) * ledgeRot(-h.side)
+		root.AssemblyLinearVelocity = jumpUp and Vector3.new(0, Config.AIR_JUMP_VELOCITY, 0) or Vector3.zero
+	else
+		root.AssemblyLinearVelocity = Vector3.new(h.side * 5, -5, 0)
+	end
+	if char and fx.pose then fx.pose(char, "ShieldEnd") end
+end
+
+fx.onPress = function(action)
+	if not hanging then return false end
+	local toward = -hanging.side
+	if action == "Jump" then
+		releaseLedge(true, true)
+	elseif action == "Up" or action == "Attack" or (action == "Right" and toward == 1) or (action == "Left" and toward == -1) then
+		releaseLedge(true, false)
+	elseif action == "Down" or (action == "Right" and toward == -1) or (action == "Left" and toward == 1) then
+		releaseLedge(false)
+	end
+	return true
+end
+
+RunService.Stepped:Connect(function()
+	local char, root, hum = getChar()
+	if not root or koLock then return end
+	if hanging then
+		if os.clock() - hanging.t0 > 3 then releaseLedge(false) end -- lâche après 3 s
+		return
+	end
+	if root.Anchored or os.clock() < stunUntil or os.clock() < ledgeCooldown then return end
+	if hum.FloorMaterial ~= Enum.Material.Air or root.AssemblyLinearVelocity.Y > 2 then return end
+	local arena = workspace:FindFirstChild("SmashArena")
+	local solids = arena and arena:FindFirstChild("Solids")
+	if not solids then return end
+	local pos = root.Position
+	for _, p in ipairs(solids:GetChildren()) do
+		local top = p.Position.Y + p.Size.Y / 2
+		for _, side in ipairs({ -1, 1 }) do
+			local edgeX = p.Position.X + side * p.Size.X / 2
+			local outside = (pos.X - edgeX) * side > -0.5
+			if outside and math.abs(pos.X - edgeX) < 3 and pos.Y < top + 1 and pos.Y > top - 6 then
+				hanging = { edgeX = edgeX, top = top, side = side, t0 = os.clock() }
+				facing = -side
+				airJumps = maxAirJumps()
+				recoveryReady = true
+				root.Anchored = true
+				root.CFrame = CFrame.new(edgeX + side * 1.2, top - 2.2, O.Z) * ledgeRot(-side)
+				if fx.pose then fx.pose(char, "Ledge") end
+				if fx.toast then fx.toast("Accroché ! Saut / Haut = remonter • Bas = lâcher") end
+				return
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Chiffres de dégâts flottants
+----------------------------------------------------------------------
+fx.dmgNum = function(pos, amount, big)
+	if typeof(pos) ~= "Vector3" then return end
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+	anchor.Position = pos + Vector3.new((math.random() - 0.5) * 2, 3, 2)
+	anchor.Parent = workspace
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(big and 120 or 80, big and 60 or 40)
+	bb.AlwaysOnTop = true
+	bb.Parent = anchor
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.new(1, 0, 1, 0)
+	t.Font = Enum.Font.FredokaOne
+	t.TextScaled = true
+	t.Text = tostring(amount) .. "%"
+	t.TextColor3 = big and Color3.fromRGB(255, 80, 60) or Color3.fromRGB(255, 240, 120)
+	t.TextStrokeTransparency = 0
+	t.Parent = bb
+	TS:Create(anchor, TweenInfo.new(0.8, Enum.EasingStyle.Quad), { Position = anchor.Position + Vector3.new(0, 4, 0) }):Play()
+	TS:Create(t, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 0.3),
+		{ TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	game:GetService("Debris"):AddItem(anchor, 0.9)
+end
+
+----------------------------------------------------------------------
+-- Alerte danger : bords rouges qui clignotent au-dessus de 100 %
+----------------------------------------------------------------------
+local danger = Instance.new("Frame")
+danger.BackgroundTransparency = 1
+danger.Size = UDim2.new(1, 0, 1, 0)
+danger.ZIndex = 4
+danger.Visible = false
+danger.Parent = gui
+local function edge(pos, size, rotation)
+	local f = Instance.new("Frame")
+	f.BorderSizePixel = 0
+	f.BackgroundColor3 = Color3.fromRGB(255, 20, 20)
+	f.Position = pos
+	f.Size = size
+	f.ZIndex = 4
+	f.Parent = danger
+	local g = Instance.new("UIGradient", f)
+	g.Rotation = rotation
+	g.Transparency = NumberSequence.new(0.1, 1)
+	return f
+end
+edge(UDim2.new(0, 0, 0, 0), UDim2.new(0, 90, 1, 0), 0)      -- gauche
+edge(UDim2.new(1, -90, 0, 0), UDim2.new(0, 90, 1, 0), 180)  -- droite
+edge(UDim2.new(0, 0, 0, 0), UDim2.new(1, 0, 0, 70), 90)     -- haut
+edge(UDim2.new(0, 0, 1, -70), UDim2.new(1, 0, 0, 70), -90)  -- bas
+
+RunService.RenderStepped:Connect(function()
+	local me = state:FindFirstChild("P" .. player.UserId)
+	local dmg = me and me:GetAttribute("Damage") or 0
+	local on = me ~= nil and dmg >= 100 and me:GetAttribute("InRound") and (me:GetAttribute("Stocks") or 0) > 0
+		and not me:GetAttribute("InMenu")
+	danger.Visible = on and true or false
+	if on then
+		local speed = 3 + math.clamp((dmg - 100) / 50, 0, 3)
+		local a = 0.5 + 0.5 * math.sin(os.clock() * speed * math.pi)
+		for _, f in ipairs(danger:GetChildren()) do
+			f.BackgroundTransparency = 0.15 + a * 0.6
+		end
+	end
+end)
+
+----------------------------------------------------------------------
+-- Mode entraînement : bouton du menu + panneau de réglage du sac
+----------------------------------------------------------------------
+local trainButton = Instance.new("TextButton")
+trainButton.AnchorPoint = Vector2.new(0.5, 0.5)
+trainButton.Position = UDim2.new(0.5, 0, 0.7, 75)
+trainButton.Size = UDim2.new(0, 280, 0, 46)
+trainButton.BackgroundColor3 = Color3.fromRGB(70, 110, 200)
+trainButton.Font = Enum.Font.FredokaOne
+trainButton.TextScaled = true
+trainButton.TextColor3 = Color3.new(1, 1, 1)
+trainButton.Text = "ENTRAÎNEMENT"
+trainButton.ZIndex = 22
+trainButton.Parent = menu
+Instance.new("UICorner", trainButton).CornerRadius = UDim.new(0, 12)
+local tPad = Instance.new("UIPadding", trainButton)
+tPad.PaddingTop, tPad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
+trainButton.MouseButton1Click:Connect(function()
+	local ph = state:GetAttribute("Phase")
+	if ph == "Waiting" or ph == "Training" then
+		actionRemote:FireServer("Training")
+	elseif fx.toast then
+		fx.toast("Un match est en cours : l'entraînement sera dispo après.")
+	end
+end)
+local function refreshTrainButton()
+	local ph = state:GetAttribute("Phase")
+	local ok = ph == "Waiting" or ph == "Training"
+	trainButton.BackgroundColor3 = ok and Color3.fromRGB(70, 110, 200) or Color3.fromRGB(70, 70, 90)
+	trainButton.Text = ok and "ENTRAÎNEMENT" or "ENTRAÎNEMENT (match en cours)"
+end
+state:GetAttributeChangedSignal("Phase"):Connect(refreshTrainButton)
+refreshTrainButton()
+
+local panel = Instance.new("Frame")
+panel.AnchorPoint = Vector2.new(1, 0)
+panel.Position = UDim2.new(1, -12, 0, 100)
+panel.Size = UDim2.fromOffset(220, 210)
+panel.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+panel.BackgroundTransparency = 0.2
+panel.Visible = false
+panel.Parent = gui
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", panel).Color = Color3.fromRGB(70, 110, 200)
+
+local pTitle = Instance.new("TextLabel")
+pTitle.BackgroundTransparency = 1
+pTitle.Position = UDim2.new(0, 10, 0, 6)
+pTitle.Size = UDim2.new(1, -20, 0, 24)
+pTitle.Font = Enum.Font.FredokaOne
+pTitle.TextScaled = true
+pTitle.TextColor3 = Color3.new(1, 1, 1)
+pTitle.Text = "ENTRAÎNEMENT"
+pTitle.Parent = panel
+
+local bagLabel = Instance.new("TextLabel")
+bagLabel.BackgroundTransparency = 1
+bagLabel.Position = UDim2.new(0, 10, 0, 34)
+bagLabel.Size = UDim2.new(1, -20, 0, 26)
+bagLabel.Font = Enum.Font.GothamBold
+bagLabel.TextScaled = true
+bagLabel.TextColor3 = Color3.fromRGB(255, 220, 120)
+bagLabel.Text = "Sac : 0%"
+bagLabel.Parent = panel
+
+local grid = Instance.new("Frame")
+grid.BackgroundTransparency = 1
+grid.Position = UDim2.new(0, 10, 0, 66)
+grid.Size = UDim2.new(1, -20, 0, 90)
+grid.Parent = panel
+local gl = Instance.new("UIGridLayout", grid)
+gl.CellSize = UDim2.new(0.33, -4, 0, 40)
+gl.CellPadding = UDim2.fromOffset(6, 6)
+gl.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function bagDamage()
+	local bag = state:FindFirstChild("BAG")
+	return bag and bag:GetAttribute("Damage") or 0
+end
+local function smallButton(parent, text, order, color, onClick)
+	local b = Instance.new("TextButton")
+	b.LayoutOrder = order
+	b.BackgroundColor3 = color
+	b.Font = Enum.Font.GothamBold
+	b.TextScaled = true
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.Text = text
+	b.Parent = parent
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+	local pad = Instance.new("UIPadding", b)
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
+	b.MouseButton1Click:Connect(onClick)
+	return b
+end
+local blue = Color3.fromRGB(50, 70, 130)
+smallButton(grid, "-10%", 1, blue, function() actionRemote:FireServer("BagDamage", math.max(0, bagDamage() - 10)) end)
+smallButton(grid, "+10%", 2, blue, function() actionRemote:FireServer("BagDamage", bagDamage() + 10) end)
+smallButton(grid, "0%", 3, blue, function() actionRemote:FireServer("BagDamage", 0) end)
+smallButton(grid, "50%", 4, blue, function() actionRemote:FireServer("BagDamage", 50) end)
+smallButton(grid, "100%", 5, blue, function() actionRemote:FireServer("BagDamage", 100) end)
+smallButton(grid, "150%", 6, blue, function() actionRemote:FireServer("BagDamage", 150) end)
+
+local quit = smallButton(panel, "Quitter", 0, Color3.fromRGB(180, 60, 60), function()
+	actionRemote:FireServer("LeaveTraining")
+end)
+quit.Position = UDim2.new(0, 10, 1, -46)
+quit.Size = UDim2.new(1, -20, 0, 36)
+
+RunService.Heartbeat:Connect(function()
+	local me = state:FindFirstChild("P" .. player.UserId)
+	panel.Visible = me ~= nil and me:GetAttribute("Training") == true
+	if panel.Visible then bagLabel.Text = "Sac : " .. bagDamage() .. "%" end
+end)

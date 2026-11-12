@@ -32,8 +32,14 @@ Mets un ID de musique dans `SmashFighters.MenuMusic` / `FightMusic`, ou `music =
 ## Mobile
 Des boutons tactiles apparaissent automatiquement sur téléphone/tablette.
 
+## Entraînement
+Bouton ENTRAÎNEMENT dans le menu (quand aucun match n'est en cours) : sac de frappe, vies infinies, panneau pour régler le % du sac.
+
+## Bord de scène
+En tombant près du bord, tu t'accroches : Saut / Haut = remonter, Bas = lâcher.
+
 ## Bots CPU
-3 bots par défaut (Facile, Moyen, Difficile), réglables dans `Config.BOTS`.
+3 bots par défaut (Moyen, Difficile, Expert) qui bloquent, esquivent et s'accrochent au bord. Réglables dans `Config.BOTS` / `Config.BOT_COUNT`.
 
 ## Règles
 - Chaque coup augmente ton **%** ; plus il est haut, plus tu es projeté loin.

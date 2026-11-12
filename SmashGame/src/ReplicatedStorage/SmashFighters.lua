@@ -49,6 +49,7 @@ F.Poses = {
 	Special   = { strike = { RightArm = 90, LeftArm = 90 } },
 	SpecialUp = { strike = { RightArm = 180, LeftArm = 180, RightLeg = 20 } },
 	Shield    = { strike = { RightArm = 70, LeftArm = 70 }, hold = true },
+	Ledge     = { strike = { RightArm = 170, LeftArm = 170 }, hold = true },
 }
 
 ----------------------------------------------------------------------
