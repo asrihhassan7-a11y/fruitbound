@@ -24,6 +24,8 @@ local function ajouterAuraVisuelle(character, aura)
 	local root = character:WaitForChild("HumanoidRootPart")
 	local old = root:FindFirstChild("AuraParticles")
 	if old then old:Destroy() end
+	local oldLight = root:FindFirstChild("AuraLight")
+	if oldLight then oldLight:Destroy() end
 	local p = Instance.new("ParticleEmitter")
 	p.Name = "AuraParticles"
 	p.Color = ColorSequence.new(aura.couleur)
@@ -39,7 +41,7 @@ local function ajouterAuraVisuelle(character, aura)
 	light.Name = "AuraLight"
 	light.Color = aura.couleur
 	light.Range = 10
-	light.Parent = p
+	light.Parent = root
 end
 
 local function auraDuJoueur(player)
