@@ -1,25 +1,29 @@
-# Aura Combat Test
+# Aura Battles (test)
 
-Prototype de combat basé sur l'aura (Roblox / Luau).
+Jeu d'arène où tu frappes les autres avec ton **aura** pour les éjecter dans le vide (genre "slap", mais avec des auras).
 
 ## Installation (Studio)
 1. `ReplicatedStorage/AuraConfig.lua` → **ModuleScript** `AuraConfig` dans ReplicatedStorage
 2. `ServerScriptService/AuraCombatServer.server.lua` → **Script** dans ServerScriptService
 3. `StarterPlayerScripts/AuraCombatClient.client.lua` → **LocalScript** dans StarterPlayer > StarterPlayerScripts
 
-(Ou synchronise le dossier avec Rojo.)
+L'arène, le lobby, le spawn et le portail sont créés automatiquement au lancement.
 
-## Contrôles
-| Touche | Action |
-|---|---|
-| Clic gauche | Coup de poing (+5 aura) |
-| C (maintenir) | Charger l'aura (ralentit) |
-| Q | Aura Blast vers la souris (30 aura) |
-| E | Aura Burst en zone + recul (70 aura) |
+## Déroulement
+1. Tu apparais dans le lobby → choisis ton aura à gauche.
+2. Traverse le portail violet → tu tombes dans l'arène.
+3. Clic = frapper (gros recul + ragdoll), E = capacité de l'aura.
+4. Tombe dans le vide = mort. Celui qui t'a frappé en dernier gagne une **Éjection** (classement).
 
-## Paliers d'aura
-- 0+ **Calme** (bleu) x1.0 dégâts
-- 40+ **Éveillé** (or) x1.25
-- 80+ **Déchaîné** (rouge) x1.6
+## Auras
+| Aura | Recul | Cooldown | Capacité (E) |
+|---|---|---|---|
+| Normale | 60 | 0.8s | — |
+| Feu | 75 | 1.0s | Ruée vers l'avant |
+| Glace | 55 | 0.9s | Gèle les ennemis proches 2s |
+| Foudre | 50 | 0.5s | Vitesse x2 pendant 4s |
+| Vent | 65 | 1.0s | Bourrasque autour de soi |
+| Ombre | 70 | 1.1s | Téléportation derrière l'ennemi |
+| Titan | 140 | 3.0s | — |
 
-3 mannequins réapparaissent automatiquement pour tester. Tout est réglable dans `AuraConfig`.
+Ajoute une aura en ajoutant une ligne dans `AuraConfig.Auras`.

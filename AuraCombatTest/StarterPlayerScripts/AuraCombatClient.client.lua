@@ -7,96 +7,129 @@ local Debris = game:GetService("Debris")
 local Config = require(RS:WaitForChild("AuraConfig"))
 local remote = RS:WaitForChild("AuraRemote")
 local plr = Players.LocalPlayer
-local mouse = plr:GetMouse()
 
--- HUD : barre d'aura + palier
 local gui = Instance.new("ScreenGui")
 gui.Name = "AuraHUD"; gui.ResetOnSpawn = false
 gui.Parent = plr:WaitForChild("PlayerGui")
-local back = Instance.new("Frame")
-back.Size = UDim2.new(0, 300, 0, 18)
-back.Position = UDim2.new(0.5, -150, 1, -90)
-back.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-back.Parent = gui
-Instance.new("UICorner", back).CornerRadius = UDim.new(0, 9)
-local fill = Instance.new("Frame")
-fill.Size = UDim2.new(0, 0, 1, 0)
-fill.Parent = back
-Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 9)
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 0, 20)
-label.Position = UDim2.new(0, 0, 0, -22)
-label.BackgroundTransparency = 1
-label.Font = Enum.Font.GothamBold
-label.TextSize = 14
-label.TextColor3 = Color3.new(1, 1, 1)
-label.TextStrokeTransparency = 0.5
-label.Parent = back
-local help = label:Clone()
-help.Position = UDim2.new(0, 0, 1, 4)
-help.TextSize = 12
-help.Text = "Clic: Coup | C (maintenir): Charger | Q: Blast (30) | E: Burst (70)"
-help.Parent = back
+
+local function corner(p, r) Instance.new("UICorner", p).CornerRadius = UDim.new(0, r or 8) end
+local function text(parent, t, size)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Font = Enum.Font.GothamBold
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.TextStrokeTransparency = 0.6
+	l.TextSize = size or 14
+	l.Text = t
+	l.Parent = parent
+	return l
+end
+
+-- ===== Sélecteur d'aura (dans le lobby) =====
+local picker = Instance.new("Frame")
+picker.Size = UDim2.new(0, 230, 0, 0)
+picker.AutomaticSize = Enum.AutomaticSize.Y
+picker.Position = UDim2.new(0, 16, 0.5, -180)
+picker.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+picker.BackgroundTransparency = 0.15
+picker.Parent = gui
+corner(picker, 10)
+local pad = Instance.new("UIPadding", picker)
+pad.PaddingTop, pad.PaddingBottom, pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 8), UDim.new(0, 8), UDim.new(0, 8), UDim.new(0, 8)
+local list = Instance.new("UIListLayout", picker)
+list.Padding = UDim.new(0, 6)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+local title = text(picker, "CHOISIS TON AURA", 16)
+title.Size = UDim2.new(1, 0, 0, 22)
+local desc = text(picker, "", 12)
+desc.Size = UDim2.new(1, 0, 0, 34)
+desc.TextWrapped = true
+desc.LayoutOrder = 100
+
+for i, a in ipairs(Config.Auras) do
+	local b = Instance.new("TextButton")
+	b.LayoutOrder = i
+	b.Size = UDim2.new(1, 0, 0, 30)
+	b.BackgroundColor3 = a.Color
+	b.Font = Enum.Font.GothamBlack
+	b.TextSize = 14
+	b.TextColor3 = Color3.fromRGB(20, 20, 20)
+	b.Text = a.Name
+	b.Parent = picker
+	corner(b, 6)
+	b.MouseEnter:Connect(function() desc.Text = a.Desc end)
+	b.Activated:Connect(function() remote:FireServer("Equip", a.Name) end)
+end
+
+-- ===== Infos bas d'écran =====
+local info = text(gui, "", 16)
+info.Size = UDim2.new(0, 400, 0, 24)
+info.Position = UDim2.new(0.5, -200, 1, -110)
+local help = text(gui, "Clic : frapper  |  E : capacité", 13)
+help.Size = UDim2.new(0, 400, 0, 20)
+help.Position = UDim2.new(0.5, -200, 1, -88)
+local cdBar = Instance.new("Frame")
+cdBar.Size = UDim2.new(0, 200, 0, 6)
+cdBar.Position = UDim2.new(0.5, -100, 1, -64)
+cdBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+cdBar.Parent = gui
+corner(cdBar, 3)
 
 local function refresh()
-	local aura = plr:GetAttribute("Aura") or 0
-	local tier = Config.Tiers[1]
-	for _, t in ipairs(Config.Tiers) do if aura >= t.Min then tier = t end end
-	fill.Size = UDim2.new(aura / Config.MaxAura, 0, 1, 0)
-	fill.BackgroundColor3 = tier.Color
-	label.Text = ("AURA %d — %s (x%.2f)"):format(aura, tier.Name, tier.Mult)
+	local inArena = plr:GetAttribute("InArena")
+	picker.Visible = not inArena
+	info.Text = ("Aura : %s%s"):format(plr:GetAttribute("Aura") or "?", inArena and "" or "  —  entre dans le portail violet !")
 end
 plr:GetAttributeChangedSignal("Aura"):Connect(refresh)
+plr:GetAttributeChangedSignal("InArena"):Connect(refresh)
 refresh()
 
--- Contrôles
+-- Kill feed
+local feed = Instance.new("Frame")
+feed.Size = UDim2.new(0, 320, 0, 120)
+feed.Position = UDim2.new(1, -336, 0, 60)
+feed.BackgroundTransparency = 1
+feed.Parent = gui
+local fl = Instance.new("UIListLayout", feed)
+fl.HorizontalAlignment = Enum.HorizontalAlignment.Right
+
+-- ===== Contrôles =====
 UIS.InputBegan:Connect(function(input, gp)
 	if gp then return end
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		remote:FireServer("Punch")
-	elseif input.KeyCode == Enum.KeyCode.C then
-		remote:FireServer("Charge", true)
-	elseif input.KeyCode == Enum.KeyCode.Q then
-		remote:FireServer("Blast", mouse.Hit.Position)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		remote:FireServer("Hit")
 	elseif input.KeyCode == Enum.KeyCode.E then
-		remote:FireServer("Burst")
+		remote:FireServer("Ability")
 	end
 end)
-UIS.InputEnded:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.C then remote:FireServer("Charge", false) end
-end)
 
--- Effets
+-- ===== Effets =====
+local function burst(pos, color, size)
+	local p = Instance.new("Part")
+	p.Shape = Enum.PartType.Ball
+	p.Anchored, p.CanCollide, p.CanQuery, p.CastShadow = true, false, false, false
+	p.Material = Enum.Material.Neon
+	p.Color = color
+	p.Size = Vector3.one
+	p.Position = pos
+	p.Parent = workspace
+	TweenService:Create(p, TweenInfo.new(0.3), { Size = Vector3.one * size, Transparency = 1 }):Play()
+	Debris:AddItem(p, 0.35)
+end
+
 remote.OnClientEvent:Connect(function(kind, a, b, c)
-	if kind == "Hit" and a and a:FindFirstChild("Head") then
-		local bb = Instance.new("BillboardGui")
-		bb.Size = UDim2.new(0, 80, 0, 30)
-		bb.StudsOffset = Vector3.new(math.random(-2, 2), 2, 0)
-		bb.AlwaysOnTop = true
-		bb.Adornee = a.Head
-		local t = Instance.new("TextLabel")
-		t.Size = UDim2.fromScale(1, 1)
-		t.BackgroundTransparency = 1
-		t.Text = tostring(math.floor(b))
-		t.Font = Enum.Font.GothamBlack
-		t.TextScaled = true
-		t.TextColor3 = Color3.fromRGB(255, 230, 80)
-		t.TextStrokeTransparency = 0
-		t.Parent = bb
-		bb.Parent = gui
-		TweenService:Create(bb, TweenInfo.new(0.7), { StudsOffset = bb.StudsOffset + Vector3.new(0, 3, 0) }):Play()
-		TweenService:Create(t, TweenInfo.new(0.7), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		Debris:AddItem(bb, 0.8)
-	elseif kind == "BurstFx" then
-		local ring = Instance.new("Part")
-		ring.Shape = Enum.PartType.Ball
-		ring.Anchored, ring.CanCollide, ring.CastShadow = true, false, false
-		ring.Material = Enum.Material.ForceField
-		ring.Color = b
-		ring.Size = Vector3.one * 2
-		ring.Position = a
-		ring.Parent = workspace
-		TweenService:Create(ring, TweenInfo.new(0.4, Enum.EasingStyle.Quad), { Size = Vector3.one * c * 2, Transparency = 1 }):Play()
-		Debris:AddItem(ring, 0.5)
+	if kind == "Swing" then
+		local r = a and a:FindFirstChild("HumanoidRootPart")
+		if r then burst((r.CFrame * CFrame.new(0, 0, -3)).Position, b, 4) end
+	elseif kind == "Impact" then
+		burst(a, b, 9)
+	elseif kind == "AbilityCd" then
+		cdBar.Size = UDim2.new(0, 0, 0, 6)
+		TweenService:Create(cdBar, TweenInfo.new(a, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 200, 0, 6) }):Play()
+	elseif kind == "Feed" then
+		local l = text(feed, ("%s a éjecté %s"):format(a, b), 14)
+		l.Size = UDim2.new(1, 0, 0, 22)
+		l.TextXAlignment = Enum.TextXAlignment.Right
+		Debris:AddItem(l, 5)
 	end
 end)
