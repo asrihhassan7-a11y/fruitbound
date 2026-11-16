@@ -1,0 +1,9 @@
+{
+  "name": "ThrowFoodForDragons",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": { "TFFD": { "$path": "src/shared" } },
+    "ServerScriptService": { "TFFDServer": { "$path": "src/server" } },
+    "StarterPlayer": { "StarterPlayerScripts": { "TFFDClient": { "$path": "src/client" } } }
+  }
+}
