@@ -65,7 +65,7 @@ function Lib.text(props: { [string]: any }): TextLabel
 		Size = UDim2.fromScale(1, 1),
 	})
 	for k, v in props do
-		if k ~= "Parent" then
+		if k ~= "Parent" and k ~= "Stroke" then
 			(l :: any)[k] = v
 		end
 	end
