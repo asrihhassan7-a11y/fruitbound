@@ -148,7 +148,7 @@ defs.Shop = { title = "Upgrades", icon = "🛒", color = T.Green, build = functi
 			local cost = Upgrades.cost(key, lvl)
 			r.title.Text = u.name .. "  (Lv " .. lvl .. "/" .. u.max .. ")"
 			r.info.Text = cost and (u.desc .. ": " .. Upgrades.describe(key, lvl)) or (u.desc .. " — MAXED")
-			Lib.setButton(r.btn, cost and ("🪙 " .. Util.fmt(cost)) or "MAX", cost and affordColor(d, cost) or T.Purple)
+			Lib.setButton(r.btn, cost and ("💰 " .. Util.fmt(cost)) or "MAX", cost and affordColor(d, cost) or T.Purple)
 		end
 	end
 end }
@@ -161,7 +161,7 @@ defs.Food = { title = "Dragon Food", icon = "🍖", color = T.Orange, build = fu
 		local card = Lib.card({ LayoutOrder = f.order, Parent = grid })
 		Lib.text({ Text = f.icon, Stroke = false, Size = UDim2.new(1, 0, 0, 60), Position = UDim2.fromOffset(0, 6), Parent = card })
 		Lib.text({ Text = f.name, Size = UDim2.new(1, -10, 0, 24), Position = UDim2.fromOffset(5, 68), Parent = card })
-		Lib.text({ Text = "+" .. Util.fmt(f.value) .. " 🪙 / feed", TextColor3 = T.Yellow, Size = UDim2.new(1, -10, 0, 20), Position = UDim2.fromOffset(5, 94), Parent = card })
+		Lib.text({ Text = "+" .. Util.fmt(f.value) .. " 💰 / feed", TextColor3 = T.Yellow, Size = UDim2.new(1, -10, 0, 20), Position = UDim2.fromOffset(5, 94), Parent = card })
 		local btn = Lib.button({ Text = "", Size = UDim2.new(1, -16, 0, 44), Position = UDim2.new(0, 8, 1, -52), Parent = card, OnClick = function()
 			local d = State.data
 			if not d then
@@ -189,7 +189,7 @@ defs.Food = { title = "Dragon Food", icon = "🍖", color = T.Orange, build = fu
 				Lib.setButton(c.btn, "🔒 " .. Zones.List[f.zone].name, T.Grey)
 				stroke.Color = T.Stroke
 			else
-				Lib.setButton(c.btn, "🪙 " .. Util.fmt(f.cost), affordColor(d, f.cost))
+				Lib.setButton(c.btn, "💰 " .. Util.fmt(f.cost), affordColor(d, f.cost))
 				stroke.Color = T.Stroke
 			end
 		end
@@ -309,8 +309,8 @@ defs.Eggs = { title = "Companion Dragons", icon = "🥚", color = T.Pink, build 
 				Lib.setButton(b.b1, "🔒 " .. Zones.List[egg.zone].name, T.Grey)
 				Lib.setButton(b.b3, "🔒 Locked", T.Grey)
 			else
-				Lib.setButton(b.b1, "x1  🪙 " .. Util.fmt(egg.cost), affordColor(d, egg.cost))
-				Lib.setButton(b.b3, "x3  🪙 " .. Util.fmt(egg.cost * 3), affordColor(d, egg.cost * 3))
+				Lib.setButton(b.b1, "x1  💰 " .. Util.fmt(egg.cost), affordColor(d, egg.cost))
+				Lib.setButton(b.b3, "x3  💰 " .. Util.fmt(egg.cost * 3), affordColor(d, egg.cost * 3))
 			end
 		end
 		if active() ~= "My Companions" then
@@ -346,7 +346,7 @@ defs.Eggs = { title = "Companion Dragons", icon = "🥚", color = T.Pink, build 
 			Lib.stroke(circle, look.accent, 3)
 			Lib.text({ Text = "🐲", Stroke = false, Size = UDim2.fromScale(0.8, 0.8), Position = UDim2.fromScale(0.1, 0.1), Parent = circle })
 			Lib.text({ Text = look.name, Size = UDim2.new(1, -6, 0, 20), Position = UDim2.fromOffset(3, 60), Parent = card })
-			local bonus = "+" .. math.floor(e.pet.bonus.coins * 100 + 0.5) .. "% 🪙"
+			local bonus = "+" .. math.floor(e.pet.bonus.coins * 100 + 0.5) .. "% 💰"
 			if e.pet.bonus.power then
 				bonus ..= " +" .. math.floor(e.pet.bonus.power * 100 + 0.5) .. "% 💪"
 			elseif e.pet.bonus.crit then
@@ -399,7 +399,7 @@ defs.Zones = { title = "World Map", icon = "🗺️", color = T.Blue, build = fu
 			if i <= d.MaxZone then
 				Lib.setButton(btn, "✈️ Teleport", T.Blue)
 			elseif i == d.MaxZone + 1 then
-				Lib.setButton(btn, "🔓 🪙 " .. Util.fmt(z.cost), affordColor(d, z.cost))
+				Lib.setButton(btn, "🔓 💰 " .. Util.fmt(z.cost), affordColor(d, z.cost))
 			else
 				Lib.setButton(btn, "🔒 Locked", T.Grey)
 			end
@@ -454,7 +454,7 @@ defs.Quests = { title = "Quests", icon = "📜", color = T.Yellow, build = funct
 			r.row.Visible = q ~= nil
 			if q then
 				r.title.Text = q.text .. "  (" .. Util.fmt(q.progress) .. "/" .. Util.fmt(q.goal) .. ")"
-				r.reward.Text = "Reward: 🪙 " .. Util.fmt(q.coins * d.Computed.rewardMult) .. "  ⭐ " .. q.xp * d.Computed.rewardMult
+				r.reward.Text = "Reward: 💰 " .. Util.fmt(q.coins * d.Computed.rewardMult) .. "  ⭐ " .. q.xp * d.Computed.rewardMult
 				r.fill.Size = UDim2.fromScale(math.clamp(q.progress / q.goal, 0, 1), 1)
 				if q.claimed then
 					Lib.setButton(r.btn, "✓ Done", T.Purple)
@@ -477,7 +477,7 @@ defs.Quests = { title = "Quests", icon = "📜", color = T.Yellow, build = funct
 			else
 				v = d.Stats[a.stat] or 0
 			end
-			r.prog.Text = statNames[a.stat] .. ": " .. Util.fmt(math.min(v, a.goal)) .. "/" .. Util.fmt(a.goal) .. "   •   🪙 " .. Util.fmt(a.coins * d.Computed.rewardMult)
+			r.prog.Text = statNames[a.stat] .. ": " .. Util.fmt(math.min(v, a.goal)) .. "/" .. Util.fmt(a.goal) .. "   •   💰 " .. Util.fmt(a.coins * d.Computed.rewardMult)
 			if d.Achievements[id] then
 				Lib.setButton(r.btn, "✓ Claimed", T.Purple)
 			elseif v >= a.goal then
@@ -497,7 +497,7 @@ defs.Daily = { title = "Daily Rewards", icon = "🎁", color = T.Red, build = fu
 	for i, r in Quests.Daily do
 		local c = Lib.card({ Size = UDim2.fromOffset(84, 190), LayoutOrder = i, Parent = row })
 		Lib.text({ Text = "Day " .. i, Size = UDim2.new(1, -8, 0, 26), Position = UDim2.fromOffset(4, 6), Parent = c })
-		Lib.text({ Text = i == 7 and "👑" or (r.boost and "🎁" or "🪙"), Stroke = false, Size = UDim2.new(1, 0, 0, 56), Position = UDim2.fromOffset(0, 36), Parent = c })
+		Lib.text({ Text = i == 7 and "👑" or (r.boost and "🎁" or "💰"), Stroke = false, Size = UDim2.new(1, 0, 0, 56), Position = UDim2.fromOffset(0, 36), Parent = c })
 		local amt = Lib.text({ Text = "", TextColor3 = T.Yellow, Size = UDim2.new(1, -8, 0, 22), Position = UDim2.fromOffset(4, 100), Parent = c })
 		if r.boost then
 			Lib.text({ Text = "+" .. Products.Boosts[r.boost[1]].icon .. " " .. math.floor(r.boost[2] / 60) .. "m", TextColor3 = T.Green, Size = UDim2.new(1, -8, 0, 22), Position = UDim2.fromOffset(4, 126), Parent = c })

@@ -153,7 +153,7 @@ function FX.coinFly(worldPos: Vector3, n: number)
 	for i = 1, n do
 		local c = Instance.new("TextLabel")
 		c.BackgroundTransparency = 1
-		c.Text = "🪙"
+		c.Text = "💰"
 		c.TextScaled = true
 		c.Size = UDim2.fromOffset(26, 26)
 		c.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -169,7 +169,7 @@ function FX.coinFly(worldPos: Vector3, n: number)
 end
 
 function FX.fmtReward(coins: number, crit: boolean): string
-	return (crit and "CRIT! " or "") .. "+" .. Util.fmt(coins) .. " 🪙"
+	return (crit and "CRIT! " or "") .. "+" .. Util.fmt(coins) .. " 💰"
 end
 
 function FX.start()

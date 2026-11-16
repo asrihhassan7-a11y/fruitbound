@@ -175,10 +175,10 @@ local function animate(dt: number)
 			flap = 0.45 + math.sin(t * (moving and 12 or 7)) * 0.65
 		elseif def.move == "hop" then
 			y = moving and math.abs(math.sin(t * 9)) * 1.3 * s or math.abs(math.sin(t * 2)) * 0.15 * s
-			flap = 0.2 + math.sin(t * 3) * 0.15
+			flap = 0.5 + math.sin(t * 3) * 0.2
 		else
 			y = moving and math.abs(math.sin(t * 7)) * 0.25 * s or 0
-			flap = moving and (0.3 + math.sin(t * 10) * 0.25) or (0.15 + math.sin(t * 1.5) * 0.08)
+			flap = moving and (0.55 + math.sin(t * 10) * 0.3) or (0.45 + math.sin(t * 1.5) * 0.1)
 		end
 		if eating and def.move == "fly" then
 			y *= 0.4 -- swoop down to eat

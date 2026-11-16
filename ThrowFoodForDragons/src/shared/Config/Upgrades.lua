@@ -4,7 +4,7 @@ local Upgrades = {
 	Defs = {
 		range = { name = "Throw Power", icon = "💪", desc = "Throw further", base = 60, growth = 1.62, max = 30 },
 		speed = { name = "Throw Speed", icon = "⚡", desc = "Throw more often", base = 90, growth = 1.7, max = 20 },
-		bonus = { name = "Feeding Bonus", icon = "🪙", desc = "+12% coins per level", base = 150, growth = 1.72, max = 40 },
+		bonus = { name = "Feeding Bonus", icon = "💰", desc = "+12% coins per level", base = 150, growth = 1.72, max = 40 },
 		crit = { name = "Lucky Toss", icon = "🍀", desc = "Chance for 3x rewards", base = 250, growth = 1.8, max = 20 },
 		multi = { name = "Multi-Throw", icon = "🎯", desc = "Throw extra food at once", costs = { 25000, 2500000, 250000000, 25000000000 }, max = 4 },
 	},

@@ -209,7 +209,7 @@ function HUD.build(Panels)
 	Lib.corner(coins, 28)
 	Lib.stroke(coins)
 	Lib.gradient(coins, T.Yellow)
-	local coinIcon = Lib.text({ Text = "🪙", Stroke = false, Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(6, 5), Parent = coins })
+	local coinIcon = Lib.text({ Text = "💰", Stroke = false, Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(6, 5), Parent = coins })
 	refs.coinLabel = Lib.text({ Text = "0", TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(1, -66, 1, -14), Position = UDim2.fromOffset(56, 7), Parent = coins })
 	FX.coinTarget = coinIcon
 	coinValue.Changed:Connect(function(v)
@@ -269,7 +269,7 @@ function HUD.build(Panels)
 	local throw = Lib.button({ Name = "Throw", Text = "", Color = T.Orange, Size = UDim2.fromOffset(122, 122), AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -26, 1, isTouch and -180 or -24), Radius = 61, Parent = gui, OnClick = function()
 		ThrowController.throwAssist()
 	end })
-	refs.throwIcon = Lib.text({ Text = "🫐", Stroke = false, Size = UDim2.new(1, 0, 0.55, 0), Position = UDim2.fromScale(0, 0.1), Parent = throw })
+	refs.throwIcon = Lib.text({ Text = "🍒", Stroke = false, Size = UDim2.new(1, 0, 0.55, 0), Position = UDim2.fromScale(0, 0.1), Parent = throw })
 	Lib.text({ Text = isTouch and "THROW" or "THROW [F]", Size = UDim2.new(0.8, 0, 0.22, 0), Position = UDim2.fromScale(0.1, 0.66), Parent = throw })
 	refs.auto = Lib.button({ Name = "Auto", Text = "🤖 AUTO", Color = T.Grey, Size = UDim2.fromOffset(110, 46), AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -160, 1, isTouch and -186 or -30), Parent = gui, OnClick = function()
 		local d = State.data
@@ -311,7 +311,7 @@ local function refreshHotbar(d)
 			Lib.text({ Text = "+" .. Util.fmt(f.value), Size = UDim2.new(1, -4, 0.3, 0), Position = UDim2.new(0, 2, 0.68, 0), Parent = b })
 		end
 	end
-	refs.throwIcon.Text = Foods.ById[d.EquippedFood] and Foods.ById[d.EquippedFood].icon or "🫐"
+	refs.throwIcon.Text = Foods.ById[d.EquippedFood] and Foods.ById[d.EquippedFood].icon or "🍒"
 end
 
 function HUD.refresh(d)

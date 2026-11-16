@@ -21,4 +21,22 @@ ActionService.start()
 
 -- expose for Studio testing from the command bar: _G.TFFD.DragonService.debugSpawn("phoenixwyrm", 1)
 _G.TFFD = { DataService = DataService, PlayerService = PlayerService, DragonService = DragonService, ThrowService = ThrowService, ActionService = ActionService }
+-- Studio-only test hook (never exists in live servers): lets test scripts grant coins / spawn dragons.
+if game:GetService("RunService"):IsStudio() then
+	local hook = Instance.new("BindableFunction")
+	hook.Name = "TFFD_StudioDebug"
+	hook.OnInvoke = function(cmd, player, a, b)
+		if cmd == "coins" then
+			PlayerService.addCoins(player, a, "debug")
+		elseif cmd == "spawn" then
+			return DragonService.debugSpawn(a, b) ~= nil
+		elseif cmd == "action" then
+			return ActionService.handlers[a](player, DataService.get(player), b)
+		elseif cmd == "profile" then
+			return DataService.get(player)
+		end
+		return true
+	end
+	hook.Parent = game:GetService("ServerStorage")
+end
 print("[TFFD] Server ready")

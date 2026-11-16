@@ -2,7 +2,7 @@
 -- zone = highest zone needed before it can be bought.
 local C = Color3.fromRGB
 local list = {
-	{ id = "berries", name = "Dragon Berries", icon = "🫐", cost = 0, zone = 1, value = 1, xp = 1, gravity = 1, size = 0.9, color = C(92, 70, 214), trail = C(150, 130, 255) },
+	{ id = "berries", name = "Dragon Berries", icon = "🍒", cost = 0, zone = 1, value = 1, xp = 1, gravity = 1, size = 0.9, color = C(220, 40, 70), trail = C(255, 140, 160) },
 	{ id = "meat", name = "Meat Chunks", icon = "🍖", cost = 300, zone = 1, value = 3, xp = 2, gravity = 1.1, size = 1.1, color = C(196, 92, 70), trail = C(255, 160, 130) },
 	{ id = "fireapple", name = "Fire Apples", icon = "🍎", cost = 4000, zone = 2, value = 10, xp = 3, gravity = 1, size = 1.1, color = C(255, 70, 40), trail = C(255, 170, 40), fx = "fire" },
 	{ id = "lava", name = "Lava Treats", icon = "🔥", cost = 25000, zone = 3, value = 35, xp = 5, gravity = 1, size = 1.1, color = C(255, 120, 20), trail = C(255, 60, 0), neon = true, fx = "fire" },

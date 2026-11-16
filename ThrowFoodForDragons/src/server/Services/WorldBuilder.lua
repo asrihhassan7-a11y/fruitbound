@@ -262,7 +262,7 @@ local function buildZone(i: number)
 		t.TextScaled = true
 		t.TextColor3 = Color3.new(1, 1, 1)
 		t.TextStrokeTransparency = 0.2
-		t.Text = "🔒 " .. z.name .. "\n🪙 " .. Util.fmt(z.cost)
+		t.Text = "🔒 " .. z.name .. "\n💰 " .. Util.fmt(z.cost)
 		t.Parent = bb
 		bb.Parent = gate
 	end
