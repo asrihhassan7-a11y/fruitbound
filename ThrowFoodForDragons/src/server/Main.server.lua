@@ -32,6 +32,8 @@ if game:GetService("RunService"):IsStudio() then
 			return DragonService.debugSpawn(a, b) ~= nil
 		elseif cmd == "action" then
 			return ActionService.handlers[a](player, DataService.get(player), b)
+		elseif cmd == "pass" then
+			PlayerService.grantPass(player, a)
 		elseif cmd == "profile" then
 			return DataService.get(player)
 		end
