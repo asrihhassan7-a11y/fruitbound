@@ -11,7 +11,7 @@ local Trajectory = require(Shared.Trajectory)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 local DragonService = require(script.Parent.DragonService)
-local WorldBuilder = require(script.Parent.WorldBuilder)
+local PlotService = require(script.Parent.PlotService)
 local Zones = require(Shared.Config.Zones)
 
 local ThrowRemote = Net.get("Throw")
@@ -48,8 +48,8 @@ function ThrowService.throw(player: Player, target: Vector3, auto: boolean?): bo
 	if now - (lastThrow[player] or 0) < stats.cooldown * 0.85 then
 		return false
 	end
-	if (target - root.Position).Magnitude > 700 then
-		return false
+	if (target - root.Position).Magnitude > 700 or not PlotService.isOnPlot(player, root.Position) then
+		return false -- you can only throw from your own farm
 	end
 	lastThrow[player] = now
 	local food = Foods.ById[profile.EquippedFood] or Foods.ById[Foods.Default]
@@ -60,13 +60,22 @@ function ThrowService.throw(player: Player, target: Vector3, auto: boolean?): bo
 		local land, flight, hit = Trajectory.simulate(origin, vel, g)
 		FoodThrown:FireAllClients(player, food.id, origin, vel, g, flight, auto == true)
 		local zone = hit and hit:GetAttribute("Zone")
-		task.delay(flight, DragonService.landFood, player, food, land, zone)
+		task.delay(flight, DragonService.landFood, player, food, land, zone, origin)
 	end
 	profile.Stats.Throws += 1
 	for _, fn in throwListeners do
 		task.spawn(fn, player)
 	end
 	return true
+end
+
+-- Auto Throw / aim assist target: straight out into the furthest unlocked zone you can reach.
+function ThrowService.autoTarget(from: Vector3, speed: number, food, maxZone: number): Vector3
+	local reach = from.Z + Trajectory.range(speed, Trajectory.gravity(food)) * 0.92
+	local _, zEnd = Zones.band(maxZone)
+	local z = math.min(reach, zEnd - 3)
+	local x = math.clamp(from.X + math.random(-16, 16), -Zones.FIELD_W / 2 + 4, Zones.FIELD_W / 2 - 4)
+	return Vector3.new(x, 0, math.max(z, Zones.FIELD_START + 3))
 end
 
 function ThrowService.start()
@@ -94,12 +103,7 @@ function ThrowService.start()
 					local root = rootOf(player)
 					if stats and root and os.clock() - (lastThrow[player] or 0) >= stats.cooldown then
 						local food = Foods.ById[profile.EquippedFood] or Foods.ById[Foods.Default]
-						-- dragons notice food within ~100 studs, so aim at anything reasonably close
-						local range = math.max(140, Trajectory.range(stats.range, Trajectory.gravity(food)))
-						local target = DragonService.nearestDragon(root.Position, profile.MaxZone, range)
-						if target then
-							ThrowService.throw(player, target, true)
-						end
+						ThrowService.throw(player, ThrowService.autoTarget(root.Position, stats.range, food, profile.MaxZone), true)
 					end
 				end
 			end
@@ -112,10 +116,8 @@ function ThrowService.start()
 			for _, player in Players:GetPlayers() do
 				local root = rootOf(player)
 				if root and root.Position.Y < -18 then
-					local profile = DataService.get(player)
-					local zone = math.clamp(math.floor(root.Position.X / Zones.SPACING + 0.5) + 1, 1, profile and profile.MaxZone or 1)
 					root.AssemblyLinearVelocity = Vector3.zero
-					player.Character:PivotTo(WorldBuilder.spawnCFrame(zone))
+					player.Character:PivotTo(PlotService.spawnCFrame(player))
 				end
 			end
 		end

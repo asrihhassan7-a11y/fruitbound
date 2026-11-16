@@ -9,6 +9,7 @@ local Net = require(Shared.Net)
 local Formulas = require(Shared.Formulas)
 local Products = require(Shared.Config.Products)
 local Dragons = require(Shared.Config.Dragons)
+local Rarities = require(Shared.Config.Rarities)
 local DataService = require(script.Parent.DataService)
 
 local StateRemote = Net.get("State")
@@ -156,6 +157,66 @@ function PlayerService.refreshCompanions(player: Player)
 	player:SetAttribute("Companions", table.concat(ids, ","))
 end
 
+-- Backpack: one Tool per dragon species, named with the count. Equip it and click your farm to place it.
+function PlayerService.refreshInventory(player: Player)
+	local profile = DataService.get(player)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if not profile or not backpack then
+		return
+	end
+	local existing = {}
+	for _, holder in { backpack, player.Character } do
+		if holder then
+			for _, t in holder:GetChildren() do
+				if t:IsA("Tool") and t:GetAttribute("DefId") then
+					existing[t:GetAttribute("DefId")] = t
+				end
+			end
+		end
+	end
+	for defId, count in profile.Inventory do
+		local def = Dragons.ById[defId]
+		if def and count > 0 then
+			local tool = existing[defId]
+			if not tool then
+				tool = Instance.new("Tool")
+				tool.RequiresHandle = false
+				tool.CanBeDropped = false
+				tool:SetAttribute("DefId", defId)
+				tool.Parent = backpack
+			end
+			tool.Name = def.name .. " x" .. count
+			tool.ToolTip = def.rarity .. " • click your farm to place"
+			tool:SetAttribute("Count", count)
+			tool:SetAttribute("Rarity", def.rarity)
+			existing[defId] = nil
+		end
+	end
+	for _, t in existing do
+		t:Destroy()
+	end
+end
+
+function PlayerService.refreshFarm(player: Player)
+	local profile = DataService.get(player)
+	if not profile then
+		return
+	end
+	local parts = {}
+	for _, e in profile.Farm do
+		table.insert(parts, string.format("%s:%.1f:%.1f", e.d, e.x, e.z))
+	end
+	player:SetAttribute("Farm", table.concat(parts, ";"))
+end
+
+function PlayerService.inventoryCount(profile): number
+	local n = 0
+	for _, c in profile.Inventory do
+		n += c
+	end
+	return n
+end
+
 local function checkPasses(player: Player)
 	local owned = passes[player] or {}
 	passes[player] = owned
@@ -212,8 +273,47 @@ function PlayerService.start()
 			profile.AutoThrow = false
 		end
 		PlayerService.refreshCompanions(player)
+		PlayerService.refreshFarm(player)
+		PlayerService.refreshInventory(player)
+		player.CharacterAdded:Connect(function()
+			task.wait(0.5)
+			PlayerService.refreshInventory(player)
+		end)
+		-- offline farm earnings (25% for up to 3 hours)
+		local stats = PlayerService.stats(player)
+		if profile.LastOnline > 0 and stats then
+			local secs = math.clamp(os.time() - profile.LastOnline, 0, 3 * 3600)
+			local earned = math.floor(stats.income * secs * 0.25)
+			if earned > 0 and secs > 60 then
+				PlayerService.addCoins(player, earned, "offline")
+				PlayerService.notify(player, "🏡 Your dragons earned " .. Util.fmt(earned) .. " coins while you were away!", "success")
+			end
+		end
 		PlayerService.sync(player)
 		player:SetAttribute("Loaded", true)
+	end)
+	-- farm income tick
+	local acc: { [Player]: number } = {}
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, player in Players:GetPlayers() do
+				local stats = PlayerService.stats(player)
+				if stats and stats.income > 0 then
+					acc[player] = (acc[player] or 0) + stats.income
+					local whole = math.floor(acc[player])
+					if whole >= 1 then
+						acc[player] -= whole
+						PlayerService.addCoins(player, whole, "farm")
+					end
+				end
+			end
+			for p in acc do
+				if not p.Parent then
+					acc[p] = nil
+				end
+			end
+		end
 	end)
 end
 

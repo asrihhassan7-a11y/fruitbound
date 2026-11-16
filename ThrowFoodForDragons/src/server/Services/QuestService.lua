@@ -183,7 +183,7 @@ function QuestService.start(DragonService, ThrowService)
 		QuestService.track(player, "throw", 1)
 	end)
 	PlayerService.on("coins", function(player, amount, source)
-		if source == "feed" then
+		if source == "feed" or source == "farm" then
 			QuestService.track(player, "coins", amount)
 		end
 	end)

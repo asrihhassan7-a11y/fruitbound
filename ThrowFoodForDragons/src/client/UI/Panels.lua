@@ -11,6 +11,7 @@ local Rarities = require(Shared.Config.Rarities)
 local Companions = require(Shared.Config.Companions)
 local Quests = require(Shared.Config.Quests)
 local Products = require(Shared.Config.Products)
+local Formulas = require(Shared.Formulas)
 local Controllers = script.Parent.Parent.Controllers
 local State = require(Controllers.State)
 local Audio = require(Controllers.Audio)
@@ -68,15 +69,22 @@ end
 local function buildPanel(name: string)
 	local def = defs[name]
 	local frame = Lib.new("Frame", { Name = name, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.54), Size = UDim2.fromOffset(700, 460), BackgroundColor3 = Color3.new(1, 1, 1), Visible = false, ZIndex = 10, Parent = root })
-	Lib.corner(frame, 22)
-	Lib.stroke(frame, T.Stroke, 4)
-	Lib.gradient(frame, T.Panel)
+	Lib.corner(frame, 10)
+	Lib.stroke(frame, T.Stroke, 5)
+	Lib.gradient(frame, def.color)
 	local sc = Lib.new("UIScale", { Scale = 0, Parent = frame })
-	local header = Lib.new("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = Color3.new(1, 1, 1), Parent = frame })
-	Lib.corner(header, 22)
-	Lib.gradient(header, def.color)
-	Lib.text({ Text = def.icon .. "  " .. def.title, Size = UDim2.new(1, -120, 0, 42), Position = UDim2.fromOffset(20, 8), TextXAlignment = Enum.TextXAlignment.Left, Parent = header })
-	Lib.button({ Text = "X", Color = T.Red, Size = UDim2.fromOffset(46, 46), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 6), Radius = 23, Parent = header, OnClick = function()
+	-- header brick with studs
+	local header = Lib.new("Frame", { Size = UDim2.new(1, 0, 0, 58), BackgroundColor3 = def.color:Lerp(Color3.new(0, 0, 0), 0.28), BorderSizePixel = 0, Parent = frame })
+	Lib.corner(header, 8)
+	Lib.new("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = T.Stroke, BorderSizePixel = 0, Parent = header })
+	local studArea = Lib.new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -66, 0.5, -2), Size = UDim2.fromOffset(170, 30), BackgroundTransparency = 1, Parent = header })
+	Lib.studs(studArea, def.color, 5, 16)
+	Lib.text({ Text = def.icon .. " " .. string.upper(def.title), Font = T.Title, StrokeThickness = 3, Size = UDim2.new(1, -260, 0, 40), Position = UDim2.fromOffset(16, 8), TextXAlignment = Enum.TextXAlignment.Left, Parent = header })
+	-- inset body behind the content
+	local inset = Lib.new("Frame", { Position = UDim2.fromOffset(10, 66), Size = UDim2.new(1, -20, 1, -76), BackgroundColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.35), Parent = frame })
+	Lib.corner(inset, 8)
+	Lib.stroke(inset, T.Stroke, 3)
+	Lib.button({ Text = "X", Color = T.Red, Size = UDim2.fromOffset(48, 48), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 4), Radius = 8, Parent = header, OnClick = function()
 		Panels.close()
 	end })
 	local content = Lib.new("Frame", { Name = "Content", Position = UDim2.fromOffset(16, 68), Size = UDim2.new(1, -32, 1, -80), BackgroundTransparency = 1, Parent = frame })
@@ -383,12 +391,7 @@ defs.Zones = { title = "World Map", icon = "🗺️", color = T.Blue, build = fu
 			if not d then
 				return
 			end
-			if i <= d.MaxZone then
-				local r = State.action("Teleport", i)
-				if r.ok then
-					Panels.close()
-				end
-			elseif i == d.MaxZone + 1 then
+			if i == d.MaxZone + 1 then
 				State.action("UnlockZone", i)
 			end
 		end })
@@ -398,12 +401,89 @@ defs.Zones = { title = "World Map", icon = "🗺️", color = T.Blue, build = fu
 		for i, btn in rows do
 			local z = Zones.List[i]
 			if i <= d.MaxZone then
-				Lib.setButton(btn, "✈️ Teleport", T.Blue)
+				Lib.setButton(btn, "✓ Unlocked", T.Blue)
 			elseif i == d.MaxZone + 1 then
 				Lib.setButton(btn, "🔓 💰 " .. Util.fmt(z.cost), affordColor(d, z.cost))
 			else
 				Lib.setButton(btn, "🔒 Locked", T.Grey)
 			end
+		end
+	end
+end }
+
+-- FARM -------------------------------------------------------------------------------
+defs.Farm = { title = "My Farm", icon = "🏡", color = Color3.fromRGB(120, 200, 70), build = function(content)
+	local info = Lib.text({ Text = "", TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(1, -10, 0, 30), Parent = content })
+	local list = scroll(content, UDim2.fromOffset(0, 36), UDim2.new(1, 0, 1, -36))
+	local lastKey = ""
+	local function row(order, def, sub, buttons)
+		local rarity = Rarities.Info[def.rarity]
+		local r = Lib.card({ Size = UDim2.new(1, -10, 0, 62), LayoutOrder = order, StrokeColor = rarity.color, Parent = list })
+		local circle = Lib.new("Frame", { Position = UDim2.fromOffset(8, 7), Size = UDim2.fromOffset(48, 48), BackgroundColor3 = def.body, Parent = r })
+		Lib.corner(circle, 100)
+		Lib.stroke(circle, def.accent, 3)
+		Lib.text({ Text = "🐉", Stroke = false, Size = UDim2.fromScale(0.8, 0.8), Position = UDim2.fromScale(0.1, 0.1), Parent = circle })
+		Lib.text({ Text = def.name, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(0.5, -60, 0, 26), Position = UDim2.fromOffset(64, 6), Parent = r })
+		Lib.text({ Text = sub, TextColor3 = rarity.color, TextXAlignment = Enum.TextXAlignment.Left, Size = UDim2.new(0.5, -60, 0, 20), Position = UDim2.fromOffset(64, 34), Parent = r })
+		for k, b in buttons do
+			Lib.button({ Text = b[1], Color = b[2], Size = UDim2.fromOffset(120, 44), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12 - (k - 1) * 128, 0.5, 0), Parent = r, OnClick = b[3] })
+		end
+	end
+	return function(d)
+		local invCount = 0
+		for _, c in d.Inventory do
+			invCount += c
+		end
+		info.Text = string.format("🏡 Farm %d/%d   •   🎒 Backpack %d/%d   •   💰 +%s/s", #d.Farm, d.Computed.farmCap, invCount, d.Computed.backpack, Util.fmt(d.Computed.income))
+		local parts = {}
+		for _, e in d.Farm do
+			table.insert(parts, e.d)
+		end
+		for id, c in d.Inventory do
+			table.insert(parts, id .. "=" .. c)
+		end
+		local key = table.concat(parts, ",") .. d.Computed.farmCap .. math.floor(d.Computed.coinMult * 100)
+		if key == lastKey then
+			return
+		end
+		lastKey = key
+		Lib.clear(list)
+		local order = 0
+		-- backpack first: these can be placed
+		local inv = {}
+		for id, c in d.Inventory do
+			if DragonDefs.ById[id] then
+				table.insert(inv, { id = id, c = c })
+			end
+		end
+		table.sort(inv, function(a, b)
+			return Formulas.dragonIncome(a.id) > Formulas.dragonIncome(b.id)
+		end)
+		for _, e in inv do
+			order += 1
+			local def = DragonDefs.ById[e.id]
+			row(order, def, string.format("🎒 x%d  •  +%s/s each", e.c, Util.fmt(Formulas.dragonIncome(e.id) * d.Computed.coinMult)), {
+				{ "Place", T.Green, function()
+					State.action("PlaceDragon", { d = e.id })
+				end },
+				{ "Sell", T.Orange, function()
+					State.action("SellDragon", e.id)
+				end },
+			})
+		end
+		for i, e in d.Farm do
+			order += 1
+			local def = DragonDefs.ById[e.d]
+			if def then
+				row(order, def, "🏡 On farm  •  +" .. Util.fmt(Formulas.dragonIncome(e.d) * d.Computed.coinMult) .. "/s", {
+					{ "Pick up", T.Blue, function()
+						State.action("PickupDragon", i)
+					end },
+				})
+			end
+		end
+		if order == 0 then
+			Lib.text({ Text = "Throw food into the field to catch dragons, then place them here to earn coins!", TextWrapped = true, Size = UDim2.new(1, -20, 0, 60), Parent = list })
 		end
 	end
 end }
@@ -612,7 +692,7 @@ defs.Settings = { title = "Settings", icon = "⚙️", color = T.Grey, build = f
 	row(2, "🔊 Sound effects", "Sfx", "volume")
 	row(3, "📱 Low graphics (faster on mobile)", "LowGfx", "toggle")
 	row(4, "👀 Show other players' throws", "ShowOthers", "toggle")
-	Lib.text({ Text = "Tip: click or hold on the ground to throw. Mobile: tap the ground or press THROW. Console: R2.", TextWrapped = true, TextColor3 = T.Sub, Size = UDim2.new(1, -10, 0, 50), LayoutOrder = 10, Parent = list })
+	Lib.text({ Text = "Tip: click or hold on the ground to throw. Mobile: tap the ground or press THROW. Console: R2. Equip a caught dragon from your backpack and click your farm to place it.", TextWrapped = true, TextColor3 = T.Sub, Size = UDim2.new(1, -10, 0, 50), LayoutOrder = 10, Parent = list })
 	return function(d)
 		for key, c in controls do
 			local v = d.Settings[key]

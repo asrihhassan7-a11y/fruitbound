@@ -26,8 +26,11 @@ local TEMPLATE = {
 	MaxZone = 1,
 	Foods = { [Foods.Default] = true },
 	EquippedFood = Foods.Default,
-	Upgrades = { range = 0, speed = 0, bonus = 0, crit = 0, multi = 0 },
-	Dragons = {}, -- [dragonId] = times fed
+	Upgrades = { range = 0, farm = 0, speed = 0, bonus = 0, crit = 0, multi = 0 },
+	Dragons = {}, -- [dragonId] = times caught (collection)
+	Inventory = {}, -- [dragonId] = count in backpack
+	Farm = {}, -- { { d = dragonId, x = offsetX, z = offsetZ } } placed on the farm plot
+	LastOnline = 0,
 	Stats = { Feeds = 0, Throws = 0, RareFeeds = 0, MythicFeeds = 0, Hatches = 0 },
 	Pets = {}, -- [uid] = petId
 	Equipped = {}, -- { uid }
@@ -122,6 +125,7 @@ local function saveAsync(player: Player, release: boolean): boolean
 		dirty[player] = nil
 		return true
 	end
+	data.LastOnline = os.time()
 	local snapshot = Util.deepCopy(data)
 	for attempt = 1, 4 do
 		local stolen = false

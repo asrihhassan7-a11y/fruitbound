@@ -21,7 +21,6 @@ local State = require(Controllers.State)
 local FX = require(Controllers.FX)
 local Audio = require(Controllers.Audio)
 local ThrowController = require(Controllers.ThrowController)
-local ZoneController = require(Controllers.ZoneController)
 local Lib = require(script.Parent.Lib)
 local T = Lib.Theme
 
@@ -32,6 +31,7 @@ local shownCoins = 0
 local coinValue = Instance.new("NumberValue")
 
 local MENU = {
+	{ "Farm", "🏡", Color3.fromRGB(120, 200, 70) },
 	{ "Shop", "🛒", T.Green },
 	{ "Food", "🍖", T.Orange },
 	{ "Dragons", "🐉", T.Purple },
@@ -149,7 +149,7 @@ function HUD.discover(defId: string)
 	local rarity = Rarities.Info[def.rarity]
 	local card, close = popupFrame(rarity.color)
 	Audio.play("Discover")
-	Lib.text({ Text = "NEW DRAGON DISCOVERED!", Size = UDim2.new(1, -20, 0, 40), Position = UDim2.fromOffset(10, 12), TextColor3 = T.Yellow, Parent = card })
+	Lib.text({ Text = "NEW DRAGON CAUGHT!", Size = UDim2.new(1, -20, 0, 40), Position = UDim2.fromOffset(10, 12), TextColor3 = T.Yellow, Parent = card })
 	HUD.viewport(def, card, UDim2.new(1, -40, 0, 200), UDim2.fromOffset(20, 56))
 	Lib.text({ Text = def.name, Size = UDim2.new(1, -20, 0, 40), Position = UDim2.fromOffset(10, 256), Parent = card })
 	Lib.text({ Text = def.rarity .. "  •  x" .. rarity.mult .. " rewards", TextColor3 = rarity.color, Size = UDim2.new(1, -20, 0, 28), Position = UDim2.fromOffset(10, 298), Parent = card })
@@ -206,7 +206,7 @@ function HUD.build(Panels)
 
 	-- coins
 	local coins = Lib.new("Frame", { Name = "Coins", Position = UDim2.fromOffset(14, 66), Size = UDim2.fromOffset(250, 56), BackgroundColor3 = Color3.new(1, 1, 1), Parent = gui })
-	Lib.corner(coins, 28)
+	Lib.corner(coins, 10)
 	Lib.stroke(coins)
 	Lib.gradient(coins, T.Yellow)
 	local coinIcon = Lib.text({ Text = "💰", Stroke = false, Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(6, 5), Parent = coins })
@@ -233,7 +233,7 @@ function HUD.build(Panels)
 		Lib.text({ Text = m[2], Stroke = false, Size = UDim2.new(1, 0, 0.62, 0), Position = UDim2.fromScale(0, 0.04), Parent = b })
 		Lib.text({ Text = m[1], Size = UDim2.new(1, -6, 0.3, 0), Position = UDim2.new(0, 3, 0.66, 0), Parent = b })
 		local badge = Lib.new("Frame", { Name = "Badge", Visible = false, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -6, 0, 6), Size = UDim2.fromOffset(22, 22), BackgroundColor3 = T.Red, ZIndex = 3, Parent = b })
-		Lib.corner(badge, 11)
+		Lib.corner(badge, 100)
 		Lib.stroke(badge, Color3.new(1, 1, 1), 2)
 		Lib.text({ Text = "!", ZIndex = 4, Parent = badge })
 		refs.badges[m[1]] = badge
@@ -241,20 +241,12 @@ function HUD.build(Panels)
 
 	-- zone banner + boosts
 	local banner = Lib.new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 10), Size = UDim2.fromOffset(330, 46), BackgroundColor3 = Color3.new(1, 1, 1), Parent = gui })
-	Lib.corner(banner, 23)
+	Lib.corner(banner, 10)
 	Lib.stroke(banner)
 	Lib.gradient(banner, T.Panel)
-	refs.zoneText = Lib.text({ Text = "🌄 Dragon Valley", Size = UDim2.new(1, -24, 1, -10), Position = UDim2.fromOffset(12, 5), Parent = banner })
+	refs.zoneText = Lib.text({ Text = "🏡 Your Farm", Size = UDim2.new(1, -24, 1, -10), Position = UDim2.fromOffset(12, 5), Parent = banner })
 	refs.boosts = Lib.new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 60), Size = UDim2.fromOffset(500, 30), BackgroundTransparency = 1, Parent = gui })
 	Lib.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), Parent = refs.boosts })
-	ZoneController.Changed:Connect(function(i)
-		local z = Zones.List[i]
-		refs.zoneText.Text = z.icon .. " " .. z.name .. "  •  x" .. z.mult
-		local sc = banner:FindFirstChildOfClass("UIScale") or Lib.new("UIScale", { Parent = banner })
-		sc.Scale = 1.25
-		Lib.tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
-	end)
-
 	-- toasts
 	refs.toasts = Lib.new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 96), Size = UDim2.fromOffset(460, 260), BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
 	Lib.new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), Parent = refs.toasts })
@@ -266,7 +258,7 @@ function HUD.build(Panels)
 
 	-- throw + auto
 	local isTouch = UserInputService.TouchEnabled
-	local throw = Lib.button({ Name = "Throw", Text = "", Color = T.Orange, Size = UDim2.fromOffset(122, 122), AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -26, 1, isTouch and -180 or -24), Radius = 61, Parent = gui, OnClick = function()
+	local throw = Lib.button({ Name = "Throw", Text = "", Color = T.Orange, Size = UDim2.fromOffset(122, 122), AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -26, 1, isTouch and -180 or -24), Radius = 12, Parent = gui, OnClick = function()
 		ThrowController.throwAssist()
 	end })
 	refs.throwIcon = Lib.text({ Text = "🍒", Stroke = false, Size = UDim2.new(1, 0, 0.55, 0), Position = UDim2.fromScale(0, 0.1), Parent = throw })
@@ -280,7 +272,9 @@ function HUD.build(Panels)
 
 	-- cooldown ring on throw button
 	refs.cd = Lib.new("Frame", { Size = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.6, ZIndex = 2, Parent = throw })
-	Lib.corner(refs.cd, 61)
+	Lib.corner(refs.cd, 12)
+	local studTop = Lib.new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, 2), Size = UDim2.fromOffset(110, 16), BackgroundTransparency = 1, Parent = throw })
+	Lib.studs(studTop, T.Orange, 2, 30)
 
 	State.Toast:Connect(HUD.toast)
 	State.Changed:Connect(HUD.refresh)
@@ -332,6 +326,7 @@ function HUD.refresh(d)
 		end
 	end
 	refs.levelText.Text = "Lv " .. d.Level
+	refs.zoneText.Text = "🏡 +" .. Util.fmt(d.Computed.income) .. "/s   •   " .. #d.Farm .. "/" .. d.Computed.farmCap .. " dragons"
 	Lib.tween(refs.xpFill, 0.3, { Size = UDim2.fromScale(math.clamp(d.XP / Formulas.xpForLevel(d.Level), 0, 1), 1) })
 	refreshHotbar(d)
 	Lib.setButton(refs.auto, d.AutoThrow and "🤖 AUTO ON" or "🤖 AUTO", d.AutoThrow and T.Green or T.Grey)

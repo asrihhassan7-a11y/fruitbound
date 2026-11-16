@@ -6,7 +6,7 @@ local Products = {
 		DoubleCoins = { id = 0, name = "2x Coins", icon = "💰", desc = "Double coins from every feed, forever" },
 		DoubleRewards = { id = 0, name = "2x Rewards", icon = "🎁", desc = "Double XP, quest, daily & achievement rewards" },
 		AutoThrow = { id = 0, name = "Auto Throw", icon = "🤖", desc = "Automatically feeds the nearest dragon" },
-		ExtraInventory = { id = 0, name = "Extra Inventory", icon = "🎒", desc = "+50 companion storage, +1 equip slot" },
+		ExtraInventory = { id = 0, name = "Extra Inventory", icon = "🎒", desc = "+120 backpack dragons, +50 companion storage, +1 equip slot" },
 	},
 	PassOrder = { "VIP", "DoubleCoins", "DoubleRewards", "AutoThrow", "ExtraInventory" },
 	DevProducts = {

@@ -130,16 +130,16 @@ function recipes.star(pos, z, parent)
 end
 
 local THEMES = {
-	meadow = { { "tree", 14 }, { "flowers", 18 }, { "rock", 6 } },
-	forest = { { "pine", 18 }, { "tree", 10 }, { "mushroom", 10 } },
-	volcano = { { "rock", 18 }, { "lava", 7 }, { "crystal", 4 } },
-	frozen = { { "snowpine", 16 }, { "icespike", 10 }, { "rock", 5 } },
-	crystal = { { "crystal", 22 }, { "rock", 8 }, { "mushroom", 4 } },
-	sky = { { "cloud", 18 }, { "tree", 6 }, { "flowers", 10 } },
-	ancient = { { "pillar", 16 }, { "rock", 10 }, { "palm", 6 } },
-	shadow = { { "obelisk", 16 }, { "crystal", 8 }, { "rock", 6 } },
-	celestial = { { "cloud", 10 }, { "star", 22 }, { "pillar", 6 } },
-	cosmic = { { "star", 30 }, { "crystal", 12 }, { "obelisk", 6 } },
+	meadow = { "tree", "flowers", "rock" },
+	forest = { "pine", "tree", "mushroom" },
+	volcano = { "rock", "lava", "crystal" },
+	frozen = { "snowpine", "icespike", "rock" },
+	crystal = { "crystal", "rock", "mushroom" },
+	sky = { "cloud", "tree", "flowers" },
+	ancient = { "pillar", "rock", "palm" },
+	shadow = { "obelisk", "crystal", "rock" },
+	celestial = { "cloud", "star", "pillar" },
+	cosmic = { "star", "crystal", "obelisk" },
 }
 recipes.snowpine = function(pos, z, parent)
 	recipes.pine(pos, z, parent, true)
@@ -148,129 +148,117 @@ recipes.palm = function(pos, z, parent)
 	recipes.tree(pos, z, parent, Color3.fromRGB(90, 170, 70))
 end
 
-local function decorPosition(center: Vector3): Vector3?
-	local half = Zones.SIZE / 2 - 6
-	for _ = 1, 12 do
-		local x, zz = R:NextNumber(-half, half), R:NextNumber(-half, half)
-		local d = math.sqrt(x * x + zz * zz)
-		local onPath = math.abs(zz) < 18 and math.abs(x) > 60
-		if d > Zones.SPAWN_RADIUS + 8 and not onPath then
-			return center + Vector3.new(x, 0, zz)
-		end
-	end
-	return nil
-end
-
-local function landmark(i: number, z, center: Vector3, parent: Instance)
-	local back = center + Vector3.new(0, 0, -Zones.SIZE / 2 + 22)
-	if z.decor == "volcano" then
-		for k = 0, 5 do
-			cyl(back + Vector3.new(0, k * 8, 0), 8, 60 - k * 9, k < 5 and Color3.fromRGB(70, 45, 40) or Color3.fromRGB(255, 90, 20), parent, k < 5 and Enum.Material.Slate or Enum.Material.Neon)
-		end
-	elseif z.decor == "frozen" then
-		for k = 0, 4 do
-			cyl(back + Vector3.new(-30, k * 9, 0), 9, 50 - k * 10, k < 3 and Color3.fromRGB(150, 180, 210) or Color3.fromRGB(250, 252, 255), parent, Enum.Material.Snow)
-		end
-	elseif z.decor == "ancient" then
-		for k = 0, 6 do
-			deco({ Size = Vector3.new(56 - k * 8, 6, 56 - k * 8), CFrame = CFrame.new(back + Vector3.new(30, 3 + k * 6, 0)), Color = Color3.fromRGB(225, 195, 130), Material = Enum.Material.Sandstone, CanCollide = true }, parent)
-		end
-	elseif z.decor == "cosmic" or z.decor == "celestial" then
-		ball(back + Vector3.new(40, 70, -30), Vector3.new(50, 50, 50), z.decor == "cosmic" and Color3.fromRGB(120, 60, 220) or Color3.fromRGB(255, 220, 120), parent, Enum.Material.Neon)
-	elseif z.decor == "crystal" then
-		for _ = 1, 4 do
-			recipes.crystal(back + Vector3.new(R:NextNumber(-40, 40), 0, R:NextNumber(-8, 8)), z, parent)
-		end
-	end
-	-- welcome arch
-	local entrance = center + Vector3.new(-Zones.SIZE / 2 + 6, 0, 0)
-	for _, side in { -15, 15 } do
-		cyl(entrance + Vector3.new(0, 0, side), 16, 3, z.edge, parent)
-		ball(entrance + Vector3.new(0, 17, side), Vector3.new(4, 4, 4), z.accent, parent, Enum.Material.Neon)
-	end
-	local beam = deco({ Size = Vector3.new(3, 2.5, 34), CFrame = CFrame.new(entrance + Vector3.new(0, 16, 0)), Color = z.edge, CanCollide = true }, parent)
-	local sg = Instance.new("SurfaceGui")
-	sg.Face = Enum.NormalId.Left
-	sg.PixelsPerStud = 30
-	sg.LightInfluence = 0
+local function label(parent: Instance, text: string, size: UDim2, offset: Vector3, maxDist: number?)
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "Label"
+	bb.Size = size
+	bb.StudsOffset = offset
+	bb.MaxDistance = maxDist or 700
+	bb.LightInfluence = 0
 	local t = Instance.new("TextLabel")
+	t.Name = "Text"
 	t.Size = UDim2.fromScale(1, 1)
 	t.BackgroundTransparency = 1
-	t.Font = Enum.Font.FredokaOne
+	t.Font = Enum.Font.LuckiestGuy
 	t.TextScaled = true
 	t.TextColor3 = Color3.new(1, 1, 1)
-	t.TextStrokeTransparency = 0.2
-	t.Text = z.icon .. " " .. z.name
-	t.Parent = sg
-	sg.Parent = beam
+	t.TextStrokeTransparency = 0
+	t.Text = text
+	t.Parent = bb
+	bb.Parent = parent
+	return bb
 end
 
-local function buildZone(i: number)
+local function buildBand(i: number)
 	local z = Zones.List[i]
-	local center = Zones.center(i)
+	local z0, z1 = Zones.band(i)
+	local zmid = (z0 + z1) / 2
 	R = Random.new(i * 7919)
 	local zf = Instance.new("Folder")
 	zf.Name = "Zone" .. i
-	-- ground
-	local top = part({ Name = "Island" .. i, Size = Vector3.new(Zones.SIZE, 4, Zones.SIZE), CFrame = CFrame.new(center - Vector3.new(0, 2, 0)), Color = z.ground, Material = (z.decor == "frozen") and Enum.Material.Snow or Enum.Material.Grass }, folders.Ground)
-	top:SetAttribute("Zone", i)
-	if z.decor ~= "meadow" and z.decor ~= "forest" and z.decor ~= "frozen" then
-		top.Material = (z.decor == "ancient") and Enum.Material.Sand or Enum.Material.SmoothPlastic
-	end
-	deco({ Size = Vector3.new(Zones.SIZE + 6, 26, Zones.SIZE + 6), CFrame = CFrame.new(center - Vector3.new(0, 17, 0)), Color = z.edge, Material = Enum.Material.Slate }, zf)
-	-- path
-	deco({ Size = Vector3.new(Zones.SIZE, 0.2, 22), CFrame = CFrame.new(center + Vector3.new(0, 0.05, 0)), Color = z.ground:Lerp(Color3.fromRGB(230, 210, 160), 0.45), Material = Enum.Material.SmoothPlastic }, zf)
-	-- decor
-	for _, entry in THEMES[z.decor] do
-		for _ = 1, entry[2] do
-			local p = decorPosition(center)
-			if p then
-				recipes[entry[1]](p, z, zf)
-			end
+	local ground = part({ Name = "Band" .. i, Size = Vector3.new(Zones.FIELD_W, 4, Zones.BAND), CFrame = CFrame.new(0, -2 + (i - 1) * 0.02, zmid), Color = z.ground, Material = (z.decor == "frozen") and Enum.Material.Snow or (z.decor == "ancient" and Enum.Material.Sand or Enum.Material.Grass) }, folders.Ground)
+	ground:SetAttribute("Zone", i)
+	-- band border stripe
+	deco({ Size = Vector3.new(Zones.FIELD_W, 0.3, 1.2), CFrame = CFrame.new(0, 0.1, z0 + 0.6), Color = z.accent, Material = Enum.Material.Neon, Transparency = 0.3 }, zf)
+	-- side scenery outside the field + a few props inside the band
+	local kinds = THEMES[z.decor]
+	for _, side in { -1, 1 } do
+		for k = 1, 4 do
+			local x = side * (Zones.FIELD_W / 2 + R:NextNumber(8, 40))
+			recipes[kinds[(k % #kinds) + 1]](Vector3.new(x, 0, R:NextNumber(z0 + 4, z1 - 4)), z, zf)
 		end
 	end
-	landmark(i, z, center, zf)
+	for _ = 1, 5 do
+		recipes[kinds[R:NextInteger(1, #kinds)]](Vector3.new(R:NextNumber(-Zones.FIELD_W / 2 + 10, Zones.FIELD_W / 2 - 10), 0, R:NextNumber(z0 + 4, z1 - 4)), z, zf)
+	end
+	-- side cliffs so the field reads as a valley
+	for _, side in { -1, 1 } do
+		deco({ Size = Vector3.new(60, 16 + i * 2, Zones.BAND), CFrame = CFrame.new(side * (Zones.FIELD_W / 2 + 70), 4 + i, zmid), Color = z.edge, Material = Enum.Material.Slate }, zf)
+	end
+	-- floating zone name
+	local anchor = deco({ Name = "Sign" .. i, Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(0, 10 + i * 1.5, zmid), Transparency = 1 }, folders.Signs)
+	anchor:SetAttribute("Zone", i)
+	label(anchor, z.icon .. " " .. z.name .. "  x" .. z.mult, UDim2.fromOffset(420, 60), Vector3.zero)
 	zf.Parent = folders.Decor
-
-	-- bridge from previous island + gate
-	if i > 1 then
-		local prev = Zones.center(i - 1)
-		local x0, x1 = prev.X + Zones.SIZE / 2, center.X - Zones.SIZE / 2
-		part({ Name = "Bridge" .. i, Size = Vector3.new(x1 - x0, 2, 26), CFrame = CFrame.new((x0 + x1) / 2, -1, 0), Color = Color3.fromRGB(150, 105, 65), Material = Enum.Material.WoodPlanks }, folders.Ground)
-		for _, side in { -13, 13 } do
-			deco({ Size = Vector3.new(x1 - x0, 1, 1), CFrame = CFrame.new((x0 + x1) / 2, 3, side), Color = Color3.fromRGB(120, 80, 50), Material = Enum.Material.Wood }, folders.Decor)
-		end
-		local gate = part({ Name = "Gate" .. i, Size = Vector3.new(2, 30, 30), CFrame = CFrame.new(x1 - 1, 15, 0), Color = z.accent, Material = Enum.Material.ForceField, Transparency = 0.2, CanCollide = true, CanQuery = false }, folders.Gates)
-		gate:SetAttribute("Zone", i)
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.ActionText = "Unlock (" .. Util.fmt(z.cost) .. " coins)"
-		prompt.ObjectText = z.icon .. " " .. z.name
-		prompt.HoldDuration = 0.3
-		prompt.MaxActivationDistance = 14
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = gate
-		local bb = Instance.new("BillboardGui")
-		bb.Size = UDim2.fromOffset(260, 90)
-		bb.StudsOffset = Vector3.new(0, 19, 0)
-		bb.MaxDistance = 160
-		bb.LightInfluence = 0
-		local t = Instance.new("TextLabel")
-		t.Name = "Label"
-		t.Size = UDim2.fromScale(1, 1)
-		t.BackgroundTransparency = 1
-		t.Font = Enum.Font.FredokaOne
-		t.TextScaled = true
-		t.TextColor3 = Color3.new(1, 1, 1)
-		t.TextStrokeTransparency = 0.2
-		t.Text = "🔒 " .. z.name .. "\n💰 " .. Util.fmt(z.cost)
-		t.Parent = bb
-		bb.Parent = gate
-	end
 end
 
-function WorldBuilder.spawnCFrame(i: number): CFrame
-	local c = Zones.center(i)
-	return CFrame.lookAt(c + Vector3.new(-Zones.SIZE / 2 + 18, 4, 0), c + Vector3.new(0, 4, 0))
+local function buildPlot(i: number)
+	local c = Zones.plotCenter(i)
+	local f = Instance.new("Folder")
+	f.Name = "Plot" .. i
+	f:SetAttribute("Index", i)
+	local W, D = Zones.PLOT_W, Zones.PLOT_D
+	-- ground + curb
+	deco({ Name = "Ground", Size = Vector3.new(W - 2, 2, D), CFrame = CFrame.new(c.X, -1, c.Z), Color = (i % 2 == 0) and Color3.fromRGB(120, 205, 95) or Color3.fromRGB(110, 195, 88), Material = Enum.Material.Grass, CanCollide = true }, f)
+	deco({ Size = Vector3.new(W, 1.2, 1.2), CFrame = CFrame.new(c.X, 0.6, -D), Color = Color3.fromRGB(150, 105, 65), Material = Enum.Material.WoodPlanks, CanCollide = true }, f)
+	for _, sx in { -1, 1 } do
+		deco({ Size = Vector3.new(1.2, 1.2, D), CFrame = CFrame.new(c.X + sx * (W / 2 - 0.6), 0.6, c.Z), Color = Color3.fromRGB(150, 105, 65), Material = Enum.Material.WoodPlanks, CanCollide = true }, f)
+	end
+	-- throwing deck at the front
+	deco({ Name = "Deck", Size = Vector3.new(W - 6, 1, 12), CFrame = CFrame.new(c.X, 0.5, -7), Color = Color3.fromRGB(196, 150, 95), Material = Enum.Material.WoodPlanks, CanCollide = true }, f)
+	-- picket fence along the front
+	for x = -W / 2 + 2, W / 2 - 2, 4 do
+		deco({ Size = Vector3.new(0.8, 3.2, 0.8), CFrame = CFrame.new(c.X + x, 1.6, -0.6), Color = Color3.new(1, 1, 1), CanCollide = true }, f)
+	end
+	deco({ Size = Vector3.new(W - 2, 0.5, 0.5), CFrame = CFrame.new(c.X, 2.4, -0.6), Color = Color3.new(1, 1, 1) }, f)
+	-- farm pen fence (separates deck from the dragon farm)
+	deco({ Size = Vector3.new(W - 6, 1.6, 0.6), CFrame = CFrame.new(c.X, 0.8, -13.5), Color = Color3.fromRGB(150, 105, 65), Material = Enum.Material.Wood }, f)
+	-- invisible walls keep players on their own plot
+	local function wall(size: Vector3, cf: CFrame)
+		local w = part({ Name = "Wall", Size = size, CFrame = cf, Transparency = 1, CanCollide = true, CanQuery = false, CanTouch = false }, f)
+		return w
+	end
+	wall(Vector3.new(W, 60, 1), CFrame.new(c.X, 30, 0.5))
+	wall(Vector3.new(W, 60, 1), CFrame.new(c.X, 30, -D - 0.5))
+	wall(Vector3.new(1, 60, D), CFrame.new(c.X - W / 2, 30, c.Z))
+	wall(Vector3.new(1, 60, D), CFrame.new(c.X + W / 2, 30, c.Z))
+	-- owner sign at the back
+	local sign = deco({ Name = "Sign", Size = Vector3.new(18, 6, 1), CFrame = CFrame.new(c.X, 7, -D + 1), Color = Color3.fromRGB(255, 205, 40), CanCollide = true }, f)
+	for _, sx in { -7, 7 } do
+		deco({ Size = Vector3.new(1, 5, 1), CFrame = CFrame.new(c.X + sx, 2, -D + 1), Color = Color3.fromRGB(120, 85, 55) }, f)
+	end
+	local sg = Instance.new("SurfaceGui")
+	sg.Name = "Owner"
+	sg.Face = Enum.NormalId.Back
+	sg.PixelsPerStud = 25
+	sg.LightInfluence = 0
+	local t = Instance.new("TextLabel")
+	t.Name = "Text"
+	t.Size = UDim2.fromScale(1, 1)
+	t.BackgroundTransparency = 1
+	t.Font = Enum.Font.LuckiestGuy
+	t.TextScaled = true
+	t.TextColor3 = Color3.new(1, 1, 1)
+	t.TextStrokeTransparency = 0
+	t.Text = "Empty Farm"
+	t.Parent = sg
+	sg.Parent = sign
+	f.Parent = folders.Plots
+	return f
+end
+
+function WorldBuilder.plotFolder(i: number): Folder?
+	return folders.Plots and folders.Plots:FindFirstChild("Plot" .. i) :: Folder?
 end
 
 function WorldBuilder.build()
@@ -280,34 +268,46 @@ function WorldBuilder.build()
 	end
 	map = Instance.new("Folder")
 	map.Name = Trajectory.MAP_NAME
-	for _, n in { "Ground", "Water", "Decor", "Gates" } do
+	for _, n in { "Ground", "Water", "Decor", "Plots", "Signs" } do
 		local f = Instance.new("Folder")
 		f.Name = n
 		f.Parent = map
 		folders[n] = f
 	end
-	-- ocean (parts are capped at 2048 studs per axis)
-	local total = (#Zones.List - 1) * Zones.SPACING + 900
-	local segments = math.ceil(total / 2000)
-	for k = 0, segments - 1 do
-		part({ Name = "Ocean", Size = Vector3.new(2000, 1, 1400), CFrame = CFrame.new(-450 + 1000 + k * 2000, -14, 0), Color = Color3.fromRGB(70, 170, 235), Material = Enum.Material.Glass, Transparency = 0.25, CanCollide = false }, folders.Water)
-	end
+	local fieldEnd = select(2, Zones.band(#Zones.List))
+	part({ Name = "Ocean", Size = Vector3.new(2000, 1, 1400), CFrame = CFrame.new(0, -14, fieldEnd / 2 - 100), Color = Color3.fromRGB(70, 170, 235), Material = Enum.Material.Glass, Transparency = 0.25, CanCollide = false }, folders.Water)
+	-- grass strip between fences and zone 1 (no dragons there)
+	part({ Name = "Lawn", Size = Vector3.new(Zones.FIELD_W, 4, Zones.FIELD_START), CFrame = CFrame.new(0, -2, Zones.FIELD_START / 2), Color = Color3.fromRGB(100, 185, 80), Material = Enum.Material.Grass }, folders.Ground)
+	-- cliff under everything
+	deco({ Size = Vector3.new(Zones.FIELD_W + 12, 24, fieldEnd + Zones.PLOT_D + 12), CFrame = CFrame.new(0, -16, (fieldEnd - Zones.PLOT_D) / 2), Color = Color3.fromRGB(120, 95, 70), Material = Enum.Material.Slate }, folders.Decor)
 	map.Parent = workspace
 	for i = 1, #Zones.List do
-		buildZone(i)
+		buildBand(i)
 		task.wait()
 	end
+	for i = 1, Zones.PLOTS do
+		buildPlot(i)
+	end
+	-- far landmarks behind the last zone
+	R = Random.new(42)
+	local back = fieldEnd + 60
+	for k = 0, 5 do
+		cyl(Vector3.new(-120, k * 14, back), 14, 110 - k * 18, k < 5 and Color3.fromRGB(70, 45, 40) or Color3.fromRGB(255, 90, 20), folders.Decor, k < 5 and Enum.Material.Slate or Enum.Material.Neon)
+	end
+	for k = 0, 4 do
+		cyl(Vector3.new(140, k * 16, back + 20), 16, 100 - k * 20, k < 3 and Color3.fromRGB(150, 180, 210) or Color3.fromRGB(250, 252, 255), folders.Decor, Enum.Material.Snow)
+	end
+	ball(Vector3.new(0, 150, back + 160), Vector3.new(120, 120, 120), Color3.fromRGB(140, 80, 230), folders.Decor, Enum.Material.Neon)
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "TFFD_Spawn"
 	spawn.Anchored = true
-	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.CFrame = WorldBuilder.spawnCFrame(1) - Vector3.new(0, 3.5, 0)
-	spawn.Color = Zones.List[1].accent
-	spawn.Material = Enum.Material.Neon
+	spawn.Size = Vector3.new(6, 1, 6)
+	spawn.CFrame = CFrame.new(Zones.plotCenter(1) + Vector3.new(0, 0.5, 0))
+	spawn.Transparency = 1
+	spawn.CanCollide = false
 	spawn.Duration = 0
 	spawn.Parent = map
 
-	-- lighting
 	Lighting.ClockTime = 14.5
 	Lighting.Brightness = 2.6
 	Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 165)
@@ -320,18 +320,17 @@ function WorldBuilder.build()
 		return e
 	end
 	local atm = ensure("Atmosphere", "TFFD_Atmosphere") :: Atmosphere
-	atm.Density = 0.28
-	atm.Haze = 1.2
-	atm.Color = Zones.List[1].fog
+	atm.Density = 0.22
+	atm.Haze = 1
+	atm.Color = Color3.fromRGB(190, 230, 255)
 	atm.Decay = Color3.fromRGB(120, 150, 200)
 	local bloom = ensure("BloomEffect", "TFFD_Bloom") :: BloomEffect
 	bloom.Intensity = 0.6
 	bloom.Size = 30
 	bloom.Threshold = 1.4
-	ensure("ColorCorrectionEffect", "TFFD_Color")
-	local cc = Lighting:FindFirstChild("TFFD_Color") :: ColorCorrectionEffect
-	cc.Saturation = 0.15
-	cc.Contrast = 0.05
+	local cc = ensure("ColorCorrectionEffect", "TFFD_Color") :: ColorCorrectionEffect
+	cc.Saturation = 0.18
+	cc.Contrast = 0.06
 	ensure("SunRaysEffect", "TFFD_SunRays")
 	return map
 end

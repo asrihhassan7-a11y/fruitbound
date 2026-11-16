@@ -5,6 +5,8 @@ local Upgrades = require(Config.Upgrades)
 local Foods = require(Config.Foods)
 local Zones = require(Config.Zones)
 local Companions = require(Config.Companions)
+local Dragons = require(Config.Dragons)
+local Rarities = require(Config.Rarities)
 
 local Formulas = {}
 
@@ -22,6 +24,24 @@ function Formulas.income(zone: number): number
 		end
 	end
 	return best.value * Zones.List[zone].mult * 1.4
+end
+
+-- Base coins/second one farm dragon earns (before player multipliers).
+function Formulas.dragonIncome(defId: string): number
+	local def = Dragons.ById[defId]
+	if not def then
+		return 0
+	end
+	local zone = def.zone == 0 and #Zones.List or def.zone
+	return Formulas.income(zone) * 0.1 * Rarities.Info[def.rarity].mult
+end
+
+function Formulas.farmIncome(profile, coinMult: number): number
+	local total = 0
+	for _, e in profile.Farm do
+		total += Formulas.dragonIncome(e.d)
+	end
+	return total * coinMult
 end
 
 function Formulas.boostActive(profile, name: string, now: number): boolean
@@ -69,6 +89,9 @@ function Formulas.compute(profile, passes, now: number)
 		lucky = lucky,
 		equipSlots = Companions.BaseEquip + (vip and 1 or 0) + (passes.ExtraInventory and 1 or 0),
 		storage = Companions.BaseStorage + (passes.ExtraInventory and 50 or 0),
+		farmCap = Upgrades.farmCap(up.farm or 0),
+		backpack = 60 + (passes.ExtraInventory and 120 or 0),
+		income = Formulas.farmIncome(profile, coinMult),
 	}
 end
 

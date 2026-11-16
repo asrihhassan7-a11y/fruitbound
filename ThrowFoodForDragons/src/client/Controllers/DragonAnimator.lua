@@ -7,6 +7,9 @@ local Net = require(Shared.Net)
 local DragonDefs = require(Shared.Config.Dragons)
 local Rarities = require(Shared.Config.Rarities)
 local DragonBuilder = require(Shared.DragonBuilder)
+local Zones = require(Shared.Config.Zones)
+local Players = game:GetService("Players")
+local FX = require(script.Parent.FX)
 
 local DragonAnimator = {}
 local dragons: { [number]: any } = {}
@@ -58,9 +61,11 @@ local function spawn(id: number, defId: string, pos: Vector3, yaw: number, to: V
 		d.from, d.to, d.t0, d.dur = pos, to, os.clock(), remaining
 		d.targetYaw = yawTo(to.X - pos.X, to.Z - pos.Z)
 	end
-	-- spawn pop for event dragons
-	if d.rarity.rank >= 6 then
-		d.spawnPop = os.clock()
+	-- pop in: drop from the sky with a puff
+	d.spawnPop = os.clock()
+	FX.burst(pos + Vector3.new(0, 2, 0), def.accent, d.rarity.rank >= 5 and 30 or 14, true)
+	if d.rarity.rank >= 4 then
+		FX.burst(pos + Vector3.new(0, 3, 0), d.rarity.color, 30)
 	end
 end
 
@@ -93,6 +98,22 @@ handlers.m = function(op)
 	local dx, dz = op[3].X - from.X, op[3].Z - from.Z
 	if dx * dx + dz * dz > 0.25 then
 		d.targetYaw = yawTo(dx, dz)
+	end
+end
+-- caught: fly back to the thrower's farm, then vanish into their backpack
+handlers.c = function(op)
+	local d = dragons[op[2]]
+	if not d then
+		return
+	end
+	local owner = Players:GetPlayerByUserId(op[3])
+	local plot = owner and owner:GetAttribute("Plot")
+	local target = plot and Zones.plotCenter(plot) + Vector3.new(0, 0, 10) or currentPos(d)
+	d.catch = { t0 = os.clock(), from = currentPos(d), to = target }
+	d.dur = nil
+	d.targetYaw = yawTo(target.X - d.catch.from.X, target.Z - d.catch.from.Z)
+	if owner == Players.LocalPlayer then
+		FX.floating("CAUGHT!", d.rig.head.Position + Vector3.new(0, 3, 0), d.rarity.color, true)
 	end
 end
 handlers.e = function(op)
@@ -144,6 +165,23 @@ local function animate(dt: number)
 	local camPos = cam.CFrame.Position
 	local now = os.clock()
 	for _, d in dragons do
+		if d.catch then
+			local a = (now - d.catch.t0) / 0.8
+			if a >= 1 then
+				FX.burst(d.catch.to + Vector3.new(0, 3, 0), d.rarity.color, 16)
+				dragons[d.id] = nil
+				d.rig.model:Destroy()
+				continue
+			end
+			local p = d.catch.from:Lerp(d.catch.to, a * a)
+			d.yaw = lerpAngle(d.yaw, d.targetYaw, math.min(1, dt * 10))
+			local flap = 0.5 + math.sin(now * 20) * 0.7
+			DragonBuilder.pose(d.rig, CFrame.new(p.X, math.sin(a * math.pi) * 22 + 2, p.Z) * CFrame.Angles(0, d.yaw, 0), {
+				wingL = CFrame.Angles(0, 0, -flap),
+				wingR = CFrame.Angles(0, 0, flap),
+			})
+			continue
+		end
 		local pos = currentPos(d)
 		local moving = false
 		if d.dur then
@@ -196,7 +234,7 @@ local function animate(dt: number)
 			extraYaw = math.sin(t * 0.9) * 0.5
 		end
 		if d.spawnPop then
-			local a = (now - d.spawnPop) / 0.6
+			local a = (now - d.spawnPop) / 0.45
 			if a >= 1 then
 				d.spawnPop = nil
 			else

@@ -14,7 +14,9 @@ local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 local QuestService = require(script.Parent.QuestService)
 local MonetizationService = require(script.Parent.MonetizationService)
-local WorldBuilder = require(script.Parent.WorldBuilder)
+local PlotService = require(script.Parent.PlotService)
+local Formulas = require(Shared.Formulas)
+local DragonDefs = require(Shared.Config.Dragons)
 
 local ActionRemote = Net.get("Action")
 
@@ -88,16 +90,63 @@ function handlers.UnlockZone(player, profile, index)
 	return ok(nil, { unlocked = index })
 end
 
-function handlers.Teleport(player, profile, index)
-	if type(index) ~= "number" or index < 1 or index > profile.MaxZone or index % 1 ~= 0 then
-		return fail("Zone locked")
+-- Farm ---------------------------------------------------------------------------
+-- arg = { d = dragonId, x = offsetX?, z = offsetZ? } (offsets relative to plot centre; random spot if omitted)
+function handlers.PlaceDragon(player, profile, arg)
+	if type(arg) ~= "table" or type(arg.d) ~= "string" or not DragonDefs.ById[arg.d] then
+		return fail("Invalid dragon")
 	end
-	local char = player.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then
-		return fail("No character")
+	if (profile.Inventory[arg.d] or 0) <= 0 then
+		return fail("You don't have that dragon")
 	end
-	char:PivotTo(WorldBuilder.spawnCFrame(index))
+	local stats = PlayerService.stats(player)
+	if #profile.Farm >= stats.farmCap then
+		return fail("Farm full (" .. stats.farmCap .. ")! Upgrade Farm Size in the Shop")
+	end
+	local x, z = arg.x, arg.z
+	if not (Util.finite(x) and Util.finite(z) and PlotService.validFarmOffset(x, z)) then
+		x = rng:NextNumber(PlotService.FARM_MIN.X + 2, PlotService.FARM_MAX.X - 2)
+		z = rng:NextNumber(PlotService.FARM_MIN.Y + 2, PlotService.FARM_MAX.Y - 2)
+	end
+	profile.Inventory[arg.d] -= 1
+	if profile.Inventory[arg.d] <= 0 then
+		profile.Inventory[arg.d] = nil
+	end
+	table.insert(profile.Farm, { d = arg.d, x = x, z = z })
+	PlayerService.refreshInventory(player)
+	PlayerService.refreshFarm(player)
+	local def = DragonDefs.ById[arg.d]
+	return ok("🏡 " .. def.name .. " placed! +" .. Util.fmt(Formulas.dragonIncome(arg.d) * stats.coinMult) .. "/s")
+end
+
+function handlers.PickupDragon(player, profile, index)
+	if type(index) ~= "number" or not profile.Farm[index] then
+		return fail("Invalid")
+	end
+	local stats = PlayerService.stats(player)
+	if PlayerService.inventoryCount(profile) >= stats.backpack then
+		return fail("Backpack full")
+	end
+	local e = table.remove(profile.Farm, index)
+	profile.Inventory[e.d] = (profile.Inventory[e.d] or 0) + 1
+	PlayerService.refreshInventory(player)
+	PlayerService.refreshFarm(player)
 	return ok()
+end
+
+-- Sell one backpack dragon for 2 minutes of its farm income.
+function handlers.SellDragon(player, profile, defId)
+	if type(defId) ~= "string" or (profile.Inventory[defId] or 0) <= 0 then
+		return fail("You don't have that dragon")
+	end
+	profile.Inventory[defId] -= 1
+	if profile.Inventory[defId] <= 0 then
+		profile.Inventory[defId] = nil
+	end
+	local coins = math.max(1, math.floor(Formulas.dragonIncome(defId) * 120))
+	PlayerService.addCoins(player, coins, "sell")
+	PlayerService.refreshInventory(player)
+	return ok("Sold for " .. Util.fmt(coins) .. " coins")
 end
 
 -- Companions --------------------------------------------------------------------
@@ -292,25 +341,6 @@ function ActionService.start()
 	Players.PlayerRemoving:Connect(function(p)
 		budget[p] = nil
 	end)
-	-- gate prompts
-	local map = workspace:WaitForChild("TFFD_Map")
-	for _, gate in map:WaitForChild("Gates"):GetChildren() do
-		local prompt = gate:FindFirstChildOfClass("ProximityPrompt")
-		if prompt then
-			prompt.Triggered:Connect(function(player)
-				local profile = DataService.get(player)
-				local zone = gate:GetAttribute("Zone")
-				if not profile or profile.MaxZone >= zone then
-					return
-				end
-				local result = handlers.UnlockZone(player, profile, zone)
-				if not result.ok then
-					PlayerService.notify(player, result.msg, "error")
-				end
-				PlayerService.sync(player)
-			end)
-		end
-	end
 end
 
 ActionService.handlers = handlers

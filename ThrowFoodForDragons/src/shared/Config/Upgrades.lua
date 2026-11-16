@@ -1,8 +1,9 @@
 -- Upgrade tracks. cost(level) = base * growth^level for the NEXT level.
 local Upgrades = {
-	Order = { "range", "speed", "bonus", "crit", "multi" },
+	Order = { "range", "farm", "speed", "bonus", "crit", "multi" },
 	Defs = {
-		range = { name = "Throw Power", icon = "💪", desc = "Throw further", base = 60, growth = 1.62, max = 30 },
+		range = { name = "Throw Power", icon = "💪", desc = "Throw further to reach far zones", base = 40, growth = 1.45, max = 40 },
+		farm = { name = "Farm Size", icon = "🏡", desc = "Keep more dragons on your farm", base = 150, growth = 1.85, max = 20 },
 		speed = { name = "Throw Speed", icon = "⚡", desc = "Throw more often", base = 90, growth = 1.7, max = 20 },
 		bonus = { name = "Feeding Bonus", icon = "💰", desc = "+12% coins per level", base = 150, growth = 1.72, max = 40 },
 		crit = { name = "Lucky Toss", icon = "🍀", desc = "Chance for 3x rewards", base = 250, growth = 1.8, max = 20 },
@@ -23,7 +24,10 @@ end
 
 -- Effect values ------------------------------------------------------------
 function Upgrades.rangeSpeed(level: number): number -- launch speed cap (studs/s)
-	return 72 + level * 2.4
+	return 58 + level * 3.4
+end
+function Upgrades.farmCap(level: number): number
+	return 10 + level * 2
 end
 function Upgrades.cooldown(level: number): number -- seconds between throws
 	return math.max(0.28, 0.85 - level * 0.0285)
@@ -42,6 +46,8 @@ end
 function Upgrades.describe(key: string, level: number): string
 	if key == "range" then
 		return string.format("%d → %d power", Upgrades.rangeSpeed(level), Upgrades.rangeSpeed(level + 1))
+	elseif key == "farm" then
+		return string.format("%d → %d dragons", Upgrades.farmCap(level), Upgrades.farmCap(level + 1))
 	elseif key == "speed" then
 		return string.format("%.2fs → %.2fs", Upgrades.cooldown(level), Upgrades.cooldown(level + 1))
 	elseif key == "bonus" then

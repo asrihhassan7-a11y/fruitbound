@@ -13,32 +13,55 @@ local list = {
 	{ name = "Cosmic Dimension", icon = "🌌", cost = 1000000000, mult = 25, ground = C(30, 20, 60), edge = C(15, 10, 35), decor = "cosmic", tint = C(225, 210, 255), fog = C(40, 20, 90), accent = C(255, 90, 220) },
 }
 
+-- Layout: player farm plots sit in a row along X at z in [-PLOT_D, 0], facing +Z.
+-- The shared throwing field lies in front of them; each zone is a band further away (zone 1 nearest).
+-- Players can't walk into the field: they throw from their plot, and dragons come to the food.
 local Zones = {
 	List = list,
-	SIZE = 220, -- island width/depth in studs
-	SPACING = 310, -- distance between island centers
-	SPAWN_RADIUS = 80, -- where dragons roam around island center
+	PLOTS = 8,
+	PLOT_W = 64,
+	PLOT_D = 56,
+	FIELD_START = 14, -- grass strip between fence (z=0) and zone 1
+	BAND = 32, -- depth of each zone band
 }
+Zones.FIELD_W = Zones.PLOTS * Zones.PLOT_W
 for i, z in list do
 	z.index = i
 end
 
-function Zones.center(i: number): Vector3
-	return Vector3.new((i - 1) * Zones.SPACING, 0, 0)
+-- z range of zone i
+function Zones.band(i: number): (number, number)
+	local z0 = Zones.FIELD_START + (i - 1) * Zones.BAND
+	return z0, z0 + Zones.BAND
 end
 
--- Returns the zone index whose island contains `pos`, or nil.
+function Zones.center(i: number): Vector3
+	local z0, z1 = Zones.band(i)
+	return Vector3.new(0, 0, (z0 + z1) / 2)
+end
+
+-- Zone index of a field position, or nil.
 function Zones.fromPosition(pos: Vector3): number?
-	local i = math.floor(pos.X / Zones.SPACING + 0.5) + 1
-	if i < 1 or i > #list then
+	if math.abs(pos.X) > Zones.FIELD_W / 2 or pos.Z < Zones.FIELD_START then
 		return nil
 	end
-	local c = Zones.center(i)
-	local half = Zones.SIZE / 2 + 4
-	if math.abs(pos.X - c.X) <= half and math.abs(pos.Z - c.Z) <= half then
-		return i
+	local i = math.floor((pos.Z - Zones.FIELD_START) / Zones.BAND) + 1
+	if i > #list then
+		return nil
 	end
-	return nil
+	return i
+end
+
+-- Plot i (1..PLOTS) centre on the ground.
+function Zones.plotCenter(i: number): Vector3
+	return Vector3.new((i - (Zones.PLOTS + 1) / 2) * Zones.PLOT_W, 0, -Zones.PLOT_D / 2)
+end
+
+-- Where the player stands to throw (front of the plot, facing the field).
+function Zones.plotSpawn(i: number): CFrame
+	local c = Zones.plotCenter(i)
+	local p = Vector3.new(c.X, 4, -7)
+	return CFrame.lookAt(p, p + Vector3.new(0, 0, 1))
 end
 
 return Zones

@@ -2,6 +2,7 @@
 local Services = script.Parent:WaitForChild("Services")
 
 local WorldBuilder = require(Services.WorldBuilder)
+local PlotService = require(Services.PlotService)
 local DataService = require(Services.DataService)
 local PlayerService = require(Services.PlayerService)
 local DragonService = require(Services.DragonService)
@@ -11,6 +12,7 @@ local MonetizationService = require(Services.MonetizationService)
 local ActionService = require(Services.ActionService)
 
 WorldBuilder.build()
+PlotService.start()
 PlayerService.start() -- before DataService so leaderstats/pass checks exist when profiles load
 QuestService.start(DragonService, ThrowService)
 DataService.start()

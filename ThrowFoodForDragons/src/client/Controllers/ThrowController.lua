@@ -13,7 +13,7 @@ local Trajectory = require(Shared.Trajectory)
 local State = require(script.Parent.State)
 local FX = require(script.Parent.FX)
 local Audio = require(script.Parent.Audio)
-local DragonAnimator = require(script.Parent.DragonAnimator)
+local FarmController = require(script.Parent.FarmController)
 
 local player = Players.LocalPlayer
 local ThrowRemote = Net.get("Throw")
@@ -53,7 +53,7 @@ end
 function ThrowController.throwAt(target: Vector3): boolean
 	local d = State.data
 	local r = root()
-	if not d or not r or d.AutoThrow then
+	if not d or not r or d.AutoThrow or FarmController.holdingDragon() then
 		return false
 	end
 	local now = os.clock()
@@ -97,22 +97,18 @@ local function worldPointFromScreen(pos: Vector2): Vector3?
 	return ray.Origin + ray.Direction * 200
 end
 
--- Aim assist: nearest dragon in range, otherwise straight ahead of the camera.
+-- Throw button / R2: straight out into the furthest unlocked zone you can reach (same rule as server Auto Throw).
 function ThrowController.throwAssist()
 	local r = root()
 	local d = State.data
 	if not r or not d then
 		return
 	end
-	local range = ThrowController.maxRange()
-	local target = DragonAnimator.nearest(r.Position, math.max(140, range), d.MaxZone, Zones.fromPosition)
-	if not target then
-		local look = workspace.CurrentCamera.CFrame.LookVector
-		local flat = Vector3.new(look.X, 0, look.Z)
-		flat = flat.Magnitude > 0.01 and flat.Unit or Vector3.new(0, 0, -1)
-		target = Vector3.new(r.Position.X, 0, r.Position.Z) + flat * range * 0.7
-	end
-	ThrowController.throwAt(target)
+	local reach = r.Position.Z + ThrowController.maxRange() * 0.92
+	local _, zEnd = Zones.band(d.MaxZone)
+	local z = math.max(math.min(reach, zEnd - 3), Zones.FIELD_START + 3)
+	local x = math.clamp(r.Position.X + math.random(-16, 16), -Zones.FIELD_W / 2 + 4, Zones.FIELD_W / 2 - 4)
+	ThrowController.throwAt(Vector3.new(x, 0, z))
 end
 
 function ThrowController.start()
