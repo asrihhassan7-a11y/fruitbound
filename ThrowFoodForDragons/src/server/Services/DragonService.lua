@@ -63,21 +63,15 @@ local function rollDragon(zone: number, lucky: boolean)
 	end, rng)
 end
 
--- Spawn point: on the island, 14-24 studs from the food, preferably away from the thrower.
+-- Spawn point: in the same zone band, 14-24 studs from the food, preferably on the far side from the thrower.
 local function spawnPoint(zone: number, food: Vector3, from: Vector3): Vector3
-	local c = Zones.center(zone)
-	local half = Zones.SIZE / 2 - 6
+	local z0, z1 = Zones.band(zone)
+	local halfW = Zones.FIELD_W / 2 - 4
 	local away = Vector3.new(food.X - from.X, 0, food.Z - from.Z)
 	local baseAngle = away.Magnitude > 1 and math.atan2(away.Z, away.X) or rng:NextNumber(0, math.pi * 2)
-	for _ = 1, 8 do
-		local a = baseAngle + rng:NextNumber(-1.1, 1.1)
-		local d = rng:NextNumber(14, 24)
-		local p = Vector3.new(food.X + math.cos(a) * d, 0, food.Z + math.sin(a) * d)
-		if math.abs(p.X - c.X) < half and math.abs(p.Z - c.Z) < half then
-			return p
-		end
-	end
-	return Vector3.new(food.X, 0, food.Z)
+	local a = baseAngle + rng:NextNumber(-1.3, 1.3)
+	local d = rng:NextNumber(14, 24)
+	return Vector3.new(math.clamp(food.X + math.cos(a) * d, -halfW, halfW), 0, math.clamp(food.Z + math.sin(a) * d, z0 + 2, z1 - 2))
 end
 
 local function finish(d)
