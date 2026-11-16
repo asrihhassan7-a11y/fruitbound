@@ -76,7 +76,7 @@ local function buildPanel(name: string)
 	Lib.corner(header, 22)
 	Lib.gradient(header, def.color)
 	Lib.text({ Text = def.icon .. "  " .. def.title, Size = UDim2.new(1, -120, 0, 42), Position = UDim2.fromOffset(20, 8), TextXAlignment = Enum.TextXAlignment.Left, Parent = header })
-	Lib.button({ Text = "✕", Color = T.Red, Size = UDim2.fromOffset(46, 46), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 6), Radius = 23, Parent = header, OnClick = function()
+	Lib.button({ Text = "X", Color = T.Red, Size = UDim2.fromOffset(46, 46), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 6), Radius = 23, Parent = header, OnClick = function()
 		Panels.close()
 	end })
 	local content = Lib.new("Frame", { Name = "Content", Position = UDim2.fromOffset(16, 68), Size = UDim2.new(1, -32, 1, -80), BackgroundTransparency = 1, Parent = frame })
@@ -107,9 +107,10 @@ function Panels.close()
 	end
 	local p = built[current]
 	current = nil
-	local tw = Lib.tween(p.scale, 0.15, { Scale = 0 })
-	tw.Completed:Once(function()
-		if p.scale.Scale == 0 then
+	local name = p.frame.Name
+	Lib.tween(p.scale, 0.15, { Scale = 0 })
+	task.delay(0.16, function()
+		if current ~= name then
 			p.frame.Visible = false
 		end
 	end)
