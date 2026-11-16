@@ -196,9 +196,10 @@ local function buildBand(i: number)
 		deco({ Size = Vector3.new(60, 16 + i * 2, Zones.BAND), CFrame = CFrame.new(side * (Zones.FIELD_W / 2 + 70), 4 + i, zmid), Color = z.edge, Material = Enum.Material.Slate }, zf)
 	end
 	-- floating zone name
-	local anchor = deco({ Name = "Sign" .. i, Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(0, 10 + i * 1.5, zmid), Transparency = 1 }, folders.Signs)
+	-- zone name label at the near edge of the band (clients slide it in front of their own plot)
+	local anchor = deco({ Name = "Sign" .. i, Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(0, 3.5, z0 + 3), Transparency = 1 }, folders.Signs)
 	anchor:SetAttribute("Zone", i)
-	label(anchor, z.icon .. " " .. z.name .. "  x" .. z.mult, UDim2.fromOffset(420, 60), Vector3.zero)
+	label(anchor, z.icon .. " " .. z.name .. "  x" .. z.mult, UDim2.fromScale(46, 5), Vector3.zero)
 	zf.Parent = folders.Decor
 end
 

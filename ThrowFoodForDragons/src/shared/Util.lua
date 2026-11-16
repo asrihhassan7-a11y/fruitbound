@@ -9,6 +9,11 @@ function Util.fmt(n: number?): string
 	local neg = v < 0
 	v = math.abs(v)
 	if v < 1000 then
+		if v < 100 and v ~= math.floor(v) then
+			local s = string.format("%.1f", v)
+			s = (string.gsub(s, "%.0$", ""))
+			return (neg and "-" or "") .. s
+		end
 		return (neg and "-" or "") .. tostring(math.floor(v))
 	end
 	local i = 1

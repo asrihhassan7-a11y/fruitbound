@@ -33,7 +33,7 @@ function Formulas.dragonIncome(defId: string): number
 		return 0
 	end
 	local zone = def.zone == 0 and #Zones.List or def.zone
-	return Formulas.income(zone) * 0.1 * Rarities.Info[def.rarity].mult
+	return Formulas.income(zone) * 0.3 * Rarities.Info[def.rarity].mult
 end
 
 function Formulas.farmIncome(profile, coinMult: number): number

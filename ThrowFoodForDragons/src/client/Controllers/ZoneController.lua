@@ -26,6 +26,10 @@ local function refresh()
 		overlays[i].Transparency = locked and 0.45 or 1
 		local map = workspace:FindFirstChild("TFFD_Map")
 		local sign = map and map.Signs:FindFirstChild("Sign" .. i)
+		local plot = player:GetAttribute("Plot")
+		if sign and plot then
+			sign.CFrame = CFrame.new(Zones.plotCenter(plot).X, sign.Position.Y, sign.Position.Z)
+		end
 		local text = sign and sign:FindFirstChild("Label") and sign.Label:FindFirstChild("Text")
 		if text then
 			if not locked then
