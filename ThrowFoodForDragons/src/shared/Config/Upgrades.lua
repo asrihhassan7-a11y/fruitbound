@@ -23,7 +23,7 @@ end
 
 -- Effect values ------------------------------------------------------------
 function Upgrades.rangeSpeed(level: number): number -- launch speed cap (studs/s)
-	return 62 + level * 2.6
+	return 72 + level * 2.4
 end
 function Upgrades.cooldown(level: number): number -- seconds between throws
 	return math.max(0.28, 0.85 - level * 0.0285)

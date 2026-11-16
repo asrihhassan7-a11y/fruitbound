@@ -94,7 +94,8 @@ function ThrowService.start()
 					local root = rootOf(player)
 					if stats and root and os.clock() - (lastThrow[player] or 0) >= stats.cooldown then
 						local food = Foods.ById[profile.EquippedFood] or Foods.ById[Foods.Default]
-						local range = Trajectory.range(stats.range, Trajectory.gravity(food)) * 0.95
+						-- dragons notice food within ~100 studs, so aim at anything reasonably close
+						local range = math.max(140, Trajectory.range(stats.range, Trajectory.gravity(food)))
 						local target = DragonService.nearestDragon(root.Position, profile.MaxZone, range)
 						if target then
 							ThrowService.throw(player, target, true)

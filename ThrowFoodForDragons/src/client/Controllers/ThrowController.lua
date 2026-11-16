@@ -105,7 +105,7 @@ function ThrowController.throwAssist()
 		return
 	end
 	local range = ThrowController.maxRange()
-	local target = DragonAnimator.nearest(r.Position, range, d.MaxZone, Zones.fromPosition)
+	local target = DragonAnimator.nearest(r.Position, math.max(140, range), d.MaxZone, Zones.fromPosition)
 	if not target then
 		local look = workspace.CurrentCamera.CFrame.LookVector
 		local flat = Vector3.new(look.X, 0, look.Z)
